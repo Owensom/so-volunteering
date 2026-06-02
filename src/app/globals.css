@@ -255,17 +255,19 @@ button {
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  min-width: 0;
-  max-width: min(100%, 680px);
+  width: min(760px, calc(100% - 150px));
+  min-width: 360px;
+  max-width: 100%;
+  overflow: visible;
 }
 
 .home-brand-logo {
   display: block;
-  width: min(680px, 78vw);
+  width: 100%;
   height: auto;
-  max-width: 100%;
+  min-width: 360px;
   object-fit: contain;
-  object-position: center;
+  object-position: left center;
 }
 
 .home-title {
@@ -474,29 +476,36 @@ button {
 
 .page-top-row {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 18px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
 
 .card-action {
   margin-top: 12px !important;
 }
 
-@media (max-width: 640px) {
-  .auth-card {
-    border-radius: 24px;
+@media (max-width: 760px) {
+  .page-top-row {
+    align-items: stretch;
+    flex-wrap: wrap;
   }
 
   .home-brand-lockup {
     width: 100%;
-    max-width: 100%;
+    min-width: 0;
   }
 
   .home-brand-logo {
-    width: min(100%, 520px);
-    height: auto;
+    width: 100%;
+    min-width: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .auth-card {
+    border-radius: 24px;
   }
 
   .action-row {
@@ -517,10 +526,6 @@ button {
   .dashboard-hero form,
   .dashboard-hero button {
     width: 100%;
-  }
-
-  .page-top-row {
-    align-items: stretch;
   }
 
   .audio-help-button {
