@@ -36,6 +36,18 @@ const goalOptions = [
     helpText: "Feel more connected."
   },
   {
+    value: "Build a routine",
+    label: "Build a routine",
+    icon: "🕒",
+    helpText: "Add structure at a steady pace."
+  },
+  {
+    value: "Try something new",
+    label: "Try something new",
+    icon: "🧪",
+    helpText: "Explore what suits you."
+  },
+  {
     value: "Progress towards employment",
     label: "Progress towards employment",
     icon: "💼",
@@ -46,6 +58,12 @@ const goalOptions = [
     label: "Education or training",
     icon: "🎓",
     helpText: "Support future learning."
+  },
+  {
+    value: "I am not sure yet",
+    label: "I am not sure yet",
+    icon: "🌈",
+    helpText: "That is okay. You can change this later."
   }
 ];
 
@@ -68,7 +86,7 @@ export default async function VolunteerOnboardingPage({
   }
 
   const listenText =
-    "This is step one of your volunteer profile setup. This page asks what you would like to achieve. At the top there is Listen support. First, type your nearest town or city. Then choose one or more large goal cards. Each card has an icon and a short label. Near the bottom there is a choice for how you prefer to volunteer. The final button says Save and continue.";
+    "This is step one of your volunteer profile setup. This page asks what you would like to achieve. At the top there is Listen support. First, type your nearest town or city. Then choose one or more large goal cards. Each card has an icon and a short label. The goal choices are support my community, gain experience, build skills, improve confidence, meet new people, build a routine, try something new, progress towards employment, education or training, and I am not sure yet. Near the bottom there is a choice for how you prefer to volunteer. The final button says Save and continue.";
 
   return (
     <main className="onboarding-shell">
@@ -89,7 +107,9 @@ export default async function VolunteerOnboardingPage({
               </span>
 
               <div>
-                <h1 className="onboarding-title">What would you like to achieve?</h1>
+                <h1 className="onboarding-title">
+                  What would you like to achieve?
+                </h1>
                 <p className="onboarding-lead">
                   Choose what matters to you. We use this to suggest
                   volunteering that feels meaningful, supportive and useful.
