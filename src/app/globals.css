@@ -257,17 +257,17 @@ button {
   gap: 18px;
   max-width: 100%;
   min-width: 0;
-  padding: 14px 22px 14px 14px;
-  border-radius: 28px;
-  background: rgba(255, 255, 255, 0.78);
-  border: 1px solid rgba(230, 193, 119, 0.42);
-  box-shadow: 0 16px 44px rgba(38, 50, 56, 0.08);
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
 }
 
 .home-brand-mark {
   display: block;
-  width: 92px;
-  height: 92px;
+  width: 96px;
+  height: 96px;
   object-fit: contain;
   object-position: center;
   flex: 0 0 auto;
@@ -275,39 +275,39 @@ button {
 
 .home-brand-text {
   display: grid;
-  gap: 7px;
+  gap: 8px;
   min-width: 0;
 }
 
 .home-brand-name {
   margin: 0;
   color: var(--sage-dark);
-  font-size: clamp(1.35rem, 3.2vw, 2.15rem);
+  font-size: clamp(1.55rem, 3.4vw, 2.45rem);
   font-weight: 900;
   line-height: 0.98;
-  letter-spacing: 0.055em;
+  letter-spacing: 0.07em;
   text-transform: uppercase;
   white-space: nowrap;
 }
 
 .home-brand-name span {
   color: var(--lavender-dark);
-  letter-spacing: 0.13em;
+  letter-spacing: 0.15em;
 }
 
 .home-brand-tagline {
   margin: 0;
   color: var(--gold);
-  font-size: clamp(0.78rem, 1.8vw, 0.98rem);
+  font-size: clamp(0.82rem, 1.9vw, 1.05rem);
   font-weight: 900;
   line-height: 1.2;
-  letter-spacing: 0.15em;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
   white-space: nowrap;
 }
 
 .home-title {
-  margin: 42px 0 16px;
+  margin: 44px 0 16px;
   font-size: clamp(2.7rem, 9vw, 5.125rem);
   line-height: 1;
   color: var(--sage-dark);
@@ -541,18 +541,16 @@ button {
 
   .home-brand-card {
     gap: 13px;
-    padding: 13px 15px 13px 13px;
-    border-radius: 24px;
   }
 
   .home-brand-mark {
-    width: 68px;
-    height: 68px;
+    width: 72px;
+    height: 72px;
   }
 
   .home-brand-name {
-    font-size: clamp(1.02rem, 5vw, 1.32rem);
-    letter-spacing: 0.035em;
+    font-size: clamp(1.08rem, 5.2vw, 1.38rem);
+    letter-spacing: 0.04em;
   }
 
   .home-brand-tagline {
@@ -562,7 +560,7 @@ button {
   }
 
   .home-title {
-    margin-top: 32px;
+    margin-top: 34px;
   }
 
   .action-row {
