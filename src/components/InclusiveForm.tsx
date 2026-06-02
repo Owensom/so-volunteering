@@ -4,6 +4,7 @@ type ChoiceOption = {
   value: string;
   label: string;
   helpText?: string;
+  icon?: string;
 };
 
 export function OnboardingProgress({
@@ -62,8 +63,15 @@ export function ChoiceCards({
       {options.map((option) => (
         <label key={option.value} className="choice-card">
           <input type="checkbox" name={name} value={option.value} />
-          <span>
-            {option.label}
+
+          {option.icon ? (
+            <span className="choice-card-icon" aria-hidden="true">
+              {option.icon}
+            </span>
+          ) : null}
+
+          <span className="choice-card-copy">
+            <span className="choice-card-title">{option.label}</span>
             {option.helpText ? (
               <small className="choice-help">{option.helpText}</small>
             ) : null}
