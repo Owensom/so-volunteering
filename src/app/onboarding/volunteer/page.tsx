@@ -11,13 +11,48 @@ import {
 } from "@/components/InclusiveForm";
 
 const goalOptions = [
-  { value: "Support my community", label: "Support my community", helpText: "Help people, groups or local causes." },
-  { value: "Gain experience", label: "Gain experience", helpText: "Build useful experience for your next step." },
-  { value: "Build skills", label: "Build skills", helpText: "Learn or practise skills in a supportive way." },
-  { value: "Improve confidence", label: "Improve confidence", helpText: "Start gently and grow over time." },
-  { value: "Meet new people", label: "Meet new people", helpText: "Feel more connected to others." },
-  { value: "Progress towards employment", label: "Progress towards employment", helpText: "Build evidence for a CV or job application." },
-  { value: "Progress towards education or training", label: "Progress towards education or training", helpText: "Support college, training or future learning." }
+  {
+    value: "Support my community",
+    label: "Support my community",
+    icon: "🤝",
+    helpText: "Help local people, groups or causes."
+  },
+  {
+    value: "Gain experience",
+    label: "Gain experience",
+    icon: "🧭",
+    helpText: "Build useful experience for your next step."
+  },
+  {
+    value: "Build skills",
+    label: "Build skills",
+    icon: "⭐",
+    helpText: "Learn and practise in a supportive way."
+  },
+  {
+    value: "Improve confidence",
+    label: "Improve confidence",
+    icon: "🌱",
+    helpText: "Start gently and grow over time."
+  },
+  {
+    value: "Meet new people",
+    label: "Meet new people",
+    icon: "👋",
+    helpText: "Feel more connected to others."
+  },
+  {
+    value: "Progress towards employment",
+    label: "Progress towards employment",
+    icon: "💼",
+    helpText: "Build evidence for a CV or job application."
+  },
+  {
+    value: "Progress towards education or training",
+    label: "Progress towards education or training",
+    icon: "🎓",
+    helpText: "Support college, training or future learning."
+  }
 ];
 
 export default async function VolunteerOnboardingPage({
@@ -39,24 +74,26 @@ export default async function VolunteerOnboardingPage({
   }
 
   const listenText =
-    "This is step one of your volunteer profile setup. Choose what you would like to achieve. You can choose more than one option. You only need to type your nearest town or city.";
+    "This is step one of your volunteer profile setup. This page asks what you would like to achieve. At the top there is Listen support. First, type your nearest town or city. Then choose one or more goal cards. Each card has a large icon, a short title and a short description. Near the bottom there is a choice for how you prefer to volunteer. The final button says Save and continue.";
 
   return (
     <main className="center-shell">
-      <section className="auth-card">
-        <div className="page-top-row">
+      <section className="auth-card onboarding-card">
+        <div className="page-top-row onboarding-top-row">
           <p className="brand-eyebrow">Profile setup</p>
           <InclusiveAudioButton text={listenText} />
         </div>
 
-        <h1 className="page-title">
-          <IconLabel icon="🌱">What would you like to achieve?</IconLabel>
-        </h1>
+        <div className="onboarding-hero-copy">
+          <h1 className="page-title onboarding-title">
+            <IconLabel icon="🌱">What would you like to achieve?</IconLabel>
+          </h1>
 
-        <p className="page-lead">
-          Choose what matters to you. This helps us recommend opportunities that
-          feel meaningful, supportive and useful.
-        </p>
+          <p className="page-lead onboarding-lead">
+            Choose what matters to you. This helps us suggest volunteering that
+            feels meaningful, supportive and useful.
+          </p>
+        </div>
 
         <OnboardingProgress step={1} total={4} />
 
