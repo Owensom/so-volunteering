@@ -7,6 +7,7 @@ export default async function SignupPage({
   searchParams: Promise<{ error?: string }>;
 }) {
   const params = await searchParams;
+  const errorMessage = params.error ? decodeURIComponent(params.error) : "";
 
   return (
     <main style={styles.page}>
@@ -15,8 +16,8 @@ export default async function SignupPage({
         <h1 style={styles.title}>Create your account</h1>
         <p style={styles.lead}>Start building your inclusive volunteering pathway.</p>
 
-        {params.error ? (
-          <div style={styles.error}>Please check your details and try again.</div>
+        {errorMessage ? (
+          <div style={styles.error}>{errorMessage}</div>
         ) : null}
 
         <form action={signUp} style={styles.form}>
@@ -40,7 +41,13 @@ export default async function SignupPage({
 
           <label style={styles.label}>
             Password
-            <input name="password" type="password" required minLength={6} style={styles.input} />
+            <input
+              name="password"
+              type="password"
+              required
+              minLength={6}
+              style={styles.input}
+            />
           </label>
 
           <button type="submit" style={styles.primaryButton}>
@@ -49,7 +56,10 @@ export default async function SignupPage({
         </form>
 
         <p style={styles.footerText}>
-          Already have an account? <Link href="/login" style={styles.link}>Sign in</Link>
+          Already have an account?{" "}
+          <Link href="/login" style={styles.link}>
+            Sign in
+          </Link>
         </p>
       </section>
     </main>
@@ -124,7 +134,8 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: "14px",
     padding: "12px 14px",
     marginBottom: "18px",
-    fontWeight: 700
+    fontWeight: 700,
+    lineHeight: 1.5
   },
   footerText: {
     marginTop: "22px",
