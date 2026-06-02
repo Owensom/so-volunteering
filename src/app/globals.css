@@ -739,7 +739,7 @@ button {
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  padding: clamp(28px, 4vw, 48px);
+  padding: clamp(18px, 2.4vw, 30px);
   background:
     radial-gradient(circle at top left, rgba(183, 167, 214, 0.22), transparent 34%),
     radial-gradient(circle at bottom right, rgba(143, 178, 158, 0.18), transparent 34%),
@@ -747,9 +747,10 @@ button {
 }
 
 .onboarding-panel {
-  width: min(100%, 1040px);
+  width: 100%;
+  max-width: 1180px;
   border-radius: 34px;
-  padding: clamp(28px, 4vw, 44px);
+  padding: clamp(30px, 3.2vw, 46px);
   background:
     linear-gradient(
       135deg,
@@ -770,16 +771,16 @@ button {
 
 .onboarding-hero-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.4fr) minmax(260px, 0.6fr);
-  gap: 24px;
-  align-items: end;
+  grid-template-columns: minmax(0, 1.45fr) minmax(280px, 0.65fr);
+  gap: 26px;
+  align-items: stretch;
   margin-bottom: 28px;
 }
 
 .onboarding-title-lockup {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
-  gap: 18px;
+  gap: 20px;
   align-items: center;
 }
 
@@ -787,8 +788,8 @@ button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: clamp(64px, 8vw, 82px);
-  height: clamp(64px, 8vw, 82px);
+  width: clamp(68px, 7vw, 86px);
+  height: clamp(68px, 7vw, 86px);
   border-radius: 28px;
   background:
     linear-gradient(
@@ -797,28 +798,30 @@ button {
       rgba(143, 178, 158, 0.18)
     );
   border: 1px solid rgba(183, 167, 214, 0.25);
-  font-size: clamp(2rem, 4vw, 2.6rem);
+  font-size: clamp(2.05rem, 3.5vw, 2.7rem);
   line-height: 1;
 }
 
 .onboarding-title {
   margin: 0;
   color: var(--sage-dark);
-  font-size: clamp(2.45rem, 5vw, 4.15rem);
+  font-size: clamp(2.7rem, 4.6vw, 4.45rem);
   line-height: 1.02;
   letter-spacing: -0.045em;
   text-wrap: balance;
 }
 
 .onboarding-lead {
-  max-width: 720px;
+  max-width: 820px;
   margin: 14px 0 0;
   color: var(--text);
-  font-size: clamp(1rem, 1.55vw, 1.16rem);
+  font-size: clamp(1.02rem, 1.35vw, 1.16rem);
   line-height: 1.55;
 }
 
 .onboarding-progress-card {
+  display: grid;
+  align-content: center;
   min-width: 0;
   border-radius: 24px;
   padding: 20px;
@@ -847,16 +850,16 @@ button {
 
 .choice-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 14px;
 }
 
 .choice-card {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 14px;
-  align-items: center;
-  min-height: 112px;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  align-items: start;
+  min-height: 178px;
   padding: 18px;
   border: 1px solid rgba(143, 178, 158, 0.26);
   border-radius: 24px;
@@ -897,9 +900,9 @@ button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 68px;
-  height: 68px;
-  border-radius: 24px;
+  width: 72px;
+  height: 72px;
+  border-radius: 26px;
   background:
     linear-gradient(
       135deg,
@@ -907,13 +910,13 @@ button {
       rgba(143, 178, 158, 0.18)
     );
   border: 1px solid rgba(183, 167, 214, 0.26);
-  font-size: 2.05rem;
+  font-size: 2.15rem;
   line-height: 1;
 }
 
 .choice-card-copy {
   display: grid;
-  gap: 5px;
+  gap: 6px;
   min-width: 0;
 }
 
@@ -939,7 +942,7 @@ button {
 .progress-wrap {
   display: grid;
   gap: 8px;
-  margin: 0 0 22px;
+  margin: 0;
 }
 
 .progress-meta {
@@ -1126,6 +1129,16 @@ button {
   .onboarding-progress-card {
     padding: 18px;
   }
+
+  .choice-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .choice-card {
+    min-height: 142px;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+  }
 }
 
 @media (max-width: 900px) {
@@ -1167,6 +1180,12 @@ button {
 
   .choice-grid {
     grid-template-columns: 1fr;
+  }
+
+  .choice-card {
+    min-height: 104px;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
   }
 }
 
@@ -1289,7 +1308,7 @@ button {
   }
 
   .choice-card {
-    min-height: 94px;
+    min-height: 96px;
     padding: 14px;
     border-radius: 22px;
   }
