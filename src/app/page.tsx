@@ -9,12 +9,20 @@ export default function HomePage() {
     <main className="center-shell">
       <section className="home-hero">
         <div className="page-top-row">
-          <div className="home-brand-lockup" aria-label="SO Volunteering">
+          <div className="home-brand-card" aria-label="SO Volunteering">
             <img
-              src="/brand/so-volunteering-logo-horizontal-compact.png"
-              alt="SO Volunteering"
-              className="home-brand-logo"
+              src="/brand/so-volunteering-logo-mark.png"
+              alt=""
+              className="home-brand-mark"
+              aria-hidden="true"
             />
+
+            <div className="home-brand-text">
+              <p className="home-brand-name">
+                <span>SO</span> Volunteering
+              </p>
+              <p className="home-brand-tagline">Belong • Grow • Thrive</p>
+            </div>
           </div>
 
           <InclusiveAudioButton text={listenText} />
