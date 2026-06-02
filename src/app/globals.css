@@ -463,7 +463,9 @@ button {
 }
 
 .dashboard-signout-button {
-  min-width: 142px;
+  min-width: 126px;
+  min-height: 46px;
+  padding: 0 14px;
 }
 
 .dashboard-button-inner {
@@ -1096,6 +1098,10 @@ button {
   .dashboard-topbar-actions form,
   .dashboard-signout-button {
     width: 100%;
+  }
+
+  .dashboard-signout-button {
+    min-height: 50px;
   }
 
   .dashboard-welcome-card {
