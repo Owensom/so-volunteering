@@ -11,18 +11,10 @@ export default function HomePage() {
         <div className="page-top-row">
           <div className="home-brand-card" aria-label="SO Volunteering">
             <img
-              src="/brand/so-volunteering-logo-mark.png"
-              alt=""
-              className="home-brand-mark"
-              aria-hidden="true"
+              src="/brand/so-volunteering-logo-horizontal-compact.png"
+              alt="SO Volunteering. Belong, Grow, Thrive."
+              className="home-brand-logo"
             />
-
-            <div className="home-brand-text">
-              <p className="home-brand-name">
-                <span>SO</span> Volunteering
-              </p>
-              <p className="home-brand-tagline">Belong • Grow • Thrive</p>
-            </div>
           </div>
 
           <InclusiveAudioButton text={listenText} />
