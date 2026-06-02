@@ -25,7 +25,7 @@ export async function saveVolunteerOnboarding(formData: FormData) {
     city,
     goals,
     volunteering_preference: volunteeringPreference,
-    onboarding_completed: true,
+    onboarding_completed: false,
     updated_at: new Date().toISOString()
   });
 
@@ -33,5 +33,5 @@ export async function saveVolunteerOnboarding(formData: FormData) {
     redirect(`/onboarding/volunteer?error=${encodeURIComponent(error.message)}`);
   }
 
-  redirect("/dashboard");
+  redirect("/onboarding/volunteer/skills");
 }
