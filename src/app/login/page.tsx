@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { signIn } from "@/app/auth/actions";
+import { InclusiveAudioButton, IconLabel } from "@/components/InclusiveSupport";
 
 export default async function LoginPage({
   searchParams
@@ -9,11 +10,21 @@ export default async function LoginPage({
   const params = await searchParams;
   const errorMessage = params.error ? decodeURIComponent(params.error) : "";
 
+  const listenText =
+    "This is the sign in page for SO Volunteering. Enter your email and password to continue to your dashboard.";
+
   return (
     <main className="center-shell">
       <section className="auth-card">
-        <p className="brand-eyebrow">SO Volunteering</p>
-        <h1 className="page-title">Welcome back</h1>
+        <div className="page-top-row">
+          <p className="brand-eyebrow">SO Volunteering</p>
+          <InclusiveAudioButton text={listenText} />
+        </div>
+
+        <h1 className="page-title">
+          <IconLabel icon="👋">Welcome back</IconLabel>
+        </h1>
+
         <p className="page-lead">Sign in to continue your volunteering journey.</p>
 
         {params.message === "account_created" ? (
@@ -28,17 +39,17 @@ export default async function LoginPage({
 
         <form action={signIn} className="form-stack">
           <label className="field-label">
-            Email
+            <IconLabel icon="✉️">Email</IconLabel>
             <input name="email" type="email" required />
           </label>
 
           <label className="field-label">
-            Password
+            <IconLabel icon="🔒">Password</IconLabel>
             <input name="password" type="password" required />
           </label>
 
           <button type="submit" className="primary-button">
-            Sign in
+            <IconLabel icon="➡️">Sign in</IconLabel>
           </button>
         </form>
 
