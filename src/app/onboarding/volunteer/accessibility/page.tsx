@@ -71,10 +71,20 @@ export default async function VolunteerAccessibilityPage({
           </fieldset>
 
           <label className="field-label">
-            Would you like organisations to see these accessibility needs?
+            Is there anything specific that would help you feel comfortable,
+            supported or included?
+            <textarea
+              name="support_needs"
+              rows={5}
+              placeholder="Example: I prefer quieter environments, clear instructions before a shift, flexible timings, or support with transport."
+            />
+          </label>
+
+          <label className="field-label">
+            Would you like organisations to see this information?
             <select name="share_accessibility_needs" defaultValue="false">
-              <option value="false">No, keep them private for now</option>
-              <option value="true">Yes, share them with organisations</option>
+              <option value="false">No, keep it private for now</option>
+              <option value="true">Yes, share it with organisations</option>
             </select>
           </label>
 
