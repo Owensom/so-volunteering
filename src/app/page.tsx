@@ -3,7 +3,7 @@ import { InclusiveAudioButton } from "@/components/InclusiveSupport";
 
 export default function HomePage() {
   const listenText =
-    "Welcome to SO Volunteering. This platform helps people belong, grow and thrive through inclusive volunteering, support, skills development and pathways into education, training and employment.";
+    "Welcome to SO Volunteering. At the top of the page is the SO Volunteering logo and the Listen support. The main heading says, Belong. Grow. Thrive. This platform helps people find volunteering opportunities, build confidence, develop verified skills, and progress towards education, training, and employment. Near the bottom of this card there are two main buttons. The first button says Get started. Choose this if you want to create an account. The second button says Sign in. Choose this if you already have an account.";
 
   return (
     <main className="center-shell">
