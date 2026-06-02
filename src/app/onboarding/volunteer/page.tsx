@@ -1,57 +1,51 @@
 import { redirect } from "next/navigation";
 import { saveVolunteerOnboarding } from "./actions";
 import { createClient } from "@/lib/supabase/server";
-import {
-  InclusiveAudioButton,
-  IconLabel
-} from "@/components/InclusiveSupport";
-import {
-  OnboardingProgress,
-  ChoiceCards
-} from "@/components/InclusiveForm";
+import { InclusiveAudioButton } from "@/components/InclusiveSupport";
+import { OnboardingProgress, ChoiceCards } from "@/components/InclusiveForm";
 
 const goalOptions = [
   {
     value: "Support my community",
     label: "Support my community",
     icon: "🤝",
-    helpText: "Help local people, groups or causes."
+    helpText: "Help local people or causes."
   },
   {
     value: "Gain experience",
     label: "Gain experience",
     icon: "🧭",
-    helpText: "Build useful experience for your next step."
+    helpText: "Build useful experience."
   },
   {
     value: "Build skills",
     label: "Build skills",
     icon: "⭐",
-    helpText: "Learn and practise in a supportive way."
+    helpText: "Learn in a supportive way."
   },
   {
     value: "Improve confidence",
     label: "Improve confidence",
     icon: "🌱",
-    helpText: "Start gently and grow over time."
+    helpText: "Start gently and grow."
   },
   {
     value: "Meet new people",
     label: "Meet new people",
     icon: "👋",
-    helpText: "Feel more connected to others."
+    helpText: "Feel more connected."
   },
   {
     value: "Progress towards employment",
     label: "Progress towards employment",
     icon: "💼",
-    helpText: "Build evidence for a CV or job application."
+    helpText: "Build CV evidence."
   },
   {
-    value: "Progress towards education or training",
-    label: "Progress towards education or training",
+    value: "Education or training",
+    label: "Education or training",
     icon: "🎓",
-    helpText: "Support college, training or future learning."
+    helpText: "Support future learning."
   }
 ];
 
@@ -74,48 +68,76 @@ export default async function VolunteerOnboardingPage({
   }
 
   const listenText =
-    "This is step one of your volunteer profile setup. This page asks what you would like to achieve. At the top there is Listen support. First, type your nearest town or city. Then choose one or more goal cards. Each card has a large icon, a short title and a short description. Near the bottom there is a choice for how you prefer to volunteer. The final button says Save and continue.";
+    "This is step one of your volunteer profile setup. This page asks what you would like to achieve. At the top there is Listen support. First, type your nearest town or city. Then choose one or more large goal cards. Each card has an icon and a short label. Near the bottom there is a choice for how you prefer to volunteer. The final button says Save and continue.";
 
   return (
-    <main className="center-shell">
-      <section className="auth-card onboarding-card">
-        <div className="page-top-row onboarding-top-row">
-          <p className="brand-eyebrow">Profile setup</p>
+    <main className="onboarding-shell">
+      <section className="onboarding-panel">
+        <div className="onboarding-top-row">
+          <div>
+            <p className="brand-eyebrow">Profile setup</p>
+          </div>
+
           <InclusiveAudioButton text={listenText} />
         </div>
 
-        <div className="onboarding-hero-copy">
-          <h1 className="page-title onboarding-title">
-            <IconLabel icon="🌱">What would you like to achieve?</IconLabel>
-          </h1>
+        <div className="onboarding-hero-grid">
+          <div className="onboarding-hero-main">
+            <div className="onboarding-title-lockup">
+              <span className="onboarding-title-icon" aria-hidden="true">
+                🌱
+              </span>
 
-          <p className="page-lead onboarding-lead">
-            Choose what matters to you. This helps us suggest volunteering that
-            feels meaningful, supportive and useful.
-          </p>
+              <div>
+                <h1 className="onboarding-title">What would you like to achieve?</h1>
+                <p className="onboarding-lead">
+                  Choose what matters to you. We use this to suggest
+                  volunteering that feels meaningful, supportive and useful.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="onboarding-progress-card">
+            <OnboardingProgress step={1} total={4} />
+          </div>
         </div>
-
-        <OnboardingProgress step={1} total={4} />
 
         {errorMessage ? (
           <div className="alert alert-error">{errorMessage}</div>
         ) : null}
 
         <form action={saveVolunteerOnboarding} className="form-stack">
-          <label className="field-label">
-            <IconLabel icon="📍">Your nearest town or city</IconLabel>
+          <label className="field-label onboarding-field-label">
+            <span className="field-label-row">
+              <span className="field-label-icon" aria-hidden="true">
+                📍
+              </span>
+              <span>Your nearest town or city</span>
+            </span>
             <input name="city" type="text" placeholder="Example: Aberdeen" required />
           </label>
 
           <fieldset className="choice-group">
             <legend>
-              <IconLabel icon="✨">Choose one or more goals</IconLabel>
+              <span className="field-label-row">
+                <span className="field-label-icon" aria-hidden="true">
+                  ✨
+                </span>
+                <span>Choose one or more goals</span>
+              </span>
             </legend>
+
             <ChoiceCards name="goals" options={goalOptions} />
           </fieldset>
 
-          <label className="field-label">
-            <IconLabel icon="🧭">How would you prefer to volunteer?</IconLabel>
+          <label className="field-label onboarding-field-label">
+            <span className="field-label-row">
+              <span className="field-label-icon" aria-hidden="true">
+                🧭
+              </span>
+              <span>How would you prefer to volunteer?</span>
+            </span>
             <select name="volunteering_preference" defaultValue="both">
               <option value="both">Both in-person and remote</option>
               <option value="in_person">In-person</option>
@@ -123,8 +145,11 @@ export default async function VolunteerOnboardingPage({
             </select>
           </label>
 
-          <button type="submit" className="primary-button">
-            <IconLabel icon="➡️">Save and continue</IconLabel>
+          <button type="submit" className="primary-button onboarding-submit-button">
+            <span className="button-balanced-inner">
+              <span aria-hidden="true">➡️</span>
+              <span>Save and continue</span>
+            </span>
           </button>
         </form>
       </section>
