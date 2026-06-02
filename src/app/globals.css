@@ -152,26 +152,6 @@ button {
   border: 1px solid rgba(143, 178, 158, 0.25);
 }
 
-.onboarding-card {
-  max-width: 920px;
-}
-
-.onboarding-hero-copy {
-  max-width: 760px;
-}
-
-.onboarding-title {
-  margin-top: 18px;
-}
-
-.onboarding-lead {
-  max-width: 720px;
-}
-
-.onboarding-top-row {
-  align-items: flex-start;
-}
-
 .form-stack {
   display: grid;
   gap: 18px;
@@ -182,6 +162,23 @@ button {
   gap: 8px;
   font-weight: 700;
   color: var(--text);
+}
+
+.field-label-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text);
+  font-weight: 900;
+}
+
+.field-label-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2rem;
+  font-size: 1.55rem;
+  line-height: 1;
 }
 
 .primary-button,
@@ -216,6 +213,29 @@ button {
   border: 1px solid rgba(183, 167, 214, 0.35);
 }
 
+.button-balanced-inner {
+  display: inline-grid;
+  grid-template-columns: 1.4rem minmax(0, auto) 1.4rem;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  width: 100%;
+  line-height: 1;
+}
+
+.button-balanced-inner::after {
+  content: "";
+  display: block;
+  width: 1.4rem;
+  height: 1px;
+}
+
+.button-balanced-inner > span:first-child {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .alert {
   border-radius: 14px;
   padding: 12px 14px;
@@ -243,6 +263,8 @@ button {
   color: var(--lavender-dark);
   font-weight: 800;
 }
+
+/* Home */
 
 .home-hero {
   width: 100%;
@@ -403,6 +425,8 @@ button {
   line-height: 1;
   letter-spacing: 0;
 }
+
+/* Dashboard */
 
 .dashboard-bg {
   min-height: 100dvh;
@@ -708,6 +732,105 @@ button {
   margin-top: 12px !important;
 }
 
+/* Onboarding */
+
+.onboarding-shell {
+  min-height: 100dvh;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: clamp(28px, 4vw, 48px);
+  background:
+    radial-gradient(circle at top left, rgba(183, 167, 214, 0.22), transparent 34%),
+    radial-gradient(circle at bottom right, rgba(143, 178, 158, 0.18), transparent 34%),
+    var(--bg);
+}
+
+.onboarding-panel {
+  width: min(100%, 1040px);
+  border-radius: 34px;
+  padding: clamp(28px, 4vw, 44px);
+  background:
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.94),
+      rgba(255, 255, 255, 0.76)
+    );
+  border: 1px solid rgba(143, 178, 158, 0.24);
+  box-shadow: 0 24px 80px rgba(38, 50, 56, 0.08);
+}
+
+.onboarding-top-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: clamp(22px, 3vw, 34px);
+}
+
+.onboarding-hero-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(260px, 0.6fr);
+  gap: 24px;
+  align-items: end;
+  margin-bottom: 28px;
+}
+
+.onboarding-title-lockup {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 18px;
+  align-items: center;
+}
+
+.onboarding-title-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: clamp(64px, 8vw, 82px);
+  height: clamp(64px, 8vw, 82px);
+  border-radius: 28px;
+  background:
+    linear-gradient(
+      135deg,
+      rgba(183, 167, 214, 0.22),
+      rgba(143, 178, 158, 0.18)
+    );
+  border: 1px solid rgba(183, 167, 214, 0.25);
+  font-size: clamp(2rem, 4vw, 2.6rem);
+  line-height: 1;
+}
+
+.onboarding-title {
+  margin: 0;
+  color: var(--sage-dark);
+  font-size: clamp(2.45rem, 5vw, 4.15rem);
+  line-height: 1.02;
+  letter-spacing: -0.045em;
+  text-wrap: balance;
+}
+
+.onboarding-lead {
+  max-width: 720px;
+  margin: 14px 0 0;
+  color: var(--text);
+  font-size: clamp(1rem, 1.55vw, 1.16rem);
+  line-height: 1.55;
+}
+
+.onboarding-progress-card {
+  min-width: 0;
+  border-radius: 24px;
+  padding: 20px;
+  background:
+    linear-gradient(
+      135deg,
+      rgba(143, 178, 158, 0.14),
+      rgba(183, 167, 214, 0.12)
+    );
+  border: 1px solid rgba(143, 178, 158, 0.22);
+}
+
 .choice-group {
   display: grid;
   gap: 12px;
@@ -733,15 +856,15 @@ button {
   grid-template-columns: auto minmax(0, 1fr);
   gap: 14px;
   align-items: center;
-  min-height: 118px;
+  min-height: 112px;
   padding: 18px;
   border: 1px solid rgba(143, 178, 158, 0.26);
   border-radius: 24px;
   background:
     linear-gradient(
       135deg,
-      rgba(255, 255, 255, 0.9),
-      rgba(255, 255, 255, 0.72)
+      rgba(255, 255, 255, 0.92),
+      rgba(255, 255, 255, 0.76)
     );
   color: var(--text);
   font-weight: 700;
@@ -809,6 +932,10 @@ button {
   line-height: 1.35;
 }
 
+.onboarding-submit-button {
+  min-height: 54px;
+}
+
 .progress-wrap {
   display: grid;
   gap: 8px;
@@ -855,6 +982,8 @@ button {
   color: var(--muted);
   line-height: 1.45;
 }
+
+/* Audio */
 
 .audio-help-wrap {
   display: grid;
@@ -989,6 +1118,14 @@ button {
   .dashboard-pathway-card {
     min-height: 0;
   }
+
+  .onboarding-hero-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .onboarding-progress-card {
+    padding: 18px;
+  }
 }
 
 @media (max-width: 900px) {
@@ -1027,6 +1164,10 @@ button {
   .home-title {
     font-size: clamp(2.45rem, 11vw, 3.35rem);
   }
+
+  .choice-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 640px) {
@@ -1037,10 +1178,6 @@ button {
   .auth-card {
     border-radius: 24px;
     padding: 24px;
-  }
-
-  .onboarding-card {
-    max-width: 100%;
   }
 
   .home-hero {
@@ -1114,20 +1251,62 @@ button {
     min-width: 0;
   }
 
-  .choice-grid {
+  .onboarding-shell {
+    padding: 18px;
+  }
+
+  .onboarding-panel {
+    border-radius: 28px;
+    padding: 24px 20px;
+  }
+
+  .onboarding-top-row {
+    display: grid;
+    gap: 14px;
+    margin-bottom: 24px;
+  }
+
+  .onboarding-title-lockup {
     grid-template-columns: 1fr;
+    gap: 14px;
   }
 
-  .choice-card {
-    min-height: 104px;
-    padding: 16px;
-  }
-
-  .choice-card-icon {
+  .onboarding-title-icon {
     width: 62px;
     height: 62px;
     border-radius: 22px;
     font-size: 1.9rem;
+  }
+
+  .onboarding-title {
+    font-size: clamp(2.25rem, 11vw, 3.2rem);
+    line-height: 1.03;
+  }
+
+  .onboarding-lead {
+    font-size: 1.06rem;
+    line-height: 1.55;
+  }
+
+  .choice-card {
+    min-height: 94px;
+    padding: 14px;
+    border-radius: 22px;
+  }
+
+  .choice-card-icon {
+    width: 58px;
+    height: 58px;
+    border-radius: 20px;
+    font-size: 1.8rem;
+  }
+
+  .choice-card-title {
+    font-size: 1rem;
+  }
+
+  .choice-help {
+    font-size: 0.86rem;
   }
 
   .audio-help-wrap {
