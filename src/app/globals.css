@@ -460,3 +460,30 @@ button {
   display: grid;
   gap: 10px;
 }
+
+.audio-help-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 46px;
+  width: fit-content;
+  border-radius: 999px;
+  padding: 11px 16px;
+  background: rgba(255, 255, 255, 0.84);
+  color: var(--lavender-dark);
+  border: 1px solid rgba(183, 167, 214, 0.45);
+  font-weight: 800;
+  box-shadow: 0 10px 28px rgba(38, 50, 56, 0.06);
+}
+
+.icon-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.icon-label > span:first-child {
+  font-size: 1.25rem;
+  line-height: 1;
+}
