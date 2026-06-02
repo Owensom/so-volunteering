@@ -252,17 +252,18 @@ button {
 }
 
 .home-brand-lockup {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   justify-content: flex-start;
   min-width: 0;
+  max-width: min(100%, 680px);
 }
 
 .home-brand-logo {
   display: block;
-  width: auto;
-  height: 56px;
-  max-width: min(320px, 68vw);
+  width: min(680px, 78vw);
+  height: auto;
+  max-width: 100%;
   object-fit: contain;
   object-position: center;
 }
@@ -475,7 +476,7 @@ button {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 18px;
   flex-wrap: wrap;
 }
 
@@ -488,9 +489,14 @@ button {
     border-radius: 24px;
   }
 
+  .home-brand-lockup {
+    width: 100%;
+    max-width: 100%;
+  }
+
   .home-brand-logo {
-    height: 46px;
-    max-width: 230px;
+    width: min(100%, 520px);
+    height: auto;
   }
 
   .action-row {
