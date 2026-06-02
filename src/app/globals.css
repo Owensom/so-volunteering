@@ -153,12 +153,28 @@ button {
 }
 
 .onboarding-card {
+  max-width: 920px;
+}
+
+.onboarding-hero-copy {
+  max-width: 760px;
+}
+
+.onboarding-title {
+  margin-top: 18px;
+}
+
+.onboarding-lead {
   max-width: 720px;
+}
+
+.onboarding-top-row {
+  align-items: flex-start;
 }
 
 .form-stack {
   display: grid;
-  gap: 16px;
+  gap: 18px;
 }
 
 .field-label {
@@ -694,80 +710,103 @@ button {
 
 .choice-group {
   display: grid;
-  gap: 10px;
+  gap: 12px;
   margin: 0;
   padding: 0;
   border: 0;
 }
 
 .choice-group legend {
-  margin-bottom: 2px;
-  font-weight: 800;
+  margin-bottom: 4px;
+  font-weight: 900;
   color: var(--text);
+}
+
+.choice-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
 }
 
 .choice-card {
   display: grid;
-  grid-template-columns: auto auto minmax(0, 1fr);
+  grid-template-columns: auto minmax(0, 1fr);
   gap: 14px;
-  align-items: flex-start;
-  min-height: 86px;
-  padding: 16px;
-  border: 1px solid rgba(143, 178, 158, 0.28);
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.78);
+  align-items: center;
+  min-height: 118px;
+  padding: 18px;
+  border: 1px solid rgba(143, 178, 158, 0.26);
+  border-radius: 24px;
+  background:
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.9),
+      rgba(255, 255, 255, 0.72)
+    );
   color: var(--text);
   font-weight: 700;
+  box-shadow: 0 12px 32px rgba(38, 50, 56, 0.045);
 }
 
 .choice-card input {
-  width: 22px;
-  min-width: 22px;
-  height: 22px;
-  min-height: 22px;
-  margin-top: 14px;
-  appearance: auto;
-  -webkit-appearance: checkbox;
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.choice-card:has(input:checked) {
+  border-color: rgba(111, 95, 161, 0.5);
+  background:
+    linear-gradient(
+      135deg,
+      rgba(183, 167, 214, 0.22),
+      rgba(143, 178, 158, 0.18)
+    );
+  box-shadow: 0 16px 42px rgba(38, 50, 56, 0.08);
+}
+
+.choice-card:has(input:focus-visible) {
+  outline: 3px solid rgba(183, 167, 214, 0.75);
+  outline-offset: 3px;
 }
 
 .choice-card-icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 54px;
-  height: 54px;
-  border-radius: 20px;
+  width: 68px;
+  height: 68px;
+  border-radius: 24px;
   background:
     linear-gradient(
       135deg,
-      rgba(183, 167, 214, 0.2),
-      rgba(143, 178, 158, 0.16)
+      rgba(183, 167, 214, 0.22),
+      rgba(143, 178, 158, 0.18)
     );
-  border: 1px solid rgba(183, 167, 214, 0.25);
-  font-size: 1.7rem;
+  border: 1px solid rgba(183, 167, 214, 0.26);
+  font-size: 2.05rem;
   line-height: 1;
 }
 
 .choice-card-copy {
   display: grid;
-  gap: 4px;
+  gap: 5px;
   min-width: 0;
 }
 
 .choice-card-title {
   color: var(--text);
-  font-size: 1rem;
+  font-size: 1.08rem;
   font-weight: 900;
-  line-height: 1.25;
+  line-height: 1.2;
 }
 
 .choice-help {
   display: block;
-  margin-top: 4px;
   color: var(--muted);
-  font-size: 0.88rem;
+  font-size: 0.9rem;
   font-weight: 650;
-  line-height: 1.4;
+  line-height: 1.35;
 }
 
 .progress-wrap {
@@ -815,11 +854,6 @@ button {
   margin: 4px 0 0;
   color: var(--muted);
   line-height: 1.45;
-}
-
-.choice-grid {
-  display: grid;
-  gap: 12px;
 }
 
 .audio-help-wrap {
@@ -1080,27 +1114,20 @@ button {
     min-width: 0;
   }
 
-  .choice-card {
-    grid-template-columns: auto minmax(0, 1fr);
-    gap: 12px;
-    min-height: 0;
-    padding: 14px;
+  .choice-grid {
+    grid-template-columns: 1fr;
   }
 
-  .choice-card input {
-    grid-row: 1 / span 2;
-    margin-top: 16px;
+  .choice-card {
+    min-height: 104px;
+    padding: 16px;
   }
 
   .choice-card-icon {
-    width: 52px;
-    height: 52px;
-    border-radius: 18px;
-    font-size: 1.65rem;
-  }
-
-  .choice-card-copy {
-    grid-column: 2;
+    width: 62px;
+    height: 62px;
+    border-radius: 22px;
+    font-size: 1.9rem;
   }
 
   .audio-help-wrap {
