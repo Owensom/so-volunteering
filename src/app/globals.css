@@ -39,10 +39,7 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--ink);
-  font-family:
-    Arial,
-    Helvetica,
-    sans-serif;
+  font-family: Arial, Helvetica, sans-serif;
   text-rendering: optimizeLegibility;
 }
 
@@ -334,32 +331,6 @@ button {
   line-height: 1.55;
 }
 
-@media (max-width: 640px) {
-  .auth-card {
-    border-radius: 24px;
-  }
-
-  .action-row {
-    display: grid;
-    width: 100%;
-  }
-
-  .primary-button,
-  .secondary-button,
-  .ghost-button {
-    width: 100%;
-  }
-
-  .dashboard-hero {
-    align-items: stretch;
-  }
-
-  .dashboard-hero form,
-  .dashboard-hero button {
-    width: 100%;
-  }
-}
-
 .choice-group {
   display: grid;
   gap: 10px;
@@ -396,26 +367,6 @@ button {
   -webkit-appearance: checkbox;
 }
 
-.progress-track {
-  width: 100%;
-  height: 10px;
-  border-radius: 999px;
-  background: rgba(143, 178, 158, 0.18);
-  overflow: hidden;
-  margin: 0 0 22px;
-}
-
-.progress-fill {
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-  background: linear-gradient(90deg, var(--sage), var(--lavender));
-}
-
-.progress-fill-50 {
-  width: 50%;
-}
-
 .choice-help {
   display: block;
   margin-top: 4px;
@@ -437,6 +388,21 @@ button {
   color: var(--muted);
   font-size: 0.875rem;
   font-weight: 800;
+}
+
+.progress-track {
+  width: 100%;
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(143, 178, 158, 0.18);
+  overflow: hidden;
+}
+
+.progress-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--sage), var(--lavender));
 }
 
 .inclusive-section {
@@ -475,6 +441,7 @@ button {
   border: 1px solid rgba(183, 167, 214, 0.45);
   font-weight: 800;
   box-shadow: 0 10px 28px rgba(38, 50, 56, 0.06);
+  touch-action: manipulation;
 }
 
 .icon-label {
@@ -494,4 +461,42 @@ button {
   justify-content: space-between;
   gap: 12px;
   flex-wrap: wrap;
+}
+
+.card-action {
+  margin-top: 12px !important;
+}
+
+@media (max-width: 640px) {
+  .auth-card {
+    border-radius: 24px;
+  }
+
+  .action-row {
+    display: grid;
+    width: 100%;
+  }
+
+  .primary-button,
+  .secondary-button,
+  .ghost-button {
+    width: 100%;
+  }
+
+  .dashboard-hero {
+    align-items: stretch;
+  }
+
+  .dashboard-hero form,
+  .dashboard-hero button {
+    width: 100%;
+  }
+
+  .page-top-row {
+    align-items: stretch;
+  }
+
+  .audio-help-button {
+    width: 100%;
+  }
 }
