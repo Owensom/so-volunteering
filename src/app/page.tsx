@@ -32,6 +32,7 @@ export default function HomePage() {
           <Link href="/signup" className="primary-button">
             <IconLabel icon="🌱">Get started</IconLabel>
           </Link>
+
           <Link href="/login" className="secondary-button">
             <IconLabel icon="🔐">Sign in</IconLabel>
           </Link>
