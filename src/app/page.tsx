@@ -28,7 +28,11 @@ export default function HomePage() {
           <InclusiveAudioButton text={listenText} />
         </div>
 
-        <h1 className="home-title">Belong. Grow. Thrive.</h1>
+        <h1 className="home-title" aria-label="Belong. Grow. Thrive.">
+          <span className="home-title-word">Belong.</span>{" "}
+          <span className="home-title-word">Grow.</span>{" "}
+          <span className="home-title-word">Thrive.</span>
+        </h1>
 
         <p className="home-lead">
           An inclusive volunteering and employability platform helping people
