@@ -8,6 +8,21 @@ type AccessibilityNeed = {
   description: string | null;
 };
 
+const supportOptions = [
+  "Clear written instructions before I start",
+  "Someone to meet me when I arrive",
+  "A quieter environment where possible",
+  "Flexible timings",
+  "Shorter shifts to begin with",
+  "Regular check-ins from a named person",
+  "Help with transport information",
+  "Extra time to learn new tasks",
+  "Prefer remote or online opportunities",
+  "Prefer practical tasks rather than lots of talking",
+  "Prefer social roles where I can meet people",
+  "I am not sure yet"
+];
+
 export default async function VolunteerAccessibilityPage({
   searchParams
 }: {
@@ -37,8 +52,8 @@ export default async function VolunteerAccessibilityPage({
         <p className="brand-eyebrow">Profile setup · Step 2 of 4</p>
         <h1 className="page-title">Accessibility & support</h1>
         <p className="page-lead">
-          Tell us what would help make volunteering feel safe, welcoming and
-          manageable. You control what is shared.
+          Choose anything that would help make volunteering feel safer, easier or
+          more welcoming. You do not need to write anything unless you want to.
         </p>
 
         <div className="progress-track" aria-label="Profile setup progress">
@@ -51,7 +66,7 @@ export default async function VolunteerAccessibilityPage({
 
         <form action={saveVolunteerAccessibility} className="form-stack">
           <fieldset className="choice-group">
-            <legend>Select any accessibility needs that apply</legend>
+            <legend>Accessibility needs</legend>
 
             {(accessibilityNeeds as AccessibilityNeed[] | null)?.map((need) => (
               <label key={need.id} className="choice-card">
@@ -70,13 +85,23 @@ export default async function VolunteerAccessibilityPage({
             ))}
           </fieldset>
 
+          <fieldset className="choice-group">
+            <legend>Things that may help me</legend>
+
+            {supportOptions.map((option) => (
+              <label key={option} className="choice-card">
+                <input type="checkbox" name="support_options" value={option} />
+                <span>{option}</span>
+              </label>
+            ))}
+          </fieldset>
+
           <label className="field-label">
-            Is there anything specific that would help you feel comfortable,
-            supported or included?
+            Optional: add anything else in your own words
             <textarea
               name="support_needs"
               rows={5}
-              placeholder="Example: I prefer quieter environments, clear instructions before a shift, flexible timings, or support with transport."
+              placeholder="You can leave this blank. Example: I prefer quieter environments, clear instructions, flexible timings, or support with transport."
             />
           </label>
 
