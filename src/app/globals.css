@@ -112,7 +112,7 @@ button {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: clamp(18px, 4vw, 42px);
+  padding: clamp(22px, 5vw, 42px);
   background:
     radial-gradient(circle at top left, rgba(183, 167, 214, 0.24), transparent 34%),
     radial-gradient(circle at bottom right, rgba(143, 178, 158, 0.2), transparent 34%),
@@ -226,8 +226,7 @@ button {
 
 .home-hero {
   width: 100%;
-  max-width: 860px;
-  overflow: hidden;
+  max-width: 840px;
   border-radius: 34px;
   padding: clamp(30px, 5vw, 52px);
   background:
@@ -241,26 +240,77 @@ button {
   box-shadow: 0 24px 80px rgba(38, 50, 56, 0.1);
 }
 
+.home-badge {
+  display: inline-flex;
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.75);
+  color: var(--lavender-dark);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 0.8125rem;
+}
+
 .home-brand-card {
   display: inline-flex;
   align-items: center;
-  justify-content: flex-start;
-  width: min(100%, 520px);
+  gap: 16px;
+  max-width: 100%;
+  min-width: 0;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+
+.home-brand-mark {
+  display: block;
+  width: clamp(74px, 8vw, 88px);
+  height: clamp(74px, 8vw, 88px);
+  object-fit: contain;
+  object-position: center;
+  flex: 0 0 auto;
+}
+
+.home-brand-text {
+  display: grid;
+  gap: 8px;
   min-width: 0;
 }
 
-.home-brand-logo {
-  display: block;
-  width: min(100%, 500px);
-  max-height: 104px;
-  object-fit: contain;
-  object-position: left center;
+.home-brand-name {
+  margin: 0;
+  color: var(--sage-dark);
+  font-size: clamp(1.45rem, 3vw, 2.15rem);
+  font-weight: 900;
+  line-height: 0.98;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.home-brand-name span {
+  color: var(--lavender-dark);
+  letter-spacing: 0.15em;
+}
+
+.home-brand-tagline {
+  margin: 0;
+  color: var(--gold);
+  font-size: clamp(0.78rem, 1.45vw, 0.98rem);
+  font-weight: 900;
+  line-height: 1.2;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .home-title {
   margin: clamp(38px, 5vw, 48px) 0 18px;
   max-width: 100%;
-  font-size: clamp(2.8rem, 5vw, 4rem);
+  font-size: clamp(2.8rem, 5vw, 3.85rem);
   line-height: 1.04;
   color: var(--sage-dark);
   letter-spacing: -0.045em;
@@ -277,16 +327,26 @@ button {
 
 .action-row {
   display: grid;
-  grid-template-columns: repeat(2, 180px);
+  grid-template-columns: repeat(2, 178px);
   gap: 14px;
   margin-top: 34px;
   align-items: center;
 }
 
+.action-row .primary-button,
+.action-row .secondary-button,
+.action-row .ghost-button {
+  width: 100%;
+  min-width: 0;
+  min-height: 52px;
+  padding-left: 18px;
+  padding-right: 18px;
+}
+
 .action-row .home-action-button {
-  width: 180px;
-  min-width: 180px;
-  max-width: 180px;
+  width: 178px;
+  min-width: 178px;
+  max-width: 178px;
   min-height: 52px;
   padding: 0 18px;
 }
@@ -563,11 +623,7 @@ button {
 
   .home-brand-card {
     width: 100%;
-    justify-content: center;
-  }
-
-  .home-brand-logo {
-    object-position: center;
+    justify-content: flex-start;
   }
 
   .audio-help-button {
@@ -596,24 +652,48 @@ button {
     padding: 28px 22px;
   }
 
-  .home-brand-card {
-    width: 100%;
+  .page-top-row {
+    align-items: stretch;
+    flex-wrap: wrap;
   }
 
-  .home-brand-logo {
-    width: min(100%, 330px);
-    max-height: 88px;
+  .home-brand-card {
+    width: 100%;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    overflow: hidden;
+  }
+
+  .home-brand-mark {
+    width: 58px;
+    height: 58px;
+  }
+
+  .home-brand-text {
+    flex: 0 1 auto;
+    min-width: 0;
+    max-width: calc(100% - 72px);
+  }
+
+  .home-brand-name {
+    font-size: clamp(0.96rem, 4.25vw, 1.12rem);
+    letter-spacing: 0.045em;
+    white-space: nowrap;
+  }
+
+  .home-brand-name span {
+    letter-spacing: 0.1em;
+  }
+
+  .home-brand-tagline {
+    font-size: 0.58rem;
+    letter-spacing: 0.095em;
+    white-space: nowrap;
   }
 
   .home-title {
     margin-top: 34px;
-    font-size: clamp(2.75rem, 13vw, 3.7rem);
-    line-height: 1.02;
-  }
-
-  .home-lead {
-    font-size: clamp(1.12rem, 5.4vw, 1.35rem);
-    line-height: 1.55;
   }
 
   .action-row {
@@ -645,28 +725,5 @@ button {
 
   .audio-help-button {
     width: 100%;
-  }
-}
-
-@media (max-width: 390px) {
-  .center-shell {
-    padding: 14px;
-  }
-
-  .home-hero {
-    padding: 24px 18px;
-  }
-
-  .home-brand-logo {
-    width: min(100%, 300px);
-    max-height: 78px;
-  }
-
-  .home-title {
-    font-size: clamp(2.4rem, 12.5vw, 3.15rem);
-  }
-
-  .home-lead {
-    font-size: 1.08rem;
   }
 }
