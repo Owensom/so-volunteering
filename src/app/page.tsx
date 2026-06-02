@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { InclusiveAudioButton, IconLabel } from "@/components/InclusiveSupport";
+import { InclusiveAudioButton } from "@/components/InclusiveSupport";
 
 export default function HomePage() {
   const listenText =
@@ -37,12 +37,22 @@ export default function HomePage() {
         </p>
 
         <div className="action-row">
-          <Link href="/signup" className="primary-button">
-            <IconLabel icon="🌱">Get started</IconLabel>
+          <Link href="/signup" className="primary-button home-action-button">
+            <span className="home-action-inner">
+              <span className="home-action-icon" aria-hidden="true">
+                🌱
+              </span>
+              <span className="home-action-text">Get started</span>
+            </span>
           </Link>
 
-          <Link href="/login" className="secondary-button">
-            <IconLabel icon="🔐">Sign in</IconLabel>
+          <Link href="/login" className="secondary-button home-action-button">
+            <span className="home-action-inner">
+              <span className="home-action-icon" aria-hidden="true">
+                🔐
+              </span>
+              <span className="home-action-text">Sign in</span>
+            </span>
           </Link>
         </div>
       </section>
