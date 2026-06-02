@@ -395,3 +395,31 @@ button {
   appearance: auto;
   -webkit-appearance: checkbox;
 }
+
+.progress-track {
+  width: 100%;
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(143, 178, 158, 0.18);
+  overflow: hidden;
+  margin: 0 0 22px;
+}
+
+.progress-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--sage), var(--lavender));
+}
+
+.progress-fill-50 {
+  width: 50%;
+}
+
+.choice-help {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-weight: 600;
+  line-height: 1.35;
+}
