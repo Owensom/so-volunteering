@@ -487,3 +487,11 @@ button {
   font-size: 1.25rem;
   line-height: 1;
 }
+
+.page-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
