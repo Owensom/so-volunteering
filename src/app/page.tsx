@@ -9,7 +9,14 @@ export default function HomePage() {
     <main className="center-shell">
       <section className="home-hero">
         <div className="page-top-row">
-          <div className="home-badge">SO Volunteering</div>
+          <div className="home-brand-lockup" aria-label="SO Volunteering">
+            <img
+              src="/brand/so-volunteering-logo-horizontal-compact.png"
+              alt="SO Volunteering"
+              className="home-brand-logo"
+            />
+          </div>
+
           <InclusiveAudioButton text={listenText} />
         </div>
 
