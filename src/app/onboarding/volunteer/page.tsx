@@ -1,15 +1,23 @@
 import { redirect } from "next/navigation";
 import { saveVolunteerOnboarding } from "./actions";
 import { createClient } from "@/lib/supabase/server";
+import {
+  InclusiveAudioButton,
+  IconLabel
+} from "@/components/InclusiveSupport";
+import {
+  OnboardingProgress,
+  ChoiceCards
+} from "@/components/InclusiveForm";
 
 const goalOptions = [
-  "Support my community",
-  "Gain experience",
-  "Build skills",
-  "Improve confidence",
-  "Meet new people",
-  "Progress towards employment",
-  "Progress towards education or training"
+  { value: "Support my community", label: "Support my community", helpText: "Help people, groups or local causes." },
+  { value: "Gain experience", label: "Gain experience", helpText: "Build useful experience for your next step." },
+  { value: "Build skills", label: "Build skills", helpText: "Learn or practise skills in a supportive way." },
+  { value: "Improve confidence", label: "Improve confidence", helpText: "Start gently and grow over time." },
+  { value: "Meet new people", label: "Meet new people", helpText: "Feel more connected to others." },
+  { value: "Progress towards employment", label: "Progress towards employment", helpText: "Build evidence for a CV or job application." },
+  { value: "Progress towards education or training", label: "Progress towards education or training", helpText: "Support college, training or future learning." }
 ];
 
 export default async function VolunteerOnboardingPage({
@@ -30,15 +38,27 @@ export default async function VolunteerOnboardingPage({
     redirect("/login");
   }
 
+  const listenText =
+    "This is step one of your volunteer profile setup. Choose what you would like to achieve. You can choose more than one option. You only need to type your nearest town or city.";
+
   return (
     <main className="center-shell">
       <section className="auth-card">
-        <p className="brand-eyebrow">Volunteer onboarding</p>
-        <h1 className="page-title">What would you like to achieve?</h1>
+        <div className="page-top-row">
+          <p className="brand-eyebrow">Profile setup</p>
+          <InclusiveAudioButton text={listenText} />
+        </div>
+
+        <h1 className="page-title">
+          <IconLabel icon="🌱">What would you like to achieve?</IconLabel>
+        </h1>
+
         <p className="page-lead">
-          This helps SO Volunteering recommend opportunities that feel meaningful,
-          supportive and useful for your next step.
+          Choose what matters to you. This helps us recommend opportunities that
+          feel meaningful, supportive and useful.
         </p>
+
+        <OnboardingProgress step={1} total={4} />
 
         {errorMessage ? (
           <div className="alert alert-error">{errorMessage}</div>
@@ -46,27 +66,19 @@ export default async function VolunteerOnboardingPage({
 
         <form action={saveVolunteerOnboarding} className="form-stack">
           <label className="field-label">
-            Your nearest town or city
-            <input
-              name="city"
-              type="text"
-              placeholder="Example: Aberdeen"
-              required
-            />
+            <IconLabel icon="📍">Your nearest town or city</IconLabel>
+            <input name="city" type="text" placeholder="Example: Aberdeen" required />
           </label>
 
           <fieldset className="choice-group">
-            <legend>Choose one or more goals</legend>
-            {goalOptions.map((goal) => (
-              <label key={goal} className="choice-card">
-                <input type="checkbox" name="goals" value={goal} />
-                <span>{goal}</span>
-              </label>
-            ))}
+            <legend>
+              <IconLabel icon="✨">Choose one or more goals</IconLabel>
+            </legend>
+            <ChoiceCards name="goals" options={goalOptions} />
           </fieldset>
 
           <label className="field-label">
-            How would you prefer to volunteer?
+            <IconLabel icon="🧭">How would you prefer to volunteer?</IconLabel>
             <select name="volunteering_preference" defaultValue="both">
               <option value="both">Both in-person and remote</option>
               <option value="in_person">In-person</option>
@@ -75,7 +87,7 @@ export default async function VolunteerOnboardingPage({
           </label>
 
           <button type="submit" className="primary-button">
-            Save and continue
+            <IconLabel icon="➡️">Save and continue</IconLabel>
           </button>
         </form>
       </section>
