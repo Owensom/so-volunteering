@@ -64,11 +64,9 @@ export function ChoiceCards({
         <label key={option.value} className="choice-card">
           <input type="checkbox" name={name} value={option.value} />
 
-          {option.icon ? (
-            <span className="choice-card-icon" aria-hidden="true">
-              {option.icon}
-            </span>
-          ) : null}
+          <span className="choice-card-icon" aria-hidden="true">
+            {option.icon ?? "✨"}
+          </span>
 
           <span className="choice-card-copy">
             <span className="choice-card-title">{option.label}</span>
