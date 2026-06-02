@@ -423,3 +423,40 @@ button {
   font-weight: 600;
   line-height: 1.35;
 }
+
+.progress-wrap {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 22px;
+}
+
+.progress-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--muted);
+  font-size: 0.875rem;
+  font-weight: 800;
+}
+
+.inclusive-section {
+  display: grid;
+  gap: 12px;
+}
+
+.inclusive-section h2 {
+  margin: 0;
+  color: var(--sage-dark);
+  font-size: 1.05rem;
+}
+
+.inclusive-section p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.choice-grid {
+  display: grid;
+  gap: 10px;
+}
