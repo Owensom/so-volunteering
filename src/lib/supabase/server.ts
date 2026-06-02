@@ -22,10 +22,23 @@ export async function createClient() {
       getAll() {
         return cookieStore.getAll();
       },
+
       setAll(cookiesToSet: CookieToSet[]) {
-        cookiesToSet.forEach(({ name, value, options }) => {
-          cookieStore.set(name, value, options);
-        });
+        try {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            cookieStore.set(name, value, options);
+          });
+        } catch {
+          /*
+            Supabase may try to refresh auth cookies while a Server Component
+            is rendering. Next.js only allows cookie writes in Server Actions,
+            Route Handlers or middleware.
+
+            It is safe to ignore this here because Server Components only need
+            to read the current session/user. Cookie refresh writes should be
+            handled by middleware or route/action contexts when available.
+          */
+        }
       }
     }
   });
