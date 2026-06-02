@@ -317,6 +317,10 @@ button {
   text-wrap: balance;
 }
 
+.home-title-word {
+  display: inline;
+}
+
 .home-lead {
   max-width: 690px;
   margin: 0;
@@ -694,6 +698,10 @@ button {
 
   .home-title {
     margin-top: 34px;
+  }
+
+  .home-title-word {
+    display: block;
   }
 
   .action-row {
