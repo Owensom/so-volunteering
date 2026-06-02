@@ -15,8 +15,11 @@ export async function saveVolunteerAccessibility(formData: FormData) {
   }
 
   const accessibilityNeedIds = formData.getAll("accessibility_needs").map(String);
+  const supportNeeds = String(formData.get("support_needs") || "").trim();
+
   const shareAccessibilityNeeds =
     String(formData.get("share_accessibility_needs") || "false") === "true";
+
   const wantsWellbeingSupport =
     String(formData.get("wants_wellbeing_support") || "false") === "true";
 
@@ -24,6 +27,8 @@ export async function saveVolunteerAccessibility(formData: FormData) {
     .from("volunteer_profiles")
     .upsert({
       user_id: user.id,
+      support_needs: supportNeeds,
+      share_support_needs: shareAccessibilityNeeds,
       share_accessibility_needs: shareAccessibilityNeeds,
       wants_wellbeing_support: wantsWellbeingSupport,
       accessibility_completed: true,
@@ -47,6 +52,7 @@ export async function saveVolunteerAccessibility(formData: FormData) {
     const rows = accessibilityNeedIds.map((accessibilityNeedId) => ({
       volunteer_id: user.id,
       accessibility_need_id: accessibilityNeedId,
+      details: supportNeeds,
       share_with_organisations: shareAccessibilityNeeds
     }));
 
