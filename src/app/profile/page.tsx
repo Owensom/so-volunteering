@@ -130,6 +130,7 @@ export default async function ProfilePage() {
 
   const displayName = profile?.full_name?.trim() || "there";
   const userType = profile?.user_type ?? "volunteer";
+  const emailAddress = profile?.email?.trim() || user.email || "";
 
   const listenText =
     "This is your SO Volunteering profile summary. It shows the information you have added during setup. The first section shows your goals and nearest town or city. The next sections show your interests, skills, support preferences and availability. Each section has an edit link so you can change your answers.";
@@ -160,7 +161,10 @@ export default async function ProfilePage() {
           <div className="dashboard-topbar-actions">
             <InclusiveAudioButton text={listenText} />
 
-            <Link href="/dashboard" className="secondary-button dashboard-signout-button">
+            <Link
+              href="/dashboard"
+              className="secondary-button dashboard-signout-button"
+            >
               <span className="dashboard-button-inner">
                 <span aria-hidden="true">←</span>
                 <span>Dashboard</span>
@@ -222,8 +226,8 @@ export default async function ProfilePage() {
               </div>
             </div>
 
-            {profile?.email ? (
-              <p className="dashboard-progress-note">{profile.email}</p>
+            {emailAddress ? (
+              <p className="dashboard-progress-note">{emailAddress}</p>
             ) : (
               <p className="dashboard-progress-note">Email not available.</p>
             )}
