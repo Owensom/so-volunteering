@@ -24,6 +24,12 @@ type VolunteerProfile = {
   onboarding_completed: boolean | null;
 };
 
+function normaliseUserType(value: string | null | undefined) {
+  return value?.trim().toLowerCase() === "organisation"
+    ? "organisation"
+    : "volunteer";
+}
+
 function hasArrayValue(value: string[] | null | undefined) {
   return Array.isArray(value) && value.length > 0;
 }
@@ -168,7 +174,7 @@ export default async function DashboardPage() {
       ? user.user_metadata.user_type
       : "volunteer";
 
-  const userType = profile?.user_type || metadataUserType || "volunteer";
+  const userType = normaliseUserType(profile?.user_type || metadataUserType);
 
   if (userType === "organisation") {
     redirect("/organisation/dashboard");
