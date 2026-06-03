@@ -8,69 +8,6 @@ import {
   OptionalTextarea
 } from "@/components/InclusiveForm";
 
-const interestOptions = [
-  {
-    value: "Helping people",
-    label: "Helping people",
-    icon: "🤝",
-    helpText: "Support visitors, neighbours or community members."
-  },
-  {
-    value: "Animals and nature",
-    label: "Animals and nature",
-    icon: "🌿",
-    helpText: "Outdoor roles, gardens, animals or local green spaces."
-  },
-  {
-    value: "Events and activities",
-    label: "Events and activities",
-    icon: "🎪",
-    helpText: "Help at events, groups, clubs or fundraisers."
-  },
-  {
-    value: "Creative tasks",
-    label: "Creative tasks",
-    icon: "🎨",
-    helpText: "Music, art, design, photography, writing or making."
-  },
-  {
-    value: "Practical tasks",
-    label: "Practical tasks",
-    icon: "🧰",
-    helpText: "Set up rooms, sort items, pack things or hands-on help."
-  },
-  {
-    value: "Digital or admin",
-    label: "Digital or admin",
-    icon: "💻",
-    helpText: "Simple computer, forms, emails or organising tasks."
-  },
-  {
-    value: "Food and hospitality",
-    label: "Food and hospitality",
-    icon: "☕",
-    helpText: "Refreshments, welcoming, kitchen support or café roles."
-  },
-  {
-    value: "Sport and wellbeing",
-    label: "Sport and wellbeing",
-    icon: "⚽",
-    helpText: "Active roles, walking groups or wellbeing activities."
-  },
-  {
-    value: "Shops and donations",
-    label: "Shops and donations",
-    icon: "🛍️",
-    helpText: "Sort stock, welcome customers or help with donations."
-  },
-  {
-    value: "I am open to ideas",
-    label: "I am open to ideas",
-    icon: "🌈",
-    helpText: "That is okay. You can explore what feels right."
-  }
-];
-
 const skillOptions = [
   {
     value: "Being friendly and welcoming",
@@ -153,7 +90,7 @@ export default async function VolunteerSkillsPage({
   }
 
   const listenText =
-    "This is step two of your volunteer profile setup. This page is called Skills and interests. At the top there is Listen support and your setup progress. First, choose things you enjoy or might like to try. Then choose skills you already have or would like to build. You can choose more than one card in each section. You do not need to type anything unless you want to. Near the bottom there is an optional box where you can add anything else in your own words. The final button says Save and continue.";
+    "This is step three of your volunteer profile setup. This page is called Skills. At the top there is Listen support and your setup progress. Choose skills you already have or would like to build. You can choose more than one large card. You do not need to type anything unless you want to. Near the bottom there is an optional box where you can add anything else in your own words. The final button says Save and continue.";
 
   return (
     <main className="onboarding-shell">
@@ -170,22 +107,23 @@ export default async function VolunteerSkillsPage({
           <div className="onboarding-hero-main">
             <div className="onboarding-title-lockup">
               <span className="onboarding-title-icon" aria-hidden="true">
-                🧩
+                ⭐
               </span>
 
               <div>
-                <h1 className="onboarding-title">Skills & interests</h1>
+                <h1 className="onboarding-title">
+                  What can you do or build?
+                </h1>
                 <p className="onboarding-lead">
-                  Choose what you enjoy, what you can already do, and what you
-                  might like to build. This helps us suggest opportunities that
-                  feel realistic, useful and encouraging.
+                  Choose skills you already have and skills you would like to
+                  grow. It is okay if you are still finding your strengths.
                 </p>
               </div>
             </div>
           </div>
 
           <div className="onboarding-progress-card">
-            <OnboardingProgress step={2} total={4} />
+            <OnboardingProgress step={3} total={5} />
           </div>
         </div>
 
@@ -198,22 +136,9 @@ export default async function VolunteerSkillsPage({
             <legend>
               <span className="field-label-row">
                 <span className="field-label-icon" aria-hidden="true">
-                  💚
-                </span>
-                <span>Things I enjoy or might like to try</span>
-              </span>
-            </legend>
-
-            <ChoiceCards name="interests" options={interestOptions} />
-          </fieldset>
-
-          <fieldset className="choice-group">
-            <legend>
-              <span className="field-label-row">
-                <span className="field-label-icon" aria-hidden="true">
                   ⭐
                 </span>
-                <span>Skills I have or want to build</span>
+                <span>Choose one or more skills</span>
               </span>
             </legend>
 
@@ -223,7 +148,7 @@ export default async function VolunteerSkillsPage({
           <OptionalTextarea
             name="bio"
             label="Optional: tell us anything else in your own words"
-            placeholder="You can leave this blank. Example: I like working with animals, I prefer practical tasks, or I would like to build confidence talking to people."
+            placeholder="You can leave this blank. Example: I like practical tasks, I want to build confidence, or I prefer learning one step at a time."
           />
 
           <button type="submit" className="primary-button onboarding-submit-button">
