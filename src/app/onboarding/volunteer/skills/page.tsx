@@ -1,10 +1,7 @@
 import { redirect } from "next/navigation";
 import { saveVolunteerSkills } from "./actions";
 import { createClient } from "@/lib/supabase/server";
-import {
-  InclusiveAudioButton,
-  IconLabel
-} from "@/components/InclusiveSupport";
+import { InclusiveAudioButton } from "@/components/InclusiveSupport";
 import {
   OnboardingProgress,
   ChoiceCards,
@@ -16,49 +13,61 @@ const interestOptions = [
     value: "Helping people",
     label: "Helping people",
     icon: "🤝",
-    helpText: "Supporting visitors, service users, neighbours or community members."
+    helpText: "Support visitors, neighbours or community members."
   },
   {
     value: "Animals and nature",
     label: "Animals and nature",
     icon: "🌿",
-    helpText: "Outdoor roles, conservation, gardening, animal care or local green spaces."
+    helpText: "Outdoor roles, gardens, animals or local green spaces."
   },
   {
     value: "Events and activities",
     label: "Events and activities",
     icon: "🎪",
-    helpText: "Helping at community events, fundraisers, clubs or social activities."
+    helpText: "Help at events, groups, clubs or fundraisers."
   },
   {
     value: "Creative tasks",
     label: "Creative tasks",
     icon: "🎨",
-    helpText: "Music, art, design, photography, writing or making things."
+    helpText: "Music, art, design, photography, writing or making."
   },
   {
     value: "Practical tasks",
     label: "Practical tasks",
     icon: "🧰",
-    helpText: "Setting up rooms, sorting donations, packing items or hands-on help."
+    helpText: "Set up rooms, sort items, pack things or hands-on help."
   },
   {
     value: "Digital or admin",
     label: "Digital or admin",
     icon: "💻",
-    helpText: "Computer tasks, forms, emails, spreadsheets, social media or organising."
+    helpText: "Simple computer, forms, emails or organising tasks."
   },
   {
     value: "Food and hospitality",
     label: "Food and hospitality",
     icon: "☕",
-    helpText: "Serving refreshments, welcoming people, kitchen support or café-style roles."
+    helpText: "Refreshments, welcoming, kitchen support or café roles."
   },
   {
     value: "Sport and wellbeing",
     label: "Sport and wellbeing",
     icon: "⚽",
-    helpText: "Active roles, wellbeing groups, walking groups or gentle exercise support."
+    helpText: "Active roles, walking groups or wellbeing activities."
+  },
+  {
+    value: "Shops and donations",
+    label: "Shops and donations",
+    icon: "🛍️",
+    helpText: "Sort stock, welcome customers or help with donations."
+  },
+  {
+    value: "I am open to ideas",
+    label: "I am open to ideas",
+    icon: "🌈",
+    helpText: "That is okay. You can explore what feels right."
   }
 ];
 
@@ -67,49 +76,61 @@ const skillOptions = [
     value: "Being friendly and welcoming",
     label: "Being friendly and welcoming",
     icon: "😊",
-    helpText: "Helping people feel comfortable and included."
+    helpText: "Help people feel comfortable and included."
   },
   {
     value: "Listening to people",
     label: "Listening to people",
     icon: "👂",
-    helpText: "Giving people time, patience and attention."
+    helpText: "Give people time, patience and attention."
   },
   {
     value: "Following instructions",
     label: "Following instructions",
     icon: "✅",
-    helpText: "Working through clear steps safely and carefully."
-  },
-  {
-    value: "Organising things",
-    label: "Organising things",
-    icon: "🗂️",
-    helpText: "Sorting, planning, tidying, arranging or keeping things on track."
-  },
-  {
-    value: "Using a phone or computer",
-    label: "Using a phone or computer",
-    icon: "📱",
-    helpText: "Basic digital tasks, messages, online forms or simple computer work."
+    helpText: "Work through clear steps safely and carefully."
   },
   {
     value: "Teamwork",
     label: "Teamwork",
     icon: "👥",
-    helpText: "Working with other people towards a shared goal."
+    helpText: "Work with other people towards a shared goal."
+  },
+  {
+    value: "Organising things",
+    label: "Organising things",
+    icon: "🗂️",
+    helpText: "Sort, plan, tidy, arrange or keep things on track."
+  },
+  {
+    value: "Using a phone or computer",
+    label: "Using a phone or computer",
+    icon: "📱",
+    helpText: "Use messages, online forms or simple digital tools."
+  },
+  {
+    value: "Practical hands-on help",
+    label: "Practical hands-on help",
+    icon: "🛠️",
+    helpText: "Move, carry, prepare, tidy or set things up."
   },
   {
     value: "Problem solving",
     label: "Problem solving",
     icon: "🧩",
-    helpText: "Finding practical ways to help when something changes."
+    helpText: "Find practical ways to help when something changes."
+  },
+  {
+    value: "Staying calm",
+    label: "Staying calm",
+    icon: "🌤️",
+    helpText: "Take things one step at a time."
   },
   {
     value: "I am still finding my skills",
     label: "I am still finding my skills",
     icon: "🌱",
-    helpText: "That is completely fine. Volunteering can help you discover them."
+    helpText: "That is completely fine. Volunteering can help."
   }
 ];
 
@@ -132,27 +153,41 @@ export default async function VolunteerSkillsPage({
   }
 
   const listenText =
-    "This is step two of your volunteer profile setup. This page is called Skills and interests. First, choose the things you enjoy or might like to try. Next, choose skills you already have or would like to build. You can choose more than one option. You do not need to type anything unless you want to. Near the bottom of the page there is an optional box where you can add anything else. The final button says Save and continue.";
+    "This is step two of your volunteer profile setup. This page is called Skills and interests. At the top there is Listen support and your setup progress. First, choose things you enjoy or might like to try. Then choose skills you already have or would like to build. You can choose more than one card in each section. You do not need to type anything unless you want to. Near the bottom there is an optional box where you can add anything else in your own words. The final button says Save and continue.";
 
   return (
-    <main className="center-shell">
-      <section className="auth-card onboarding-card">
-        <div className="page-top-row">
-          <p className="brand-eyebrow">Profile setup</p>
+    <main className="onboarding-shell">
+      <section className="onboarding-panel">
+        <div className="onboarding-top-row">
+          <div>
+            <p className="brand-eyebrow">Profile setup</p>
+          </div>
+
           <InclusiveAudioButton text={listenText} />
         </div>
 
-        <h1 className="page-title">
-          <IconLabel icon="🧩">Skills & interests</IconLabel>
-        </h1>
+        <div className="onboarding-hero-grid">
+          <div className="onboarding-hero-main">
+            <div className="onboarding-title-lockup">
+              <span className="onboarding-title-icon" aria-hidden="true">
+                🧩
+              </span>
 
-        <p className="page-lead">
-          Choose what you enjoy, what you can already do, and what you might like
-          to build. This helps us suggest opportunities that feel realistic,
-          useful and encouraging.
-        </p>
+              <div>
+                <h1 className="onboarding-title">Skills & interests</h1>
+                <p className="onboarding-lead">
+                  Choose what you enjoy, what you can already do, and what you
+                  might like to build. This helps us suggest opportunities that
+                  feel realistic, useful and encouraging.
+                </p>
+              </div>
+            </div>
+          </div>
 
-        <OnboardingProgress step={2} total={4} />
+          <div className="onboarding-progress-card">
+            <OnboardingProgress step={2} total={4} />
+          </div>
+        </div>
 
         {errorMessage ? (
           <div className="alert alert-error">{errorMessage}</div>
@@ -161,15 +196,27 @@ export default async function VolunteerSkillsPage({
         <form action={saveVolunteerSkills} className="form-stack">
           <fieldset className="choice-group">
             <legend>
-              <IconLabel icon="💚">Things I enjoy or might like to try</IconLabel>
+              <span className="field-label-row">
+                <span className="field-label-icon" aria-hidden="true">
+                  💚
+                </span>
+                <span>Things I enjoy or might like to try</span>
+              </span>
             </legend>
+
             <ChoiceCards name="interests" options={interestOptions} />
           </fieldset>
 
           <fieldset className="choice-group">
             <legend>
-              <IconLabel icon="⭐">Skills I have or want to build</IconLabel>
+              <span className="field-label-row">
+                <span className="field-label-icon" aria-hidden="true">
+                  ⭐
+                </span>
+                <span>Skills I have or want to build</span>
+              </span>
             </legend>
+
             <ChoiceCards name="skills" options={skillOptions} />
           </fieldset>
 
@@ -179,8 +226,11 @@ export default async function VolunteerSkillsPage({
             placeholder="You can leave this blank. Example: I like working with animals, I prefer practical tasks, or I would like to build confidence talking to people."
           />
 
-          <button type="submit" className="primary-button">
-            <IconLabel icon="➡️">Save and continue</IconLabel>
+          <button type="submit" className="primary-button onboarding-submit-button">
+            <span className="button-balanced-inner">
+              <span aria-hidden="true">➡️</span>
+              <span>Save and continue</span>
+            </span>
           </button>
         </form>
       </section>
