@@ -20,6 +20,22 @@ export async function saveVolunteerOnboarding(formData: FormData) {
     formData.get("volunteering_preference") || "both"
   );
 
+  if (!city) {
+    redirect(
+      `/onboarding/volunteer?error=${encodeURIComponent(
+        "Please add your nearest town or city."
+      )}`
+    );
+  }
+
+  if (!goals.length) {
+    redirect(
+      `/onboarding/volunteer?error=${encodeURIComponent(
+        "Please choose at least one goal."
+      )}`
+    );
+  }
+
   const { error } = await supabase.from("volunteer_profiles").upsert({
     user_id: user.id,
     city,
