@@ -36,18 +36,23 @@ export async function saveVolunteerOnboarding(formData: FormData) {
     );
   }
 
-  const { error } = await supabase.from("volunteer_profiles").upsert({
-    user_id: user.id,
-    city,
-    goals,
-    volunteering_preference: volunteeringPreference,
-    onboarding_completed: false,
-    updated_at: new Date().toISOString()
-  });
+  const { error } = await supabase
+    .from("volunteer_profiles")
+    .upsert(
+      {
+        user_id: user.id,
+        city,
+        goals,
+        volunteering_preference: volunteeringPreference,
+        onboarding_completed: false,
+        updated_at: new Date().toISOString()
+      },
+      { onConflict: "user_id" }
+    );
 
   if (error) {
     redirect(`/onboarding/volunteer?error=${encodeURIComponent(error.message)}`);
   }
 
-  redirect("/onboarding/volunteer/skills");
+  redirect("/onboarding/volunteer/interests");
 }
