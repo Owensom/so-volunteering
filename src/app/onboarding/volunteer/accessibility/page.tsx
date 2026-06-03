@@ -1,10 +1,7 @@
 import { redirect } from "next/navigation";
 import { saveVolunteerAccessibility } from "./actions";
 import { createClient } from "@/lib/supabase/server";
-import {
-  InclusiveAudioButton,
-  IconLabel
-} from "@/components/InclusiveSupport";
+import { InclusiveAudioButton } from "@/components/InclusiveSupport";
 import {
   OnboardingProgress,
   ChoiceCards,
@@ -18,18 +15,66 @@ type AccessibilityNeed = {
 };
 
 const supportOptions = [
-  { value: "Clear written instructions before I start", label: "Clear written instructions before I start" },
-  { value: "Someone to meet me when I arrive", label: "Someone to meet me when I arrive" },
-  { value: "A quieter environment where possible", label: "A quieter environment where possible" },
-  { value: "Flexible timings", label: "Flexible timings" },
-  { value: "Shorter shifts to begin with", label: "Shorter shifts to begin with" },
-  { value: "Regular check-ins from a named person", label: "Regular check-ins from a named person" },
-  { value: "Help with transport information", label: "Help with transport information" },
-  { value: "Extra time to learn new tasks", label: "Extra time to learn new tasks" },
-  { value: "Prefer remote or online opportunities", label: "Prefer remote or online opportunities" },
-  { value: "Prefer practical tasks rather than lots of talking", label: "Prefer practical tasks rather than lots of talking" },
-  { value: "Prefer social roles where I can meet people", label: "Prefer social roles where I can meet people" },
-  { value: "I am not sure yet", label: "I am not sure yet" }
+  {
+    value: "Clear written instructions before I start",
+    label: "Clear written instructions",
+    icon: "📝",
+    helpText: "Know what to expect before you begin."
+  },
+  {
+    value: "Someone to meet me when I arrive",
+    label: "Someone to meet me",
+    icon: "👋",
+    helpText: "Have a named person welcome you."
+  },
+  {
+    value: "A quieter environment where possible",
+    label: "Quieter environment",
+    icon: "🌙",
+    helpText: "Reduce noise and busy spaces where possible."
+  },
+  {
+    value: "Flexible timings",
+    label: "Flexible timings",
+    icon: "🕒",
+    helpText: "Adjust times where the role allows."
+  },
+  {
+    value: "Shorter shifts to begin with",
+    label: "Shorter shifts",
+    icon: "🌱",
+    helpText: "Start small and build up gradually."
+  },
+  {
+    value: "Regular check-ins from a named person",
+    label: "Regular check-ins",
+    icon: "🤲",
+    helpText: "Have someone check how things are going."
+  },
+  {
+    value: "Help with transport information",
+    label: "Transport information",
+    icon: "🚌",
+    helpText: "Get help understanding how to get there."
+  },
+  {
+    value: "Extra time to learn new tasks",
+    label: "Extra time to learn",
+    icon: "🧭",
+    helpText: "Learn tasks at a steady pace."
+  },
+  {
+    value: "Prefer practical tasks rather than lots of talking",
+    label: "Practical tasks",
+    icon: "🧰",
+    helpText: "Do hands-on tasks rather than lots of talking."
+  },
+  {
+    value: "I am not sure yet",
+    label: "I am not sure yet",
+    icon: "🌈",
+    helpText: "That is okay. You can update this later."
+  }
 ];
 
 export default async function VolunteerAccessibilityPage({
@@ -59,47 +104,81 @@ export default async function VolunteerAccessibilityPage({
     (accessibilityNeeds as AccessibilityNeed[] | null)?.map((need) => ({
       value: need.id,
       label: need.name,
+      icon: "♿",
       helpText: need.description ?? undefined
     })) ?? [];
 
   const listenText =
-    "This is step two of your volunteer profile setup. Choose any accessibility or support options that would help you. You do not need to write anything unless you want to. You control what is shared with organisations.";
+    "This is step four of your volunteer profile setup. This page is called Accessibility and support. At the top there is Listen support and your setup progress. Choose any accessibility or support options that would help make volunteering feel safer, easier or more welcoming. You do not need to type anything unless you want to. You can choose whether organisations can see this information. The final button says Save and continue.";
 
   return (
-    <main className="center-shell">
-      <section className="auth-card">
-        <div className="page-top-row">
-          <p className="brand-eyebrow">Profile setup</p>
+    <main className="onboarding-shell">
+      <section className="onboarding-panel">
+        <div className="onboarding-top-row">
+          <div>
+            <p className="brand-eyebrow">Profile setup</p>
+          </div>
+
           <InclusiveAudioButton text={listenText} />
         </div>
 
-        <h1 className="page-title">
-          <IconLabel icon="💛">Accessibility & support</IconLabel>
-        </h1>
+        <div className="onboarding-hero-grid">
+          <div className="onboarding-hero-main">
+            <div className="onboarding-title-lockup">
+              <span className="onboarding-title-icon" aria-hidden="true">
+                💛
+              </span>
 
-        <p className="page-lead">
-          Choose anything that would help make volunteering feel safer, easier or
-          more welcoming. You do not need to write anything unless you want to.
-        </p>
+              <div>
+                <h1 className="onboarding-title">
+                  What support helps you?
+                </h1>
+                <p className="onboarding-lead">
+                  Choose anything that would make volunteering feel safer,
+                  easier or more welcoming. You are in control of what is shared.
+                </p>
+              </div>
+            </div>
+          </div>
 
-        <OnboardingProgress step={2} total={4} />
+          <div className="onboarding-progress-card">
+            <OnboardingProgress step={4} total={5} />
+          </div>
+        </div>
 
         {errorMessage ? (
           <div className="alert alert-error">{errorMessage}</div>
         ) : null}
 
         <form action={saveVolunteerAccessibility} className="form-stack">
-          <fieldset className="choice-group">
-            <legend>
-              <IconLabel icon="♿">Accessibility needs</IconLabel>
-            </legend>
-            <ChoiceCards name="accessibility_needs" options={accessibilityOptions} />
-          </fieldset>
+          {accessibilityOptions.length ? (
+            <fieldset className="choice-group">
+              <legend>
+                <span className="field-label-row">
+                  <span className="field-label-icon" aria-hidden="true">
+                    ♿
+                  </span>
+                  <span>Accessibility needs</span>
+                </span>
+              </legend>
+
+              <ChoiceCards
+                name="accessibility_needs"
+                options={accessibilityOptions}
+              />
+            </fieldset>
+          ) : null}
 
           <fieldset className="choice-group">
             <legend>
-              <IconLabel icon="🤲">Things that may help me</IconLabel>
+              <span className="field-label-row">
+                <span className="field-label-icon" aria-hidden="true">
+                  🤲
+                </span>
+                <span>Things that may help me</span>
+              </span>
             </legend>
+
             <ChoiceCards name="support_options" options={supportOptions} />
           </fieldset>
 
@@ -110,7 +189,12 @@ export default async function VolunteerAccessibilityPage({
           />
 
           <label className="field-label">
-            <IconLabel icon="👁️">Would you like organisations to see this information?</IconLabel>
+            <span className="field-label-row">
+              <span className="field-label-icon" aria-hidden="true">
+                👁️
+              </span>
+              <span>Would you like organisations to see this information?</span>
+            </span>
             <select name="share_accessibility_needs" defaultValue="false">
               <option value="false">No, keep it private for now</option>
               <option value="true">Yes, share it with organisations</option>
@@ -118,15 +202,23 @@ export default async function VolunteerAccessibilityPage({
           </label>
 
           <label className="field-label">
-            <IconLabel icon="🔔">Would you like optional wellbeing support reminders?</IconLabel>
+            <span className="field-label-row">
+              <span className="field-label-icon" aria-hidden="true">
+                🔔
+              </span>
+              <span>Would you like optional wellbeing support reminders?</span>
+            </span>
             <select name="wants_wellbeing_support" defaultValue="false">
               <option value="false">No, not right now</option>
               <option value="true">Yes, that would be helpful</option>
             </select>
           </label>
 
-          <button type="submit" className="primary-button">
-            <IconLabel icon="➡️">Save and continue</IconLabel>
+          <button type="submit" className="primary-button onboarding-submit-button">
+            <span className="button-balanced-inner">
+              <span aria-hidden="true">➡️</span>
+              <span>Save and continue</span>
+            </span>
           </button>
         </form>
       </section>
