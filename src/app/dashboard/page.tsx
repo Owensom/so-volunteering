@@ -161,7 +161,18 @@ export default async function DashboardPage() {
     .from("profiles")
     .select("full_name,email,user_type")
     .eq("id", user.id)
-    .single<Profile>();
+    .maybeSingle<Profile>();
+
+  const metadataUserType =
+    typeof user.user_metadata?.user_type === "string"
+      ? user.user_metadata.user_type
+      : "volunteer";
+
+  const userType = profile?.user_type || metadataUserType || "volunteer";
+
+  if (userType === "organisation") {
+    redirect("/organisation/dashboard");
+  }
 
   const { data: volunteerProfile } = await supabase
     .from("volunteer_profiles")
@@ -171,21 +182,14 @@ export default async function DashboardPage() {
     .eq("user_id", user.id)
     .maybeSingle<VolunteerProfile>();
 
-  const userType = profile?.user_type ?? "volunteer";
-  const displayName = profile?.full_name?.trim() || "there";
-  const isVolunteer = userType === "volunteer";
+  const displayName =
+    profile?.full_name?.trim() ||
+    (typeof user.user_metadata?.full_name === "string"
+      ? user.user_metadata.full_name
+      : "") ||
+    "there";
 
-  const progress = isVolunteer
-    ? getVolunteerProgress(volunteerProfile)
-    : {
-        completedSteps: 0,
-        totalSteps: 0,
-        percentage: 100,
-        nextStepHref: "/dashboard",
-        nextStepLabel: "Dashboard ready",
-        nextStepIcon: "🏢",
-        nextStepText: "Your organisation dashboard is ready."
-      };
+  const progress = getVolunteerProgress(volunteerProfile);
 
   const listenText =
     "This is your SO Volunteering dashboard. It is your quick home base. You can continue your next setup step, view your profile, see your pathway, review wellbeing support, and later find opportunities.";
@@ -247,41 +251,27 @@ export default async function DashboardPage() {
               your pathway, view your profile and find your next step.
             </p>
 
-            {isVolunteer ? (
-              <div className="dashboard-primary-actions">
-                <Link
-                  href={progress.nextStepHref}
-                  className="primary-button dashboard-main-action"
-                >
-                  <span className="dashboard-button-inner">
-                    <span aria-hidden="true">{progress.nextStepIcon}</span>
-                    <span>{progress.nextStepLabel}</span>
-                  </span>
-                </Link>
+            <div className="dashboard-primary-actions">
+              <Link
+                href={progress.nextStepHref}
+                className="primary-button dashboard-main-action"
+              >
+                <span className="dashboard-button-inner">
+                  <span aria-hidden="true">{progress.nextStepIcon}</span>
+                  <span>{progress.nextStepLabel}</span>
+                </span>
+              </Link>
 
-                <Link
-                  href="/pathway"
-                  className="secondary-button dashboard-main-action"
-                >
-                  <span className="dashboard-button-inner">
-                    <span aria-hidden="true">🧭</span>
-                    <span>See my pathway</span>
-                  </span>
-                </Link>
-              </div>
-            ) : (
-              <div className="dashboard-primary-actions">
-                <Link
-                  href="/dashboard"
-                  className="primary-button dashboard-main-action"
-                >
-                  <span className="dashboard-button-inner">
-                    <span aria-hidden="true">🏢</span>
-                    <span>View dashboard</span>
-                  </span>
-                </Link>
-              </div>
-            )}
+              <Link
+                href="/pathway"
+                className="secondary-button dashboard-main-action"
+              >
+                <span className="dashboard-button-inner">
+                  <span aria-hidden="true">🧭</span>
+                  <span>See my pathway</span>
+                </span>
+              </Link>
+            </div>
           </div>
 
           <aside className="dashboard-progress-card" aria-label="Profile progress">
