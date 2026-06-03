@@ -41,12 +41,7 @@ function getVolunteerProgress(volunteerProfile: VolunteerProfile | null) {
       nextStepHref: "/onboarding/volunteer",
       nextStepLabel: "Start setup",
       nextStepIcon: "🌱",
-      nextStepText: "Start with your goals and nearest town or city.",
-      goalsComplete: false,
-      interestsComplete: false,
-      skillsComplete: false,
-      accessibilityComplete: false,
-      availabilityComplete: false
+      nextStepText: "Start with your goals and nearest town or city."
     };
   }
 
@@ -88,12 +83,7 @@ function getVolunteerProgress(volunteerProfile: VolunteerProfile | null) {
       nextStepHref: "/onboarding/volunteer",
       nextStepLabel: "Continue goals",
       nextStepIcon: "🌱",
-      nextStepText: "Tell us what you would like to achieve.",
-      goalsComplete,
-      interestsComplete,
-      skillsComplete,
-      accessibilityComplete,
-      availabilityComplete
+      nextStepText: "Tell us what you would like to achieve."
     };
   }
 
@@ -105,12 +95,7 @@ function getVolunteerProgress(volunteerProfile: VolunteerProfile | null) {
       nextStepHref: "/onboarding/volunteer/interests",
       nextStepLabel: "Continue interests",
       nextStepIcon: "💚",
-      nextStepText: "Choose what you enjoy or might like to try.",
-      goalsComplete,
-      interestsComplete,
-      skillsComplete,
-      accessibilityComplete,
-      availabilityComplete
+      nextStepText: "Choose what you enjoy or might like to try."
     };
   }
 
@@ -122,12 +107,7 @@ function getVolunteerProgress(volunteerProfile: VolunteerProfile | null) {
       nextStepHref: "/onboarding/volunteer/skills",
       nextStepLabel: "Continue skills",
       nextStepIcon: "⭐",
-      nextStepText: "Choose skills you have or want to build.",
-      goalsComplete,
-      interestsComplete,
-      skillsComplete,
-      accessibilityComplete,
-      availabilityComplete
+      nextStepText: "Choose skills you have or want to build."
     };
   }
 
@@ -139,12 +119,7 @@ function getVolunteerProgress(volunteerProfile: VolunteerProfile | null) {
       nextStepHref: "/onboarding/volunteer/accessibility",
       nextStepLabel: "Continue support",
       nextStepIcon: "💛",
-      nextStepText: "Choose anything that helps you feel comfortable and safe.",
-      goalsComplete,
-      interestsComplete,
-      skillsComplete,
-      accessibilityComplete,
-      availabilityComplete
+      nextStepText: "Choose anything that helps you feel comfortable and safe."
     };
   }
 
@@ -156,12 +131,7 @@ function getVolunteerProgress(volunteerProfile: VolunteerProfile | null) {
       nextStepHref: "/onboarding/volunteer/availability",
       nextStepLabel: "Continue availability",
       nextStepIcon: "📅",
-      nextStepText: "Tell us when volunteering might work for you.",
-      goalsComplete,
-      interestsComplete,
-      skillsComplete,
-      accessibilityComplete,
-      availabilityComplete
+      nextStepText: "Tell us when volunteering might work for you."
     };
   }
 
@@ -169,49 +139,11 @@ function getVolunteerProgress(volunteerProfile: VolunteerProfile | null) {
     completedSteps,
     totalSteps,
     percentage: 100,
-    nextStepHref: "/dashboard",
-    nextStepLabel: "Profile setup complete",
-    nextStepIcon: "✅",
-    nextStepText: "Your pathway profile is ready. You can update it later.",
-    goalsComplete,
-    interestsComplete,
-    skillsComplete,
-    accessibilityComplete,
-    availabilityComplete
+    nextStepHref: "/profile",
+    nextStepLabel: "View my profile",
+    nextStepIcon: "👤",
+    nextStepText: "Your pathway profile is ready. You can update it later."
   };
-}
-
-function StepStatus({
-  complete,
-  icon,
-  title,
-  href,
-  description
-}: {
-  complete: boolean;
-  icon: string;
-  title: string;
-  href: string;
-  description: string;
-}) {
-  return (
-    <Link href={href} className="info-card dashboard-pathway-card">
-      <div className="dashboard-card-icon" aria-hidden="true">
-        {complete ? "✅" : icon}
-      </div>
-
-      <div className="dashboard-card-copy">
-        <p className="dashboard-card-label">
-          {complete ? "Complete" : "To do"}
-        </p>
-        <h2>{title}</h2>
-        <p>{description}</p>
-        <p className="card-action text-link">
-          {complete ? "Review this step" : "Continue this step"}
-        </p>
-      </div>
-    </Link>
-  );
 }
 
 export default async function DashboardPage() {
@@ -252,16 +184,11 @@ export default async function DashboardPage() {
         nextStepHref: "/dashboard",
         nextStepLabel: "Dashboard ready",
         nextStepIcon: "🏢",
-        nextStepText: "Your organisation dashboard is ready.",
-        goalsComplete: true,
-        interestsComplete: true,
-        skillsComplete: true,
-        accessibilityComplete: true,
-        availabilityComplete: true
+        nextStepText: "Your organisation dashboard is ready."
       };
 
   const listenText =
-    "This is your SO Volunteering dashboard. At the top is the SO Volunteering logo, the Listen support, and a Sign out button. The main welcome panel tells you your next step. The See my pathway button moves to your pathway section. The pathway section has cards for goals, interests, skills, support and availability. The wellbeing card lets you review your support preferences.";
+    "This is your SO Volunteering dashboard. It is your quick home base. You can continue your next setup step, view your profile, see your pathway, review wellbeing support, and later find opportunities.";
 
   return (
     <main className="dashboard-bg">
@@ -308,7 +235,7 @@ export default async function DashboardPage() {
           aria-labelledby="dashboard-title"
         >
           <div className="dashboard-welcome-copy">
-            <p className="dashboard-kicker">Your inclusive pathway</p>
+            <p className="dashboard-kicker">Your home base</p>
 
             <h1 id="dashboard-title" className="dashboard-title">
               <span aria-hidden="true">👋</span>
@@ -316,56 +243,43 @@ export default async function DashboardPage() {
             </h1>
 
             <p className="dashboard-lead">
-              Your volunteering journey is ready. Keep building your profile,
-              tell us what support helps you, and move towards opportunities
-              that feel right for you.
+              Your volunteering journey is ready. Use this dashboard to continue
+              your pathway, view your profile and find your next step.
             </p>
 
             {isVolunteer ? (
               <div className="dashboard-primary-actions">
-                {progress.percentage < 100 ? (
-                  <Link
-                    href={progress.nextStepHref}
-                    className="primary-button dashboard-main-action"
-                  >
-                    <span className="dashboard-button-inner">
-                      <span aria-hidden="true">{progress.nextStepIcon}</span>
-                      <span>{progress.nextStepLabel}</span>
-                    </span>
-                  </Link>
-                ) : (
-                  <Link
-                    href="/onboarding/volunteer"
-                    className="primary-button dashboard-main-action"
-                  >
-                    <span className="dashboard-button-inner">
-                      <span aria-hidden="true">✅</span>
-                      <span>Review setup</span>
-                    </span>
-                  </Link>
-                )}
+                <Link
+                  href={progress.nextStepHref}
+                  className="primary-button dashboard-main-action"
+                >
+                  <span className="dashboard-button-inner">
+                    <span aria-hidden="true">{progress.nextStepIcon}</span>
+                    <span>{progress.nextStepLabel}</span>
+                  </span>
+                </Link>
 
-                <a
-                  href="#your-pathway"
+                <Link
+                  href="/pathway"
                   className="secondary-button dashboard-main-action"
                 >
                   <span className="dashboard-button-inner">
                     <span aria-hidden="true">🧭</span>
                     <span>See my pathway</span>
                   </span>
-                </a>
+                </Link>
               </div>
             ) : (
               <div className="dashboard-primary-actions">
-                <a
-                  href="#your-pathway"
+                <Link
+                  href="/dashboard"
                   className="primary-button dashboard-main-action"
                 >
                   <span className="dashboard-button-inner">
                     <span aria-hidden="true">🏢</span>
                     <span>View dashboard</span>
                   </span>
-                </a>
+                </Link>
               </div>
             )}
           </div>
@@ -403,50 +317,56 @@ export default async function DashboardPage() {
           </aside>
         </section>
 
-        <section
-          id="your-pathway"
-          className="dashboard-grid"
-          aria-label="Your pathway"
-        >
-          <StepStatus
-            complete={progress.goalsComplete}
-            icon="🌱"
-            title="Goals"
-            href="/onboarding/volunteer"
-            description="What you want to achieve through volunteering."
-          />
+        <section className="dashboard-grid" aria-label="Dashboard actions">
+          <Link href="/profile" className="info-card dashboard-pathway-card">
+            <div className="dashboard-card-icon" aria-hidden="true">
+              👤
+            </div>
 
-          <StepStatus
-            complete={progress.interestsComplete}
-            icon="💚"
-            title="Interests"
-            href="/onboarding/volunteer/interests"
-            description="What you enjoy or might like to try."
-          />
+            <div className="dashboard-card-copy">
+              <p className="dashboard-card-label">Your details</p>
+              <h2>View my profile</h2>
+              <p>
+                Review your goals, interests, skills, support preferences and
+                availability.
+              </p>
+              <p className="card-action text-link">Open profile</p>
+            </div>
+          </Link>
 
-          <StepStatus
-            complete={progress.skillsComplete}
-            icon="⭐"
-            title="Skills"
-            href="/onboarding/volunteer/skills"
-            description="What you can do or would like to build."
-          />
+          <Link href="/pathway" className="info-card dashboard-pathway-card">
+            <div className="dashboard-card-icon" aria-hidden="true">
+              🧭
+            </div>
 
-          <StepStatus
-            complete={progress.accessibilityComplete}
-            icon="💛"
-            title="Wellbeing and support"
+            <div className="dashboard-card-copy">
+              <p className="dashboard-card-label">Your progress</p>
+              <h2>See my pathway</h2>
+              <p>
+                View all five setup steps and update any section of your
+                pathway.
+              </p>
+              <p className="card-action text-link">Open pathway</p>
+            </div>
+          </Link>
+
+          <Link
             href="/onboarding/volunteer/accessibility"
-            description="Things that help you feel safe, comfortable and included."
-          />
+            className="info-card dashboard-pathway-card"
+          >
+            <div className="dashboard-card-icon" aria-hidden="true">
+              💛
+            </div>
 
-          <StepStatus
-            complete={progress.availabilityComplete}
-            icon="📅"
-            title="Availability"
-            href="/onboarding/volunteer/availability"
-            description="When and how often volunteering might work for you."
-          />
+            <div className="dashboard-card-copy">
+              <p className="dashboard-card-label">Support</p>
+              <h2>Wellbeing and support</h2>
+              <p>
+                Review what helps you feel safe, comfortable and included.
+              </p>
+              <p className="card-action text-link">Review support</p>
+            </div>
+          </Link>
 
           <article className="info-card dashboard-pathway-card">
             <div className="dashboard-card-icon" aria-hidden="true">
@@ -455,10 +375,10 @@ export default async function DashboardPage() {
 
             <div className="dashboard-card-copy">
               <p className="dashboard-card-label">Coming soon</p>
-              <h2>Opportunities</h2>
+              <h2>Find opportunities</h2>
               <p>
-                Browse inclusive volunteering opportunities and start building
-                verified experience.
+                Inclusive volunteering opportunities will appear here when this
+                section is live.
               </p>
               <p className="dashboard-muted-action">Not live yet</p>
             </div>
