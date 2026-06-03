@@ -18,6 +18,22 @@ export async function saveVolunteerSkills(formData: FormData) {
   const skills = formData.getAll("skills").map(String);
   const bio = String(formData.get("bio") || "").trim();
 
+  if (!interests.length) {
+    redirect(
+      `/onboarding/volunteer/skills?error=${encodeURIComponent(
+        "Please choose at least one interest or thing you might like to try."
+      )}`
+    );
+  }
+
+  if (!skills.length) {
+    redirect(
+      `/onboarding/volunteer/skills?error=${encodeURIComponent(
+        "Please choose at least one skill, even if you are still finding your skills."
+      )}`
+    );
+  }
+
   const { error } = await supabase.from("volunteer_profiles").upsert({
     user_id: user.id,
     interests,
