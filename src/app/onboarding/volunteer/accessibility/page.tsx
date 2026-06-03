@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { saveVolunteerAccessibility } from "./actions";
 import { createClient } from "@/lib/supabase/server";
@@ -109,7 +110,7 @@ export default async function VolunteerAccessibilityPage({
     })) ?? [];
 
   const listenText =
-    "This is step four of your volunteer profile setup. This page is called Accessibility and support. At the top there is Listen support and your setup progress. Choose any accessibility or support options that would help make volunteering feel safer, easier or more welcoming. You do not need to type anything unless you want to. You can choose whether organisations can see this information. The final button says Save and continue.";
+    "This is step four of your volunteer profile setup. This page is called Accessibility and support. At the top there is Listen support, a Dashboard button, and your setup progress. Choose any accessibility or support options that would help make volunteering feel safer, easier or more welcoming. You do not need to type anything unless you want to. You can choose whether organisations can see this information. The final button says Save and continue.";
 
   return (
     <main className="onboarding-shell">
@@ -119,7 +120,19 @@ export default async function VolunteerAccessibilityPage({
             <p className="brand-eyebrow">Profile setup</p>
           </div>
 
-          <InclusiveAudioButton text={listenText} />
+          <div className="dashboard-topbar-actions">
+            <InclusiveAudioButton text={listenText} />
+
+            <Link
+              href="/dashboard"
+              className="secondary-button dashboard-signout-button"
+            >
+              <span className="dashboard-button-inner">
+                <span aria-hidden="true">←</span>
+                <span>Dashboard</span>
+              </span>
+            </Link>
+          </div>
         </div>
 
         <div className="onboarding-hero-grid">
