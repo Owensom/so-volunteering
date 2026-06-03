@@ -14,9 +14,15 @@ export async function saveVolunteerAccessibility(formData: FormData) {
     redirect("/login");
   }
 
-  const accessibilityNeedIds = formData.getAll("accessibility_needs").map(String);
+  const accessibilityNeedIds = formData
+    .getAll("accessibility_needs")
+    .map(String);
+
   const supportOptions = formData.getAll("support_options").map(String);
-  const supportNeedsFreeText = String(formData.get("support_needs") || "").trim();
+
+  const supportNeedsFreeText = String(
+    formData.get("support_needs") || ""
+  ).trim();
 
   const combinedSupportNeeds = [
     ...supportOptions,
@@ -40,4 +46,46 @@ export async function saveVolunteerAccessibility(formData: FormData) {
         share_support_needs: shareAccessibilityNeeds,
         share_accessibility_needs: shareAccessibilityNeeds,
         wants_wellbeing_support: wantsWellbeingSupport,
-        accessibility_completed
+        accessibility_completed: true,
+        onboarding_completed: false,
+        updated_at: new Date().toISOString()
+      },
+      { onConflict: "user_id" }
+    );
+
+  if (profileError) {
+    redirect(
+      `/onboarding/volunteer/accessibility?error=${encodeURIComponent(
+        profileError.message
+      )}`
+    );
+  }
+
+  await supabase
+    .from("volunteer_accessibility_needs")
+    .delete()
+    .eq("volunteer_id", user.id);
+
+  if (accessibilityNeedIds.length > 0) {
+    const rows = accessibilityNeedIds.map((accessibilityNeedId) => ({
+      volunteer_id: user.id,
+      accessibility_need_id: accessibilityNeedId,
+      details: combinedSupportNeeds || null,
+      share_with_organisations: shareAccessibilityNeeds
+    }));
+
+    const { error: needsError } = await supabase
+      .from("volunteer_accessibility_needs")
+      .insert(rows);
+
+    if (needsError) {
+      redirect(
+        `/onboarding/volunteer/accessibility?error=${encodeURIComponent(
+          needsError.message
+        )}`
+      );
+    }
+  }
+
+  redirect("/onboarding/volunteer/availability");
+}
