@@ -288,14 +288,15 @@ button {
 .home-hero::after {
   content: "";
   position: absolute;
-  inset: auto -90px -120px auto;
-  width: min(62vw, 620px);
-  height: min(48vw, 460px);
+  right: -92px;
+  bottom: -112px;
+  width: min(62vw, 560px);
+  height: min(48vw, 420px);
   background-image: url("/brand/so-volunteering-soft-leaf-bg.svg");
   background-repeat: no-repeat;
   background-position: right bottom;
   background-size: contain;
-  opacity: 0.9;
+  opacity: 0.7;
   pointer-events: none;
   z-index: -1;
 }
@@ -577,14 +578,15 @@ button {
 .dashboard-welcome-card::after {
   content: "";
   position: absolute;
-  inset: auto -120px -150px auto;
-  width: min(48vw, 520px);
-  height: min(38vw, 390px);
+  right: -108px;
+  bottom: -135px;
+  width: min(48vw, 500px);
+  height: min(38vw, 360px);
   background-image: url("/brand/so-volunteering-soft-leaf-bg.svg");
   background-repeat: no-repeat;
   background-position: right bottom;
   background-size: contain;
-  opacity: 0.72;
+  opacity: 0.58;
   pointer-events: none;
   z-index: -1;
 }
@@ -783,9 +785,6 @@ button {
 }
 
 .onboarding-panel {
-  position: relative;
-  isolation: isolate;
-  overflow: hidden;
   width: 100%;
   max-width: 1180px;
   border-radius: 34px;
@@ -798,21 +797,6 @@ button {
     );
   border: 1px solid rgba(143, 178, 158, 0.24);
   box-shadow: 0 24px 80px rgba(38, 50, 56, 0.08);
-}
-
-.onboarding-panel::after {
-  content: "";
-  position: absolute;
-  inset: 20px -150px auto auto;
-  width: min(46vw, 540px);
-  height: min(36vw, 420px);
-  background-image: url("/brand/so-volunteering-soft-leaf-bg.svg");
-  background-repeat: no-repeat;
-  background-position: right top;
-  background-size: contain;
-  opacity: 0.48;
-  pointer-events: none;
-  z-index: -1;
 }
 
 .onboarding-top-row {
@@ -1259,10 +1243,11 @@ button {
   }
 
   .home-hero::after {
-    inset: auto -120px -120px auto;
-    width: 440px;
-    height: 320px;
-    opacity: 0.52;
+    right: -118px;
+    bottom: -112px;
+    width: 410px;
+    height: 300px;
+    opacity: 0.42;
   }
 
   .page-top-row {
@@ -1338,13 +1323,6 @@ button {
   .onboarding-panel {
     border-radius: 28px;
     padding: 24px 20px;
-  }
-
-  .onboarding-panel::after {
-    inset: 50px -140px auto auto;
-    width: 420px;
-    height: 300px;
-    opacity: 0.32;
   }
 
   .onboarding-top-row {
@@ -1429,10 +1407,11 @@ button {
   }
 
   .dashboard-welcome-card::after {
-    inset: auto -150px -130px auto;
-    width: 420px;
+    right: -140px;
+    bottom: -118px;
+    width: 410px;
     height: 300px;
-    opacity: 0.42;
+    opacity: 0.36;
   }
 
   .dashboard-topbar {
