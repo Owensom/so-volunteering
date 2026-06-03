@@ -1,4 +1,4 @@
-import Link from "next/link"; 
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { signOut } from "@/app/auth/actions";
 import { createClient } from "@/lib/supabase/server";
@@ -10,7 +10,143 @@ type Profile = {
   user_type: string | null;
 };
 
-export default async function OrganisationDashboardPage() {
+type VolunteerProfile = {
+  city: string | null;
+  goals: string[] | null;
+  interests: string[] | null;
+  skills: string[] | null;
+  support_needs: string | null;
+  share_accessibility_needs: boolean | null;
+  wants_wellbeing_support: boolean | null;
+  accessibility_completed: boolean | null;
+  availability_notes: string | null;
+  preferred_contact_method: string | null;
+  onboarding_completed: boolean | null;
+};
+
+function hasArrayValue(value: string[] | null | undefined) {
+  return Array.isArray(value) && value.length > 0;
+}
+
+function hasTextValue(value: string | null | undefined) {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+function getVolunteerProgress(volunteerProfile: VolunteerProfile | null) {
+  if (!volunteerProfile) {
+    return {
+      completedSteps: 0,
+      totalSteps: 5,
+      percentage: 0,
+      nextStepHref: "/onboarding/volunteer",
+      nextStepLabel: "Start setup",
+      nextStepIcon: "🌱",
+      nextStepText: "Start with your goals and nearest town or city."
+    };
+  }
+
+  const goalsComplete =
+    hasTextValue(volunteerProfile.city) && hasArrayValue(volunteerProfile.goals);
+
+  const interestsComplete = hasArrayValue(volunteerProfile.interests);
+
+  const skillsComplete = hasArrayValue(volunteerProfile.skills);
+
+  const accessibilityComplete =
+    volunteerProfile.accessibility_completed === true ||
+    hasTextValue(volunteerProfile.support_needs) ||
+    volunteerProfile.share_accessibility_needs === true ||
+    volunteerProfile.wants_wellbeing_support === true;
+
+  const availabilityComplete =
+    volunteerProfile.onboarding_completed === true ||
+    hasTextValue(volunteerProfile.availability_notes) ||
+    hasTextValue(volunteerProfile.preferred_contact_method);
+
+  const steps = [
+    goalsComplete,
+    interestsComplete,
+    skillsComplete,
+    accessibilityComplete,
+    availabilityComplete
+  ];
+
+  const completedSteps = steps.filter(Boolean).length;
+  const totalSteps = steps.length;
+  const percentage = Math.round((completedSteps / totalSteps) * 100);
+
+  if (!goalsComplete) {
+    return {
+      completedSteps,
+      totalSteps,
+      percentage,
+      nextStepHref: "/onboarding/volunteer",
+      nextStepLabel: "Continue goals",
+      nextStepIcon: "🌱",
+      nextStepText: "Tell us what you would like to achieve."
+    };
+  }
+
+  if (!interestsComplete) {
+    return {
+      completedSteps,
+      totalSteps,
+      percentage,
+      nextStepHref: "/onboarding/volunteer/interests",
+      nextStepLabel: "Continue interests",
+      nextStepIcon: "💚",
+      nextStepText: "Choose what you enjoy or might like to try."
+    };
+  }
+
+  if (!skillsComplete) {
+    return {
+      completedSteps,
+      totalSteps,
+      percentage,
+      nextStepHref: "/onboarding/volunteer/skills",
+      nextStepLabel: "Continue skills",
+      nextStepIcon: "⭐",
+      nextStepText: "Choose skills you have or want to build."
+    };
+  }
+
+  if (!accessibilityComplete) {
+    return {
+      completedSteps,
+      totalSteps,
+      percentage,
+      nextStepHref: "/onboarding/volunteer/accessibility",
+      nextStepLabel: "Continue support",
+      nextStepIcon: "💛",
+      nextStepText: "Choose anything that helps you feel comfortable and safe."
+    };
+  }
+
+  if (!availabilityComplete) {
+    return {
+      completedSteps,
+      totalSteps,
+      percentage,
+      nextStepHref: "/onboarding/volunteer/availability",
+      nextStepLabel: "Continue availability",
+      nextStepIcon: "📅",
+      nextStepText: "Tell us when volunteering might work for you."
+    };
+  }
+
+  return {
+    completedSteps,
+    totalSteps,
+    percentage: 100,
+    nextStepHref: "/profile",
+    nextStepLabel: "View my profile",
+    nextStepIcon: "👤",
+    nextStepText: "Your pathway profile is ready. You can update it later."
+  };
+}
+
+export default async function DashboardPage() {
   const supabase = await createClient();
 
   const {
@@ -32,11 +168,19 @@ export default async function OrganisationDashboardPage() {
       ? user.user_metadata.user_type
       : "volunteer";
 
-  const userType = profile?.user_type || metadataUserType;
+  const userType = profile?.user_type || metadataUserType || "volunteer";
 
-  if (userType !== "organisation") {
-    redirect("/dashboard");
+  if (userType === "organisation") {
+    redirect("/organisation/dashboard");
   }
+
+  const { data: volunteerProfile } = await supabase
+    .from("volunteer_profiles")
+    .select(
+      "city,goals,interests,skills,support_needs,share_accessibility_needs,wants_wellbeing_support,accessibility_completed,availability_notes,preferred_contact_method,onboarding_completed"
+    )
+    .eq("user_id", user.id)
+    .maybeSingle<VolunteerProfile>();
 
   const displayName =
     profile?.full_name?.trim() ||
@@ -45,19 +189,19 @@ export default async function OrganisationDashboardPage() {
       : "") ||
     "there";
 
-  const emailAddress = profile?.email?.trim() || user.email || "";
+  const progress = getVolunteerProgress(volunteerProfile);
 
   const listenText =
-    "This is the organisation workspace for SO Volunteering. It is different from the volunteer dashboard. This page helps organisations prepare their profile, create accessible volunteering opportunities, describe support available, and later review suitable volunteer matches. The first button moves to the setup priorities. The second button moves to the build plan. There is also a sign out button at the top.";
+    "This is your SO Volunteering dashboard. It is your quick home base. You can continue your next setup step, view your profile, see your pathway, review wellbeing support, and later find opportunities.";
 
   return (
     <main className="dashboard-bg">
       <section className="dashboard-shell">
         <header className="dashboard-topbar">
           <Link
-            href="/organisation/dashboard"
+            href="/dashboard"
             className="dashboard-brand"
-            aria-label="SO Volunteering organisation dashboard"
+            aria-label="SO Volunteering dashboard"
           >
             <img
               src="/brand/so-volunteering-logo-mark.png"
@@ -92,228 +236,141 @@ export default async function OrganisationDashboardPage() {
 
         <section
           className="dashboard-welcome-card"
-          aria-labelledby="organisation-dashboard-title"
+          aria-labelledby="dashboard-title"
         >
           <div className="dashboard-welcome-copy">
-            <p className="dashboard-kicker">Organisation workspace</p>
+            <p className="dashboard-kicker">Your home base</p>
 
-            <h1 id="organisation-dashboard-title" className="dashboard-title">
-              <span aria-hidden="true">🏢</span>
-              <span>Build inclusive opportunities</span>
+            <h1 id="dashboard-title" className="dashboard-title">
+              <span aria-hidden="true">👋</span>
+              <span>Welcome, {displayName}</span>
             </h1>
 
             <p className="dashboard-lead">
-              Hi {displayName}. This is your organisation area. The next stages
-              will help you set up your organisation profile, create clear
-              volunteering opportunities, and support volunteers before they
-              apply.
+              Your volunteering journey is ready. Use this dashboard to continue
+              your pathway, view your profile and find your next step.
             </p>
 
             <div className="dashboard-primary-actions">
-              <a
-                href="#organisation-setup"
+              <Link
+                href={progress.nextStepHref}
                 className="primary-button dashboard-main-action"
               >
                 <span className="dashboard-button-inner">
-                  <span aria-hidden="true">🧭</span>
-                  <span>Setup priorities</span>
+                  <span aria-hidden="true">{progress.nextStepIcon}</span>
+                  <span>{progress.nextStepLabel}</span>
                 </span>
-              </a>
+              </Link>
 
-              <a
-                href="#organisation-build-plan"
+              <Link
+                href="/pathway"
                 className="secondary-button dashboard-main-action"
               >
                 <span className="dashboard-button-inner">
-                  <span aria-hidden="true">📣</span>
-                  <span>Opportunity plan</span>
+                  <span aria-hidden="true">🧭</span>
+                  <span>See my pathway</span>
                 </span>
-              </a>
+              </Link>
             </div>
           </div>
 
-          <aside className="dashboard-progress-card" aria-label="Organisation account">
+          <aside className="dashboard-progress-card" aria-label="Profile progress">
             <div className="dashboard-progress-header">
               <span className="dashboard-progress-icon" aria-hidden="true">
                 ✨
               </span>
-
               <div>
-                <h2>Organisation account</h2>
+                <h2>Profile progress</h2>
                 <p>
-                  Status: <strong>Foundation setup</strong>
+                  {progress.completedSteps} of {progress.totalSteps || 5} steps
+                  complete.
                 </p>
               </div>
             </div>
 
-            {emailAddress ? (
-              <p className="dashboard-progress-note">{emailAddress}</p>
-            ) : (
-              <p className="dashboard-progress-note">Email not available.</p>
-            )}
+            <div className="progress-wrap dashboard-progress-wrap">
+              <div className="progress-meta">
+                <span>
+                  {progress.percentage === 100 ? "Complete" : "In progress"}
+                </span>
+                <span>{progress.percentage}%</span>
+              </div>
+              <div className="progress-track" aria-hidden="true">
+                <span
+                  className="progress-fill"
+                  style={{ width: `${progress.percentage}%` }}
+                />
+              </div>
+            </div>
 
-            <p className="dashboard-progress-note">
-              Organisation tools are being added carefully so opportunity
-              creation, inclusion and safeguarding stay clear from the start.
-            </p>
+            <p className="dashboard-progress-note">{progress.nextStepText}</p>
           </aside>
         </section>
 
-        <section
-          id="organisation-setup"
-          className="dashboard-grid"
-          aria-label="Organisation setup priorities"
-        >
-          <article className="info-card dashboard-pathway-card">
+        <section className="dashboard-grid" aria-label="Dashboard actions">
+          <Link href="/profile" className="info-card dashboard-pathway-card">
             <div className="dashboard-card-icon" aria-hidden="true">
-              🏢
+              👤
             </div>
 
             <div className="dashboard-card-copy">
-              <p className="dashboard-card-label">Priority 1</p>
-              <h2>Organisation profile</h2>
+              <p className="dashboard-card-label">Your details</p>
+              <h2>View my profile</h2>
               <p>
-                Add your organisation name, purpose, location, contact email,
-                website and the type of volunteering you offer.
+                Review your goals, interests, skills, support preferences and
+                availability.
               </p>
-              <p className="dashboard-muted-action">Build next</p>
+              <p className="card-action text-link">Open profile</p>
             </div>
-          </article>
+          </Link>
 
-          <article className="info-card dashboard-pathway-card">
+          <Link href="/pathway" className="info-card dashboard-pathway-card">
+            <div className="dashboard-card-icon" aria-hidden="true">
+              🧭
+            </div>
+
+            <div className="dashboard-card-copy">
+              <p className="dashboard-card-label">Your progress</p>
+              <h2>See my pathway</h2>
+              <p>
+                View all five setup steps and update any section of your
+                pathway.
+              </p>
+              <p className="card-action text-link">Open pathway</p>
+            </div>
+          </Link>
+
+          <Link
+            href="/onboarding/volunteer/accessibility"
+            className="info-card dashboard-pathway-card"
+          >
             <div className="dashboard-card-icon" aria-hidden="true">
               💛
             </div>
 
             <div className="dashboard-card-copy">
-              <p className="dashboard-card-label">Priority 2</p>
-              <h2>Inclusion and support</h2>
+              <p className="dashboard-card-label">Support</p>
+              <h2>Wellbeing and support</h2>
               <p>
-                Describe what support is available, such as clear instructions,
-                named contacts, flexible timings, quiet spaces or buddy support.
+                Review what helps you feel safe, comfortable and included.
               </p>
-              <p className="dashboard-muted-action">Support-first setup</p>
+              <p className="card-action text-link">Review support</p>
             </div>
-          </article>
+          </Link>
 
-          <article className="info-card dashboard-pathway-card">
-            <div className="dashboard-card-icon" aria-hidden="true">
-              🛡️
-            </div>
-
-            <div className="dashboard-card-copy">
-              <p className="dashboard-card-label">Priority 3</p>
-              <h2>Safety basics</h2>
-              <p>
-                Add simple safeguarding, supervision and contact guidance so
-                volunteers know who will support them and what to expect.
-              </p>
-              <p className="dashboard-muted-action">Coming with profile setup</p>
-            </div>
-          </article>
-        </section>
-
-        <section
-          id="organisation-build-plan"
-          className="dashboard-grid"
-          aria-label="Organisation opportunity build plan"
-        >
-          <article className="info-card dashboard-pathway-card">
-            <div className="dashboard-card-icon" aria-hidden="true">
-              📣
-            </div>
-
-            <div className="dashboard-card-copy">
-              <p className="dashboard-card-label">Opportunities</p>
-              <h2>Create a role</h2>
-              <p>
-                Create volunteering opportunities with plain language, large
-                clear task choices, skills, interests, availability and support
-                notes.
-              </p>
-              <p className="dashboard-muted-action">Next major feature</p>
-            </div>
-          </article>
-
-          <article className="info-card dashboard-pathway-card">
-            <div className="dashboard-card-icon" aria-hidden="true">
-              ✅
-            </div>
-
-            <div className="dashboard-card-copy">
-              <p className="dashboard-card-label">Readiness</p>
-              <h2>Opportunity checklist</h2>
-              <p>
-                Each opportunity should show whether it has a clear title,
-                simple tasks, time commitment, support notes and contact details.
-              </p>
-              <p className="dashboard-muted-action">Planned workflow</p>
-            </div>
-          </article>
-
-          <article className="info-card dashboard-pathway-card">
-            <div className="dashboard-card-icon" aria-hidden="true">
-              🤝
-            </div>
-
-            <div className="dashboard-card-copy">
-              <p className="dashboard-card-label">Matching</p>
-              <h2>Volunteer matches</h2>
-              <p>
-                Later, the platform will suggest suitable volunteers using their
-                interests, skills, availability and support preferences.
-              </p>
-              <p className="dashboard-muted-action">Later phase</p>
-            </div>
-          </article>
-        </section>
-
-        <section className="dashboard-grid" aria-label="Organisation quick view">
           <article className="info-card dashboard-pathway-card">
             <div className="dashboard-card-icon" aria-hidden="true">
               🔎
             </div>
 
             <div className="dashboard-card-copy">
-              <p className="dashboard-card-label">Live opportunities</p>
-              <h2>0 published</h2>
+              <p className="dashboard-card-label">Coming soon</p>
+              <h2>Find opportunities</h2>
               <p>
-                Published opportunities will appear here once the opportunity
-                system is live.
+                Inclusive volunteering opportunities will appear here when this
+                section is live.
               </p>
-              <p className="dashboard-muted-action">No action needed yet</p>
-            </div>
-          </article>
-
-          <article className="info-card dashboard-pathway-card">
-            <div className="dashboard-card-icon" aria-hidden="true">
-              📝
-            </div>
-
-            <div className="dashboard-card-copy">
-              <p className="dashboard-card-label">Drafts</p>
-              <h2>0 drafts</h2>
-              <p>
-                Draft opportunities will help organisations prepare roles before
-                publishing them to volunteers.
-              </p>
-              <p className="dashboard-muted-action">Coming soon</p>
-            </div>
-          </article>
-
-          <article className="info-card dashboard-pathway-card">
-            <div className="dashboard-card-icon" aria-hidden="true">
-              📬
-            </div>
-
-            <div className="dashboard-card-copy">
-              <p className="dashboard-card-label">Volunteer interest</p>
-              <h2>0 enquiries</h2>
-              <p>
-                When volunteers can express interest, enquiries and applications
-                will be shown here.
-              </p>
-              <p className="dashboard-muted-action">Later phase</p>
+              <p className="dashboard-muted-action">Not live yet</p>
             </div>
           </article>
         </section>
