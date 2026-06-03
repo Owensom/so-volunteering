@@ -33,50 +33,11 @@ export async function saveVolunteerAccessibility(formData: FormData) {
 
   const { error: profileError } = await supabase
     .from("volunteer_profiles")
-    .upsert({
-      user_id: user.id,
-      support_needs: combinedSupportNeeds || null,
-      share_support_needs: shareAccessibilityNeeds,
-      share_accessibility_needs: shareAccessibilityNeeds,
-      wants_wellbeing_support: wantsWellbeingSupport,
-      accessibility_completed: true,
-      onboarding_completed: false,
-      updated_at: new Date().toISOString()
-    });
-
-  if (profileError) {
-    redirect(
-      `/onboarding/volunteer/accessibility?error=${encodeURIComponent(
-        profileError.message
-      )}`
-    );
-  }
-
-  await supabase
-    .from("volunteer_accessibility_needs")
-    .delete()
-    .eq("volunteer_id", user.id);
-
-  if (accessibilityNeedIds.length > 0) {
-    const rows = accessibilityNeedIds.map((accessibilityNeedId) => ({
-      volunteer_id: user.id,
-      accessibility_need_id: accessibilityNeedId,
-      details: combinedSupportNeeds || null,
-      share_with_organisations: shareAccessibilityNeeds
-    }));
-
-    const { error: needsError } = await supabase
-      .from("volunteer_accessibility_needs")
-      .insert(rows);
-
-    if (needsError) {
-      redirect(
-        `/onboarding/volunteer/accessibility?error=${encodeURIComponent(
-          needsError.message
-        )}`
-      );
-    }
-  }
-
-  redirect("/onboarding/volunteer/availability");
-}
+    .upsert(
+      {
+        user_id: user.id,
+        support_needs: combinedSupportNeeds || null,
+        share_support_needs: shareAccessibilityNeeds,
+        share_accessibility_needs: shareAccessibilityNeeds,
+        wants_wellbeing_support: wantsWellbeingSupport,
+        accessibility_completed
