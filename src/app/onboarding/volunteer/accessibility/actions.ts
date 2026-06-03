@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
-export async function saveVolunteerOnboarding(formData: FormData) {
+export async function saveVolunteerAccessibility(formData: FormData) {
   const supabase = await createClient();
 
   const {
@@ -14,40 +14,69 @@ export async function saveVolunteerOnboarding(formData: FormData) {
     redirect("/login");
   }
 
-  const goals = formData.getAll("goals").map(String);
-  const city = String(formData.get("city") || "").trim();
-  const volunteeringPreference = String(
-    formData.get("volunteering_preference") || "both"
-  );
+  const accessibilityNeedIds = formData.getAll("accessibility_needs").map(String);
+  const supportOptions = formData.getAll("support_options").map(String);
+  const supportNeedsFreeText = String(formData.get("support_needs") || "").trim();
 
-  if (!city) {
+  const combinedSupportNeeds = [
+    ...supportOptions,
+    supportNeedsFreeText ? `Other: ${supportNeedsFreeText}` : ""
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  const shareAccessibilityNeeds =
+    String(formData.get("share_accessibility_needs") || "false") === "true";
+
+  const wantsWellbeingSupport =
+    String(formData.get("wants_wellbeing_support") || "false") === "true";
+
+  const { error: profileError } = await supabase
+    .from("volunteer_profiles")
+    .upsert({
+      user_id: user.id,
+      support_needs: combinedSupportNeeds || null,
+      share_support_needs: shareAccessibilityNeeds,
+      share_accessibility_needs: shareAccessibilityNeeds,
+      wants_wellbeing_support: wantsWellbeingSupport,
+      accessibility_completed: true,
+      onboarding_completed: false,
+      updated_at: new Date().toISOString()
+    });
+
+  if (profileError) {
     redirect(
-      `/onboarding/volunteer?error=${encodeURIComponent(
-        "Please add your nearest town or city."
+      `/onboarding/volunteer/accessibility?error=${encodeURIComponent(
+        profileError.message
       )}`
     );
   }
 
-  if (!goals.length) {
-    redirect(
-      `/onboarding/volunteer?error=${encodeURIComponent(
-        "Please choose at least one goal."
-      )}`
-    );
+  await supabase
+    .from("volunteer_accessibility_needs")
+    .delete()
+    .eq("volunteer_id", user.id);
+
+  if (accessibilityNeedIds.length > 0) {
+    const rows = accessibilityNeedIds.map((accessibilityNeedId) => ({
+      volunteer_id: user.id,
+      accessibility_need_id: accessibilityNeedId,
+      details: combinedSupportNeeds || null,
+      share_with_organisations: shareAccessibilityNeeds
+    }));
+
+    const { error: needsError } = await supabase
+      .from("volunteer_accessibility_needs")
+      .insert(rows);
+
+    if (needsError) {
+      redirect(
+        `/onboarding/volunteer/accessibility?error=${encodeURIComponent(
+          needsError.message
+        )}`
+      );
+    }
   }
 
-  const { error } = await supabase.from("volunteer_profiles").upsert({
-    user_id: user.id,
-    city,
-    goals,
-    volunteering_preference: volunteeringPreference,
-    onboarding_completed: false,
-    updated_at: new Date().toISOString()
-  });
-
-  if (error) {
-    redirect(`/onboarding/volunteer?error=${encodeURIComponent(error.message)}`);
-  }
-
-  redirect("/onboarding/volunteer/interests");
+  redirect("/onboarding/volunteer/availability");
 }
