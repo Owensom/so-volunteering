@@ -24,12 +24,17 @@ export async function saveVolunteerInterests(formData: FormData) {
     );
   }
 
-  const { error } = await supabase.from("volunteer_profiles").upsert({
-    user_id: user.id,
-    interests,
-    onboarding_completed: false,
-    updated_at: new Date().toISOString()
-  });
+  const { error } = await supabase
+    .from("volunteer_profiles")
+    .upsert(
+      {
+        user_id: user.id,
+        interests,
+        onboarding_completed: false,
+        updated_at: new Date().toISOString()
+      },
+      { onConflict: "user_id" }
+    );
 
   if (error) {
     redirect(
