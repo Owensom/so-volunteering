@@ -14,17 +14,8 @@ export async function saveVolunteerSkills(formData: FormData) {
     redirect("/login");
   }
 
-  const interests = formData.getAll("interests").map(String);
   const skills = formData.getAll("skills").map(String);
   const bio = String(formData.get("bio") || "").trim();
-
-  if (!interests.length) {
-    redirect(
-      `/onboarding/volunteer/skills?error=${encodeURIComponent(
-        "Please choose at least one interest or thing you might like to try."
-      )}`
-    );
-  }
 
   if (!skills.length) {
     redirect(
@@ -36,9 +27,9 @@ export async function saveVolunteerSkills(formData: FormData) {
 
   const { error } = await supabase.from("volunteer_profiles").upsert({
     user_id: user.id,
-    interests,
     skills,
     bio: bio || null,
+    onboarding_completed: false,
     updated_at: new Date().toISOString()
   });
 
