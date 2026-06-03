@@ -4,6 +4,8 @@ import { signOut } from "@/app/auth/actions";
 import { createClient } from "@/lib/supabase/server";
 import { InclusiveAudioButton } from "@/components/InclusiveSupport";
 
+export const dynamic = "force-dynamic";
+
 type Profile = {
   full_name: string | null;
   email: string | null;
