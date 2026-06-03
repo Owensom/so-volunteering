@@ -10,7 +10,9 @@ type Profile = {
 };
 
 function normaliseUserType(value: string | null | undefined) {
-  return value === "organisation" ? "organisation" : "volunteer";
+  return value?.trim().toLowerCase() === "organisation"
+    ? "organisation"
+    : "volunteer";
 }
 
 export async function signUp(formData: FormData) {
@@ -19,7 +21,9 @@ export async function signUp(formData: FormData) {
   const fullName = String(formData.get("full_name") || "").trim();
   const email = String(formData.get("email") || "").trim();
   const password = String(formData.get("password") || "");
-  const userType = normaliseUserType(String(formData.get("user_type") || "volunteer"));
+  const userType = normaliseUserType(
+    String(formData.get("user_type") || "volunteer")
+  );
 
   if (!email || !password || !fullName) {
     redirect("/signup?error=missing_fields");
@@ -40,14 +44,6 @@ export async function signUp(formData: FormData) {
     redirect(`/signup?error=${encodeURIComponent(error.message)}`);
   }
 
-  /*
-    Best-effort profile sync.
-
-    If email confirmation is enabled, Supabase may not create an authenticated
-    session immediately, so this write may be blocked by RLS. That is fine:
-    login also syncs/falls back to auth metadata. Do not fail account creation
-    just because the profile row cannot be updated here.
-  */
   if (data.user?.id) {
     await supabase
       .from("profiles")
@@ -105,12 +101,9 @@ export async function signIn(formData: FormData) {
       : undefined
   );
 
-  const userType = normaliseUserType(profile?.user_type || metadataUserType);
+  const profileUserType = normaliseUserType(profile?.user_type);
+  const userType = profile?.user_type ? profileUserType : metadataUserType;
 
-  /*
-    Best-effort profile repair. This keeps older accounts usable where email
-    or user_type may not have been stored in public.profiles yet.
-  */
   await supabase
     .from("profiles")
     .upsert(
