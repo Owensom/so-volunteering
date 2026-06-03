@@ -1,0 +1,94 @@
+<svg width="900" height="640" viewBox="0 0 900 640" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="900" height="640" fill="none"/>
+
+  <circle cx="650" cy="130" r="250" fill="#B7A7D6" fill-opacity="0.12"/>
+  <circle cx="760" cy="520" r="220" fill="#8FB29E" fill-opacity="0.13"/>
+  <circle cx="250" cy="570" r="180" fill="#F4B7C5" fill-opacity="0.09"/>
+
+  <path
+    d="M606 524C654 442 665 349 637 262"
+    stroke="#5F7F73"
+    stroke-opacity="0.28"
+    stroke-width="4"
+    stroke-linecap="round"
+  />
+
+  <path
+    d="M635 270C676 260 711 230 728 190C687 197 653 226 635 270Z"
+    fill="#5F7F73"
+    fill-opacity="0.22"
+  />
+
+  <path
+    d="M656 332C704 328 747 302 773 261C724 259 681 284 656 332Z"
+    fill="#5F7F73"
+    fill-opacity="0.18"
+  />
+
+  <path
+    d="M658 392C704 401 752 387 786 352C741 338 693 352 658 392Z"
+    fill="#5F7F73"
+    fill-opacity="0.15"
+  />
+
+  <path
+    d="M637 451C678 471 728 469 767 444C728 418 678 420 637 451Z"
+    fill="#5F7F73"
+    fill-opacity="0.14"
+  />
+
+  <path
+    d="M609 516C642 547 690 560 735 548C704 513 655 500 609 516Z"
+    fill="#5F7F73"
+    fill-opacity="0.12"
+  />
+
+  <path
+    d="M602 294C566 276 524 275 489 294C524 318 568 318 602 294Z"
+    fill="#8FB29E"
+    fill-opacity="0.16"
+  />
+
+  <path
+    d="M620 358C582 347 538 355 506 382C546 397 589 389 620 358Z"
+    fill="#8FB29E"
+    fill-opacity="0.15"
+  />
+
+  <path
+    d="M621 421C583 418 542 434 515 466C556 474 596 458 621 421Z"
+    fill="#8FB29E"
+    fill-opacity="0.13"
+  />
+
+  <path
+    d="M305 458C342 395 352 323 330 255"
+    stroke="#8FB29E"
+    stroke-opacity="0.18"
+    stroke-width="3"
+    stroke-linecap="round"
+  />
+
+  <path
+    d="M329 263C363 253 391 229 404 196C371 202 343 226 329 263Z"
+    fill="#8FB29E"
+    fill-opacity="0.13"
+  />
+
+  <path
+    d="M341 321C378 320 411 300 432 268C395 266 362 286 341 321Z"
+    fill="#8FB29E"
+    fill-opacity="0.11"
+  />
+
+  <path
+    d="M329 375C363 387 401 381 431 357C397 342 359 349 329 375Z"
+    fill="#8FB29E"
+    fill-opacity="0.1"
+  />
+
+  <circle cx="180" cy="125" r="16" fill="#E6C177" fill-opacity="0.55"/>
+  <circle cx="225" cy="168" r="9" fill="#B7A7D6" fill-opacity="0.35"/>
+  <circle cx="805" cy="112" r="11" fill="#E6C177" fill-opacity="0.35"/>
+  <circle cx="115" cy="510" r="12" fill="#8FB29E" fill-opacity="0.22"/>
+</svg>
