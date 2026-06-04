@@ -33,7 +33,7 @@ type OpportunityRow = {
   id: string;
   title: string;
   summary: string;
-  location_type: string;
+  location_type: string | null;
   location: string | null;
   time_commitment: string | null;
   status: string;
@@ -237,7 +237,7 @@ export default async function OrganisationInterestDetailPage({
 
   const phoneNumber = interest.volunteer_phone?.trim() || "";
 
-  const volunteerName = interest.volunteer_name || "there";
+  const volunteerName = interest.volunteer_name || "Volunteer";
   const roleTitle = opportunity?.title || "this volunteering role";
   const contactEmailSubject = `Your interest in ${roleTitle}`;
   const contactEmailBody = buildContactEmail({
@@ -251,10 +251,10 @@ export default async function OrganisationInterestDetailPage({
   });
 
   const listenText =
-    "You are on a volunteer interest detail page. First, read the volunteer name and current status at the top. The cards below show the role, volunteer contact details, preferred contact method, phone number if the volunteer chose phone or text, supporting statement, goals, interests, skills and shared support information. The Status guide explains the workflow: New, Reviewed, Contacted and Closed. The Prepare contact card gives you a suggested first message. Open the preview only if you want to read the full draft. The platform does not send the email for you yet. Use the Update status card to mark this interest as reviewed, contacted or closed.";
+    "You are on a volunteer interest detail page. First, read the volunteer name and current status. The cards below show the role, volunteer contact details, preferred contact method, phone number if the volunteer chose phone or text, supporting statement, goals, interests, skills and shared support information. The Status guide explains the workflow: New, Reviewed, Contacted and Closed. The Prepare contact card gives you a suggested first message. Open the preview only if you want to read the full draft. The platform does not send the email for you yet. Use the Update status card to mark this interest as reviewed, contacted or closed.";
 
   return (
-    <main className="dashboard-bg">
+    <main className="dashboard-bg organisation-interest-page">
       <section className="dashboard-shell">
         <header className="dashboard-topbar">
           <Link
@@ -292,23 +292,26 @@ export default async function OrganisationInterestDetailPage({
         </header>
 
         <section
-          className="dashboard-welcome-card"
+          className="dashboard-welcome-card organisation-interest-hero"
           aria-labelledby="interest-detail-title"
         >
-          <div className="dashboard-welcome-copy">
+          <div className="dashboard-welcome-copy organisation-interest-hero-copy">
             <p className="dashboard-kicker">Volunteer interest</p>
 
-            <h1 id="interest-detail-title" className="dashboard-title">
+            <h1
+              id="interest-detail-title"
+              className="dashboard-title organisation-interest-title"
+            >
               <span aria-hidden="true">📬</span>
               <span>{interest.volunteer_name || "Volunteer"}</span>
             </h1>
 
-            <p className="dashboard-lead">
+            <p className="dashboard-lead organisation-interest-lead">
               Review this volunteer’s interest before deciding the next step.
               Keep contact kind, clear and supportive.
             </p>
 
-            <div className="dashboard-primary-actions">
+            <div className="dashboard-primary-actions organisation-interest-actions">
               <Link
                 href="/organisation/interests"
                 className="primary-button dashboard-main-action"
@@ -333,8 +336,11 @@ export default async function OrganisationInterestDetailPage({
             </div>
           </div>
 
-          <aside className="dashboard-progress-card" aria-label="Interest status">
-            <div className="dashboard-progress-header">
+          <aside
+            className="dashboard-progress-card organisation-interest-status-card"
+            aria-label="Interest status"
+          >
+            <div className="dashboard-progress-header organisation-interest-status-header">
               <span className="dashboard-progress-icon" aria-hidden="true">
                 ✨
               </span>
@@ -346,17 +352,17 @@ export default async function OrganisationInterestDetailPage({
               </div>
             </div>
 
-            <p className="dashboard-progress-note">
+            <p className="dashboard-progress-note organisation-interest-status-note">
               Preferred contact: <strong>{preferredContactMethod}</strong>
             </p>
 
             {showPhoneNumber ? (
-              <p className="dashboard-progress-note">
+              <p className="dashboard-progress-note organisation-interest-status-note">
                 Phone: <strong>{phoneNumber || "Not supplied"}</strong>
               </p>
             ) : null}
 
-            <p className="dashboard-progress-note">
+            <p className="dashboard-progress-note organisation-interest-status-note">
               Update the status when this interest has been reviewed or handled.
             </p>
           </aside>
@@ -628,6 +634,25 @@ export default async function OrganisationInterestDetailPage({
       </section>
 
       <style>{`
+        .organisation-interest-page,
+        .organisation-interest-page * {
+          box-sizing: border-box;
+        }
+
+        .organisation-interest-hero,
+        .organisation-interest-status-card,
+        .interest-detail-card {
+          overflow: hidden;
+        }
+
+        .organisation-interest-hero-copy,
+        .organisation-interest-status-card,
+        .organisation-interest-status-card *,
+        .interest-detail-card,
+        .interest-detail-card * {
+          min-width: 0;
+        }
+
         .interest-detail-grid {
           align-items: stretch;
         }
@@ -654,8 +679,11 @@ export default async function OrganisationInterestDetailPage({
           word-break: normal;
         }
 
-        .interest-detail-body p {
+        .interest-detail-body p,
+        .organisation-interest-status-note {
           margin: 0;
+          overflow-wrap: anywhere;
+          word-break: break-word;
         }
 
         .interest-chip-list {
@@ -715,6 +743,7 @@ export default async function OrganisationInterestDetailPage({
           color: #536f63;
           font-size: 0.8rem;
           font-weight: 950;
+          flex: 0 0 auto;
         }
 
         .contact-email-details {
@@ -789,13 +818,111 @@ export default async function OrganisationInterestDetailPage({
           background: rgba(244, 255, 249, 0.96);
         }
 
-        @media (max-width: 640px) {
+        @media (max-width: 760px) {
+          .organisation-interest-page .dashboard-shell {
+            width: min(100%, 100vw);
+            padding-left: 18px;
+            padding-right: 18px;
+          }
+
+          .organisation-interest-page .dashboard-topbar {
+            gap: 14px;
+          }
+
+          .organisation-interest-page .dashboard-topbar-actions {
+            width: 100%;
+            justify-content: stretch;
+          }
+
+          .organisation-interest-page .dashboard-topbar-actions > *,
+          .organisation-interest-page .dashboard-topbar-actions a,
+          .organisation-interest-page .dashboard-topbar-actions button {
+            width: 100%;
+          }
+
+          .organisation-interest-hero {
+            gap: 22px;
+            padding: 28px 22px;
+            border-radius: 30px;
+          }
+
+          .organisation-interest-title {
+            display: flex;
+            gap: 10px;
+            align-items: flex-start;
+            max-width: 100%;
+            font-size: clamp(2.15rem, 11vw, 3rem);
+            line-height: 0.98;
+            letter-spacing: -0.055em;
+            overflow-wrap: anywhere;
+            word-break: break-word;
+          }
+
+          .organisation-interest-title span:last-child {
+            min-width: 0;
+          }
+
+          .organisation-interest-lead {
+            max-width: 100%;
+            font-size: 1.08rem;
+            line-height: 1.48;
+            overflow-wrap: anywhere;
+          }
+
+          .organisation-interest-actions {
+            width: 100%;
+            gap: 12px;
+          }
+
+          .organisation-interest-actions .dashboard-main-action {
+            width: 100%;
+          }
+
+          .organisation-interest-status-card {
+            width: 100%;
+            padding: 22px;
+            border-radius: 26px;
+          }
+
+          .organisation-interest-status-header {
+            align-items: flex-start;
+            gap: 14px;
+          }
+
+          .organisation-interest-status-header h2 {
+            font-size: 1.45rem;
+            line-height: 1.08;
+            overflow-wrap: anywhere;
+          }
+
+          .organisation-interest-status-header p,
+          .organisation-interest-status-note {
+            font-size: 1rem;
+            line-height: 1.35;
+          }
+
+          .organisation-interest-status-note {
+            margin-top: 10px;
+          }
+
           .interest-detail-card {
             min-height: 0;
+            padding: 22px;
           }
 
           .interest-detail-copy {
             gap: 14px;
+          }
+
+          .interest-detail-copy h2 {
+            font-size: 1.45rem;
+            line-height: 1.14;
+            overflow-wrap: anywhere;
+          }
+
+          .interest-detail-body {
+            font-size: 1rem;
+            line-height: 1.48;
           }
 
           .interest-chip-list {
@@ -814,6 +941,27 @@ export default async function OrganisationInterestDetailPage({
 
           .contact-email-preview {
             max-height: 220px;
+          }
+        }
+
+        @media (max-width: 420px) {
+          .organisation-interest-page .dashboard-shell {
+            padding-left: 14px;
+            padding-right: 14px;
+          }
+
+          .organisation-interest-hero {
+            padding: 24px 18px;
+            border-radius: 28px;
+          }
+
+          .organisation-interest-title {
+            font-size: clamp(1.95rem, 10.5vw, 2.55rem);
+          }
+
+          .organisation-interest-status-card,
+          .interest-detail-card {
+            padding: 18px;
           }
         }
       `}</style>
