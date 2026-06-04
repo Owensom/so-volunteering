@@ -168,7 +168,7 @@ export default async function OrganisationDashboardPage() {
   const profileCompleted = organisationProfile?.profile_completed === true;
 
   const listenText =
-    "This is the organisation workspace for SO Volunteering. This page helps organisations set up their profile, create inclusive volunteering roles, review volunteer interest, and later match volunteers to roles.";
+    "You are on the organisation dashboard. This is your workspace for creating volunteering roles and reviewing volunteer interest. First, check the Workspace status card on the right. It shows whether your organisation profile is complete, how many roles are published, how many are drafts, and how many new volunteer interests need review. Use the Create role button to make a new volunteering role. Use the View interest button to open the interest inbox. The cards below give quick links. Organisation profile lets you review your organisation details. Create a role opens the role setup form. Opportunity list shows draft, published and closed roles. Interest inbox shows volunteers who have clicked I’m interested. Volunteer matches is a later feature.";
 
   return (
     <main className="dashboard-bg">
