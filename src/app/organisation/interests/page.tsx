@@ -130,7 +130,7 @@ export default async function OrganisationInterestsPage() {
   const closedCount = rows.filter((row) => row.status === "closed").length;
 
   const listenText =
-    "This is the organisation interest inbox. It shows volunteers who have expressed interest in your opportunities. Each card opens a full detail page where you can review the volunteer and update the interest status.";
+    "You are on the organisation interest inbox. This page shows volunteers who have clicked I’m interested on your published roles. First, check the Inbox status card on the right. It shows how many interests are new, reviewed, contacted and closed. Then read the volunteer interest cards below. Each card shows the volunteer name, the role they are interested in, their area if shared, their message if they wrote one, and a short skills summary. Select a card or the Review interest link to open the full interest detail page. On the detail page you can review the volunteer information and update the status.";
 
   return (
     <main className="dashboard-bg">
