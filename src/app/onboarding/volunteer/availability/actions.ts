@@ -16,6 +16,10 @@ function normaliseContactMethod(value: string) {
   return "email";
 }
 
+function normalisePhoneNumber(value: string) {
+  return value.replace(/[^\d+() -]/g, "").trim();
+}
+
 export async function saveVolunteerAvailability(formData: FormData) {
   const supabase = await createClient();
 
@@ -33,6 +37,10 @@ export async function saveVolunteerAvailability(formData: FormData) {
     String(formData.get("preferred_contact_method") || "email")
   );
 
+  const phoneNumber = normalisePhoneNumber(
+    String(formData.get("phone_number") || "")
+  );
+
   const availabilityFreeText = String(
     formData.get("availability_notes") || ""
   ).trim();
@@ -41,6 +49,14 @@ export async function saveVolunteerAvailability(formData: FormData) {
     redirect(
       `/onboarding/volunteer/availability?error=${encodeURIComponent(
         "Please choose at least one availability option."
+      )}`
+    );
+  }
+
+  if ((contactMethod === "phone" || contactMethod === "sms") && !phoneNumber) {
+    redirect(
+      `/onboarding/volunteer/availability?error=${encodeURIComponent(
+        "Please add a phone number if you choose phone call or text message."
       )}`
     );
   }
@@ -79,6 +95,7 @@ export async function saveVolunteerAvailability(formData: FormData) {
     .update({
       availability_notes: availabilityNotes,
       preferred_contact_method: contactMethod,
+      phone_number: phoneNumber || null,
       onboarding_completed: true,
       updated_at: new Date().toISOString()
     })
