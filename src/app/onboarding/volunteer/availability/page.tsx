@@ -71,6 +71,17 @@ const availabilityOptions = [
   }
 ];
 
+type VolunteerProfile = {
+  preferred_contact_method: string | null;
+  phone_number: string | null;
+};
+
+function normaliseContactMethod(value: string | null | undefined) {
+  if (value === "phone") return "phone";
+  if (value === "sms") return "sms";
+  return "email";
+}
+
 export default async function VolunteerAvailabilityPage({
   searchParams
 }: {
@@ -89,8 +100,18 @@ export default async function VolunteerAvailabilityPage({
     redirect("/login");
   }
 
+  const { data: volunteerProfile } = await supabase
+    .from("volunteer_profiles")
+    .select("preferred_contact_method,phone_number")
+    .eq("user_id", user.id)
+    .maybeSingle<VolunteerProfile>();
+
+  const preferredContactMethod = normaliseContactMethod(
+    volunteerProfile?.preferred_contact_method
+  );
+
   const listenText =
-    "This is step five of your volunteer profile setup. This page is called Availability. At the top there is Listen support and your setup progress. Choose when or how often you might like to volunteer. You can choose more than one card. Then choose your preferred contact method. You do not need to type anything unless you want to. The final button says Finish setup.";
+    "This is step five of your volunteer profile setup. This page is called Availability. Choose when or how often you might like to volunteer. You can choose more than one card. Then choose your preferred contact method. If you choose phone call or text message, add a phone number so an organisation can contact you if you express interest in one of their roles. The final button says Finish setup.";
 
   return (
     <main className="onboarding-shell">
@@ -111,9 +132,7 @@ export default async function VolunteerAvailabilityPage({
               </span>
 
               <div>
-                <h1 className="onboarding-title">
-                  When might work for you?
-                </h1>
+                <h1 className="onboarding-title">When might work for you?</h1>
                 <p className="onboarding-lead">
                   Choose what feels realistic. You can be flexible, unsure, or
                   start small — this can always be changed later.
@@ -152,12 +171,34 @@ export default async function VolunteerAvailabilityPage({
               </span>
               <span>Preferred contact method</span>
             </span>
-            <select name="preferred_contact_method" defaultValue="email">
+            <select
+              name="preferred_contact_method"
+              defaultValue={preferredContactMethod}
+            >
               <option value="email">Email</option>
-              <option value="phone">Phone</option>
-              <option value="text_message">Text message</option>
-              <option value="not_sure">I am not sure yet</option>
+              <option value="phone">Phone call</option>
+              <option value="sms">Text message</option>
             </select>
+          </label>
+
+          <label className="field-label">
+            <span className="field-label-row">
+              <span className="field-label-icon" aria-hidden="true">
+                📱
+              </span>
+              <span>Phone number</span>
+            </span>
+            <input
+              name="phone_number"
+              type="tel"
+              defaultValue={volunteerProfile?.phone_number || ""}
+              placeholder="Optional unless you choose phone call or text message"
+              autoComplete="tel"
+            />
+            <span className="field-help">
+              If you choose phone call or text message, add a number so an
+              organisation can contact you after you express interest.
+            </span>
           </label>
 
           <OptionalTextarea
