@@ -22,6 +22,10 @@ type OpportunitySummary = {
   status: string;
 };
 
+type InterestSummary = {
+  status: string;
+};
+
 type OrganisationCardProps = {
   href?: string;
   icon: string;
@@ -127,12 +131,24 @@ export default async function OrganisationDashboardPage() {
     .select("status")
     .eq("organisation_user_id", user.id);
 
+  const { data: interests } = await supabase
+    .from("opportunity_interests")
+    .select("status")
+    .eq("organisation_user_id", user.id);
+
   const opportunityRows = (opportunities as OpportunitySummary[] | null) ?? [];
+  const interestRows = (interests as InterestSummary[] | null) ?? [];
+
   const publishedCount = opportunityRows.filter(
     (opportunity) => opportunity.status === "published"
   ).length;
+
   const draftCount = opportunityRows.filter(
     (opportunity) => opportunity.status === "draft"
+  ).length;
+
+  const newInterestCount = interestRows.filter(
+    (interest) => interest.status === "new"
   ).length;
 
   const displayName =
@@ -152,7 +168,7 @@ export default async function OrganisationDashboardPage() {
   const profileCompleted = organisationProfile?.profile_completed === true;
 
   const listenText =
-    "This is the organisation workspace for SO Volunteering. This page helps organisations set up their profile, create inclusive volunteering roles, add support and safety information, and later review volunteer interest. The organisation profile button opens profile setup. The create role button opens opportunity creation.";
+    "This is the organisation workspace for SO Volunteering. This page helps organisations set up their profile, create inclusive volunteering roles, review volunteer interest, and later match volunteers to roles.";
 
   return (
     <main className="dashboard-bg">
@@ -207,33 +223,29 @@ export default async function OrganisationDashboardPage() {
             </h1>
 
             <p className="dashboard-lead">
-              Hi {displayName}. Set up your organisation profile and create
-              clear, accessible volunteering roles with support built in from
-              the beginning.
+              Hi {displayName}. Create accessible volunteering roles, review
+              volunteer interest, and keep support information clear from the
+              start.
             </p>
 
             <div className="dashboard-primary-actions">
               <Link
-                href="/organisation/profile"
-                className="primary-button dashboard-main-action"
-              >
-                <span className="dashboard-button-inner">
-                  <span aria-hidden="true">🏢</span>
-                  <span>
-                    {profileCompleted
-                      ? "Edit organisation profile"
-                      : "Set up organisation"}
-                  </span>
-                </span>
-              </Link>
-
-              <Link
                 href="/organisation/opportunities/new"
-                className="secondary-button dashboard-main-action"
+                className="primary-button dashboard-main-action"
               >
                 <span className="dashboard-button-inner">
                   <span aria-hidden="true">📣</span>
                   <span>Create role</span>
+                </span>
+              </Link>
+
+              <Link
+                href="/organisation/interests"
+                className="secondary-button dashboard-main-action"
+              >
+                <span className="dashboard-button-inner">
+                  <span aria-hidden="true">📬</span>
+                  <span>View interest</span>
                 </span>
               </Link>
             </div>
@@ -249,9 +261,9 @@ export default async function OrganisationDashboardPage() {
               </span>
 
               <div>
-                <h2>Profile status</h2>
+                <h2>Workspace status</h2>
                 <p>
-                  Status:{" "}
+                  Profile:{" "}
                   <strong>{profileCompleted ? "Complete" : "Needs setup"}</strong>
                 </p>
               </div>
@@ -269,47 +281,25 @@ export default async function OrganisationDashboardPage() {
             <p className="dashboard-progress-note">
               Draft roles: <strong>{draftCount}</strong>
             </p>
+            <p className="dashboard-progress-note">
+              New interest: <strong>{newInterestCount}</strong>
+            </p>
           </aside>
         </section>
 
         <section
-          id="organisation-setup"
           className="dashboard-grid organisation-card-grid"
-          aria-label="Organisation setup priorities"
+          aria-label="Organisation workspace actions"
         >
           <OrganisationCard
             href="/organisation/profile"
             icon="🏢"
-            label="Priority 1"
+            label="Profile"
             title="Organisation profile"
-            description="Add your name, purpose, location and contact details so volunteers know who you are."
+            description="Review your name, purpose, location, contact details and support approach."
             action={profileCompleted ? "Review profile" : "Start profile"}
           />
 
-          <OrganisationCard
-            href="/organisation/profile"
-            icon="💛"
-            label="Priority 2"
-            title="Inclusion and support"
-            description="Describe the support volunteers can expect before, during and after their role."
-            action="Review support"
-          />
-
-          <OrganisationCard
-            href="/organisation/profile"
-            icon="🛡️"
-            label="Priority 3"
-            title="Safety basics"
-            description="Add supervision and safeguarding notes so volunteers know who can help."
-            action="Review safety"
-          />
-        </section>
-
-        <section
-          id="organisation-build-plan"
-          className="dashboard-grid organisation-card-grid"
-          aria-label="Organisation opportunity build plan"
-        >
           <OrganisationCard
             href="/organisation/opportunities/new"
             icon="📣"
@@ -322,10 +312,19 @@ export default async function OrganisationDashboardPage() {
           <OrganisationCard
             href="/organisation/opportunities"
             icon="✅"
-            label="Readiness"
+            label="Role list"
             title="Opportunity list"
-            description="Review draft and published roles before volunteers can browse them."
+            description="Review draft, published and closed roles before volunteers respond."
             action="View roles"
+          />
+
+          <OrganisationCard
+            href="/organisation/interests"
+            icon="📬"
+            label="Volunteer interest"
+            title="Interest inbox"
+            description="See volunteers who have expressed interest in your published roles."
+            action="View interest"
           />
 
           <OrganisationCard
