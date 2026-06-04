@@ -142,7 +142,7 @@ export default async function MyInterestsPage({
   const closedCount = rows.filter((row) => row.status === "closed").length;
 
   const listenText =
-    "This is your Roles I am interested in page. It shows volunteering roles where you clicked I am interested. Each card shows the role, the current status, your optional supporting statement, and a link back to the opportunity. Each saved role also has a Remove interest button.";
+    "You are on the Roles I am interested in page. This page tracks roles where you clicked I’m interested. First, check the Role status card on the right to see how many roles are new, reviewed, contacted or closed. Then read each role card below. Each card shows the role title, current status, what the status means, location details, your supporting statement if you wrote one, and the role contact if available. Use Open opportunity to return to the role details. Use Remove interest if you no longer want the organisation to see that you are interested.";
 
   return (
     <main className="dashboard-bg">
