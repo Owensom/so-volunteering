@@ -418,12 +418,12 @@ export default async function OpportunityDetailPage({
                         <span className="field-label-icon" aria-hidden="true">
                           💬
                         </span>
-                        <span>Optional message</span>
+                       <span>Optional supporting statement</span>
                       </span>
                       <textarea
                         name="message"
                         rows={4}
-                        placeholder="Optional. Example: I am interested in this role and would like to know more."
+                        placeholder="Optional. You can leave this blank, write a short message, or add a fuller supporting statement explaining why you are interested."
                       />
                     </label>
 
