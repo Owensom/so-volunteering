@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { InclusiveAudioButton } from "@/components/InclusiveSupport";
 
+export const dynamic = "force-dynamic";
+
 type Profile = {
   full_name: string | null;
   email: string | null;
@@ -35,9 +37,9 @@ function SummaryList({
   }
 
   return (
-    <div className="profile-chip-list">
+    <div className="profile-summary-chip-list">
       {values.map((value) => (
-        <span key={value} className="profile-chip">
+        <span key={value} className="profile-summary-chip">
           {value}
         </span>
       ))}
@@ -73,18 +75,20 @@ function ProfileSection({
   children: React.ReactNode;
 }) {
   return (
-    <article className="info-card dashboard-pathway-card">
-      <div className="dashboard-card-icon" aria-hidden="true">
+    <article className="info-card dashboard-pathway-card profile-summary-card">
+      <div className="dashboard-card-icon profile-summary-icon" aria-hidden="true">
         {icon}
       </div>
 
-      <div className="dashboard-card-copy">
-        <p className="dashboard-card-label">{label}</p>
-        <h2>{title}</h2>
+      <div className="dashboard-card-copy profile-summary-copy">
+        <div className="profile-summary-main">
+          <p className="dashboard-card-label">{label}</p>
+          <h2>{title}</h2>
 
-        <div className="profile-section-body">{children}</div>
+          <div className="profile-section-body">{children}</div>
+        </div>
 
-        <p className="card-action">
+        <p className="card-action profile-summary-action">
           <Link href={href} className="text-link">
             Edit this section
           </Link>
@@ -244,7 +248,7 @@ export default async function ProfilePage() {
         </section>
 
         <section
-          className="dashboard-grid"
+          className="dashboard-grid profile-summary-grid"
           aria-label="Volunteer profile summary sections"
         >
           <ProfileSection
@@ -314,14 +318,14 @@ export default async function ProfilePage() {
               emptyText="No support preferences added yet."
             />
 
-            <div className="profile-chip-list">
-              <span className="profile-chip">
+            <div className="profile-summary-chip-list">
+              <span className="profile-summary-chip">
                 {volunteerProfile?.share_accessibility_needs
                   ? "Can share with organisations"
                   : "Private for now"}
               </span>
 
-              <span className="profile-chip">
+              <span className="profile-summary-chip">
                 {volunteerProfile?.wants_wellbeing_support
                   ? "Wellbeing reminders wanted"
                   : "No wellbeing reminders"}
@@ -350,23 +354,122 @@ export default async function ProfilePage() {
             </p>
           </ProfileSection>
 
-          <article className="info-card dashboard-pathway-card">
-            <div className="dashboard-card-icon" aria-hidden="true">
+          <article className="info-card dashboard-pathway-card profile-summary-card">
+            <div
+              className="dashboard-card-icon profile-summary-icon"
+              aria-hidden="true"
+            >
               🔎
             </div>
 
-            <div className="dashboard-card-copy">
-              <p className="dashboard-card-label">Coming soon</p>
-              <h2>Opportunity matching</h2>
-              <p>
-                Your profile will help match you with inclusive volunteering
-                opportunities when the opportunity system is added.
+            <div className="dashboard-card-copy profile-summary-copy">
+              <div className="profile-summary-main">
+                <p className="dashboard-card-label">Coming soon</p>
+                <h2>Opportunity matching</h2>
+                <div className="profile-section-body">
+                  <p>
+                    Your profile will help match you with inclusive volunteering
+                    opportunities when the opportunity system is added.
+                  </p>
+                </div>
+              </div>
+
+              <p className="dashboard-muted-action profile-summary-action">
+                Not live yet
               </p>
-              <p className="dashboard-muted-action">Not live yet</p>
             </div>
           </article>
         </section>
       </section>
+
+      <style>{`
+        .profile-summary-grid {
+          align-items: stretch;
+        }
+
+        .profile-summary-card {
+          min-height: 244px;
+          height: 100%;
+          align-items: stretch;
+        }
+
+        .profile-summary-copy {
+          display: flex;
+          min-height: 100%;
+          flex-direction: column;
+          justify-content: space-between;
+          gap: 18px;
+        }
+
+        .profile-summary-main {
+          display: grid;
+          gap: 10px;
+        }
+
+        .profile-summary-main h2 {
+          margin-bottom: 0;
+        }
+
+        .profile-section-body {
+          display: grid;
+          gap: 10px;
+          color: #5d6677;
+          line-height: 1.5;
+          overflow-wrap: anywhere;
+          word-break: normal;
+        }
+
+        .profile-section-body p {
+          margin: 0;
+        }
+
+        .profile-summary-action {
+          margin-top: auto !important;
+        }
+
+        .profile-summary-chip-list {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 10px;
+          align-items: flex-start;
+        }
+
+        .profile-summary-chip {
+          display: inline-flex;
+          align-items: center;
+          width: fit-content;
+          max-width: 100%;
+          padding: 9px 12px;
+          border: 1px solid rgba(108, 92, 160, 0.16);
+          border-radius: 999px;
+          background: rgba(255, 255, 255, 0.82);
+          color: #536f63;
+          font-size: 0.88rem;
+          font-weight: 800;
+          line-height: 1.2;
+          box-shadow: 0 10px 22px rgba(33, 56, 48, 0.06);
+          white-space: normal;
+        }
+
+        @media (max-width: 640px) {
+          .profile-summary-card {
+            min-height: 0;
+          }
+
+          .profile-summary-copy {
+            gap: 14px;
+          }
+
+          .profile-summary-chip-list {
+            gap: 8px;
+          }
+
+          .profile-summary-chip {
+            border-radius: 18px;
+            font-size: 0.86rem;
+          }
+        }
+      `}</style>
     </main>
   );
 }
