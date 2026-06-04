@@ -176,7 +176,7 @@ export default async function OrganisationInterestDetailPage({
     .maybeSingle<OpportunityRow>();
 
   const listenText =
-    "You are on a volunteer interest detail page. First, read the volunteer name and current status at the top. Use the Back to inbox button if you want to return to the interest inbox. Use the Open role button to view the volunteering role this person is interested in. The cards below show the role, volunteer contact details, their supporting statement if they wrote one, their goals, interests, skills and shared support information. If support preferences were not shared, the support card will say that clearly. When you have reviewed the details, go to the Update status card. Choose New, Reviewed, Contacted or Closed. Use Reviewed when you have looked at the interest. Use Contacted when you have contacted the volunteer outside the platform. Use Closed when the interest no longer needs action. Press Save status to update the inbox and dashboard counts.";
+    "You are on a volunteer interest detail page. First, read the volunteer name and current status at the top. Use the Back to inbox button if you want to return to the interest inbox. Use the Open role button to view the volunteering role this person is interested in. The cards below show the role, volunteer contact details, their supporting statement if they wrote one, their goals, interests, skills and shared support information. If support preferences were not shared, the support card will say that clearly. The What happens next card explains the recommended workflow. When you have reviewed the details, go to the Update status card. Choose New, Reviewed, Contacted or Closed. Use Reviewed when you have looked at the interest. Use Contacted when you have contacted the volunteer outside the platform. Use Closed when the interest no longer needs action. Press Save status to update the inbox and dashboard counts.";
 
   return (
     <main className="dashboard-bg">
@@ -367,6 +367,24 @@ export default async function OrganisationInterestDetailPage({
                 Support preferences were not shared with organisations.
               </p>
             )}
+          </DetailCard>
+
+          <DetailCard icon="🧭" label="Next steps" title="What happens next?">
+            <p>
+              Read the volunteer’s details and decide whether the role looks like
+              a good fit.
+            </p>
+            <p>
+              Mark the interest as Reviewed once you have looked at it.
+            </p>
+            <p>
+              Contact the volunteer outside the platform for now using the email
+              shown on this page.
+            </p>
+            <p>
+              Mark the interest as Contacted after you have reached out, or
+              Closed when no further action is needed.
+            </p>
           </DetailCard>
 
           <article className="info-card dashboard-pathway-card interest-detail-card">
