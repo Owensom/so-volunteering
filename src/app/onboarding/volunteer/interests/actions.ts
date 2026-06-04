@@ -74,54 +74,40 @@ export async function saveVolunteerInterests(formData: FormData) {
     );
   }
 
-  const { data: existingProfile } = await supabase
+  const { data: existingProfile, error: existingProfileError } = await supabase
     .from("volunteer_profiles")
     .select("user_id")
     .eq("user_id", user.id)
     .maybeSingle<ExistingVolunteerProfile>();
 
-  if (existingProfile) {
-    const { error: updateError } = await supabase
-      .from("volunteer_profiles")
-      .update({
-        interests: selectedInterests,
-        updated_at: new Date().toISOString()
-      })
-      .eq("user_id", user.id);
-
-    if (updateError) {
-      redirect(
-        `/onboarding/volunteer/interests?error=${encodeURIComponent(
-          updateError.message
-        )}`
-      );
-    }
-
-    redirect("/onboarding/volunteer/skills");
-  }
-
-  const { error: insertError } = await supabase
-    .from("volunteer_profiles")
-    .insert({
-      user_id: user.id,
-      interests: selectedInterests,
-      goals: [],
-      skills: [],
-      city: "",
-      support_needs: "",
-      availability_notes: "",
-      preferred_contact_method: "email",
-      share_accessibility_needs: false,
-      wants_wellbeing_support: false,
-      accessibility_completed: false,
-      onboarding_completed: false,
-      updated_at: new Date().toISOString()
-    });
-
-  if (insertError) {
+  if (existingProfileError) {
     redirect(
       `/onboarding/volunteer/interests?error=${encodeURIComponent(
-        insertError.message
+        existingProfileError.message
+      )}`
+    );
+  }
+
+  if (!existingProfile) {
+    redirect(
+      `/onboarding/volunteer?error=${encodeURIComponent(
+        "Please start your profile setup before choosing interests."
+      )}`
+    );
+  }
+
+  const { error: updateError } = await supabase
+    .from("volunteer_profiles")
+    .update({
+      interests: selectedInterests,
+      updated_at: new Date().toISOString()
+    })
+    .eq("user_id", user.id);
+
+  if (updateError) {
+    redirect(
+      `/onboarding/volunteer/interests?error=${encodeURIComponent(
+        updateError.message
       )}`
     );
   }
