@@ -154,7 +154,8 @@ function getVolunteerProgress(volunteerProfile: VolunteerProfile | null) {
     nextStepHref: "/opportunities",
     nextStepLabel: "Find opportunities",
     nextStepIcon: "🔎",
-    nextStepText: "Your pathway profile is ready. You can now browse published opportunities."
+    nextStepText:
+      "Your pathway profile is ready. You can now browse published opportunities."
   };
 }
 
@@ -214,7 +215,7 @@ export default async function DashboardPage() {
   const progress = getVolunteerProgress(volunteerProfile);
 
   const listenText =
-    "This is your SO Volunteering dashboard. It is your quick home base. You can continue your next setup step, view your profile, see your pathway, review wellbeing support, browse published volunteering opportunities, and track roles you are interested in.";
+    "You are on your SO Volunteering dashboard. This is your home base. First, check the Profile progress card on the right to see how many setup steps are complete. Use the main button near the top to continue your next step, or to find opportunities if your setup is complete. Use the Roles I am interested in button to track roles where you clicked I’m interested. The cards below give quick links. View my profile opens your saved details. See my pathway shows all setup steps. Wellbeing and support lets you review what helps you feel comfortable. Find opportunities opens published volunteering roles. Roles I am interested in shows roles you have saved and their current status.";
 
   return (
     <main className="dashboard-bg">
