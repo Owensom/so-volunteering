@@ -18,6 +18,10 @@ type OrganisationProfile = {
   profile_completed: boolean | null;
 };
 
+type OpportunitySummary = {
+  status: string;
+};
+
 type OrganisationCardProps = {
   href?: string;
   icon: string;
@@ -45,7 +49,10 @@ function OrganisationCard({
 }: OrganisationCardProps) {
   const content = (
     <>
-      <div className="dashboard-card-icon organisation-card-icon" aria-hidden="true">
+      <div
+        className="dashboard-card-icon organisation-card-icon"
+        aria-hidden="true"
+      >
         {icon}
       </div>
 
@@ -65,13 +72,20 @@ function OrganisationCard({
 
   if (href) {
     return (
-      <Link href={href} className="info-card dashboard-pathway-card organisation-card">
+      <Link
+        href={href}
+        className="info-card dashboard-pathway-card organisation-card"
+      >
         {content}
       </Link>
     );
   }
 
-  return <article className="info-card dashboard-pathway-card organisation-card">{content}</article>;
+  return (
+    <article className="info-card dashboard-pathway-card organisation-card">
+      {content}
+    </article>
+  );
 }
 
 export default async function OrganisationDashboardPage() {
@@ -108,6 +122,19 @@ export default async function OrganisationDashboardPage() {
     .eq("user_id", user.id)
     .maybeSingle<OrganisationProfile>();
 
+  const { data: opportunities } = await supabase
+    .from("opportunities")
+    .select("status")
+    .eq("organisation_user_id", user.id);
+
+  const opportunityRows = (opportunities as OpportunitySummary[] | null) ?? [];
+  const publishedCount = opportunityRows.filter(
+    (opportunity) => opportunity.status === "published"
+  ).length;
+  const draftCount = opportunityRows.filter(
+    (opportunity) => opportunity.status === "draft"
+  ).length;
+
   const displayName =
     organisationProfile?.organisation_name?.trim() ||
     profile?.full_name?.trim() ||
@@ -125,7 +152,7 @@ export default async function OrganisationDashboardPage() {
   const profileCompleted = organisationProfile?.profile_completed === true;
 
   const listenText =
-    "This is the organisation workspace for SO Volunteering. This page helps organisations set up their profile, prepare inclusive volunteering roles, add support and safety information, and later review volunteer interest. The main button opens the organisation profile. The opportunity tools are planned next.";
+    "This is the organisation workspace for SO Volunteering. This page helps organisations set up their profile, create inclusive volunteering roles, add support and safety information, and later review volunteer interest. The organisation profile button opens profile setup. The create role button opens opportunity creation.";
 
   return (
     <main className="dashboard-bg">
@@ -180,9 +207,9 @@ export default async function OrganisationDashboardPage() {
             </h1>
 
             <p className="dashboard-lead">
-              Hi {displayName}. Start by completing your organisation profile.
-              Then you will be able to create clear, accessible volunteering
-              roles with support built in from the beginning.
+              Hi {displayName}. Set up your organisation profile and create
+              clear, accessible volunteering roles with support built in from
+              the beginning.
             </p>
 
             <div className="dashboard-primary-actions">
@@ -200,15 +227,15 @@ export default async function OrganisationDashboardPage() {
                 </span>
               </Link>
 
-              <a
-                href="#organisation-build-plan"
+              <Link
+                href="/organisation/opportunities/new"
                 className="secondary-button dashboard-main-action"
               >
                 <span className="dashboard-button-inner">
                   <span aria-hidden="true">📣</span>
-                  <span>Opportunity plan</span>
+                  <span>Create role</span>
                 </span>
-              </a>
+              </Link>
             </div>
           </div>
 
@@ -237,7 +264,10 @@ export default async function OrganisationDashboardPage() {
             )}
 
             <p className="dashboard-progress-note">
-              Complete your profile before publishing opportunities.
+              Published roles: <strong>{publishedCount}</strong>
+            </p>
+            <p className="dashboard-progress-note">
+              Draft roles: <strong>{draftCount}</strong>
             </p>
           </aside>
         </section>
@@ -281,21 +311,21 @@ export default async function OrganisationDashboardPage() {
           aria-label="Organisation opportunity build plan"
         >
           <OrganisationCard
+            href="/organisation/opportunities/new"
             icon="📣"
             label="Opportunities"
             title="Create a role"
             description="Build plain-language roles with tasks, timings, skills and support notes."
-            action="Next major feature"
-            muted
+            action="Create role"
           />
 
           <OrganisationCard
+            href="/organisation/opportunities"
             icon="✅"
             label="Readiness"
-            title="Opportunity checklist"
-            description="Check each role has a clear title, simple tasks, time commitment and contact details."
-            action="Planned workflow"
-            muted
+            title="Opportunity list"
+            description="Review draft and published roles before volunteers can browse them."
+            action="View roles"
           />
 
           <OrganisationCard
