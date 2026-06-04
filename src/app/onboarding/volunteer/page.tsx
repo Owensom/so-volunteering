@@ -1,6 +1,7 @@
-import { redirect } from "next/navigation"; 
+import Link from "next/link";
+import { redirect } from "next/navigation";
 import { saveVolunteerOnboarding } from "./actions";
-import { createClient } from "@/lib/supabase/server";  
+import { createClient } from "@/lib/supabase/server";
 import { InclusiveAudioButton } from "@/components/InclusiveSupport";
 import { OnboardingProgress, ChoiceCards } from "@/components/InclusiveForm";
 
@@ -86,7 +87,7 @@ export default async function VolunteerOnboardingPage({
   }
 
   const listenText =
-    "This is step one of your volunteer profile setup. This page asks what you would like to achieve. At the top there is Listen support. First, type your nearest town or city. Then choose one or more large goal cards. Each card has an icon and a short label. The goal choices are support my community, gain experience, build skills, improve confidence, meet new people, build a routine, try something new, progress towards employment, education or training, and I am not sure yet. Near the bottom there is a choice for how you prefer to volunteer. The final button says Save and continue.";
+    "This is step one of your volunteer profile setup. This page asks what you would like to achieve. If you opened this page by mistake, use the Back to dashboard button at the top or the Cancel and return to profile button near the bottom. First, type your nearest town or city. Then choose one or more large goal cards. Each card has an icon and a short label. Near the bottom there is a choice for how you prefer to volunteer. The final button says Save and continue.";
 
   return (
     <main className="onboarding-shell">
@@ -96,7 +97,16 @@ export default async function VolunteerOnboardingPage({
             <p className="brand-eyebrow">Profile setup</p>
           </div>
 
-          <InclusiveAudioButton text={listenText} />
+          <div className="onboarding-top-actions">
+            <InclusiveAudioButton text={listenText} />
+
+            <Link href="/dashboard" className="secondary-button onboarding-back-button">
+              <span className="button-balanced-inner">
+                <span aria-hidden="true">←</span>
+                <span>Dashboard</span>
+              </span>
+            </Link>
+          </div>
         </div>
 
         <div className="onboarding-hero-grid">
@@ -119,7 +129,7 @@ export default async function VolunteerOnboardingPage({
           </div>
 
           <div className="onboarding-progress-card">
-            <OnboardingProgress step={1} total={4} />
+            <OnboardingProgress step={1} total={5} />
           </div>
         </div>
 
@@ -135,7 +145,12 @@ export default async function VolunteerOnboardingPage({
               </span>
               <span>Your nearest town or city</span>
             </span>
-            <input name="city" type="text" placeholder="Example: Aberdeen" required />
+            <input
+              name="city"
+              type="text"
+              placeholder="Example: Aberdeen"
+              required
+            />
           </label>
 
           <fieldset className="choice-group">
@@ -165,14 +180,78 @@ export default async function VolunteerOnboardingPage({
             </select>
           </label>
 
-          <button type="submit" className="primary-button onboarding-submit-button">
-            <span className="button-balanced-inner">
-              <span aria-hidden="true">➡️</span>
-              <span>Save and continue</span>
-            </span>
-          </button>
+          <div className="onboarding-form-actions">
+            <Link href="/profile" className="secondary-button onboarding-cancel-button">
+              <span className="button-balanced-inner">
+                <span aria-hidden="true">←</span>
+                <span>Cancel and return to profile</span>
+              </span>
+            </Link>
+
+            <button
+              type="submit"
+              className="primary-button onboarding-submit-button"
+            >
+              <span className="button-balanced-inner">
+                <span aria-hidden="true">➡️</span>
+                <span>Save and continue</span>
+              </span>
+            </button>
+          </div>
         </form>
       </section>
+
+      <style>{`
+        .onboarding-top-actions {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 12px;
+          align-items: center;
+          justify-content: flex-end;
+        }
+
+        .onboarding-back-button,
+        .onboarding-cancel-button {
+          min-height: 44px;
+          text-decoration: none;
+        }
+
+        .onboarding-form-actions {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 14px;
+          align-items: center;
+          justify-content: space-between;
+          padding-top: 4px;
+        }
+
+        .onboarding-form-actions .primary-button,
+        .onboarding-form-actions .secondary-button {
+          width: fit-content;
+        }
+
+        @media (max-width: 640px) {
+          .onboarding-top-actions {
+            width: 100%;
+            justify-content: stretch;
+          }
+
+          .onboarding-top-actions .secondary-button,
+          .onboarding-top-actions button {
+            width: 100%;
+          }
+
+          .onboarding-form-actions {
+            align-items: stretch;
+            flex-direction: column-reverse;
+          }
+
+          .onboarding-form-actions .primary-button,
+          .onboarding-form-actions .secondary-button {
+            width: 100%;
+          }
+        }
+      `}</style>
     </main>
   );
 }
