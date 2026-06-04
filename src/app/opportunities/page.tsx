@@ -149,7 +149,7 @@ export default async function OpportunitiesPage() {
   const rows = (opportunities as Opportunity[] | null) ?? [];
 
   const listenText =
-    "This is the opportunities page. It shows published volunteering roles. Each card tells you the role title, short description, location type, time commitment and support information. Some cards may show interest or skill match labels based on your profile. Select a role card to read more.";
+    "You are on the Find opportunities page. This page shows published volunteering roles. First, look at the Available now card on the right to see how many roles are open. Then move through the role cards below. Each card shows the role title, short description, location type, time commitment and support labels. If a role sounds right, select the card or the Read more link to open the full opportunity details page. Use the View my profile button to check your saved interests and skills. Use the See my pathway button to go back to your setup progress.";
 
   return (
     <main className="dashboard-bg">
@@ -244,8 +244,8 @@ export default async function OpportunitiesPage() {
             </div>
 
             <p className="dashboard-progress-note">
-              More matching and application tools will be added after browsing
-              is stable.
+              Open a role card to read the full details and decide if it feels
+              right.
             </p>
           </aside>
         </section>
