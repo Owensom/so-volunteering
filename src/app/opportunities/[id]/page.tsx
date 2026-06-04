@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { InclusiveAudioButton } from "@/components/InclusiveSupport";
+import { expressInterest } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -111,12 +112,23 @@ function DetailCard({
 }
 
 export default async function OpportunityDetailPage({
-  params
+  params,
+  searchParams
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ error?: string; message?: string }>;
 }) {
   const resolvedParams = await params;
+  const resolvedSearchParams = await searchParams;
   const opportunityId = resolvedParams.id;
+
+  const errorMessage = resolvedSearchParams.error
+    ? decodeURIComponent(resolvedSearchParams.error)
+    : "";
+
+  const successMessage = resolvedSearchParams.message
+    ? decodeURIComponent(resolvedSearchParams.message)
+    : "";
 
   const supabase = await createClient();
 
@@ -164,6 +176,15 @@ export default async function OpportunityDetailPage({
     redirect("/opportunities");
   }
 
+  const { data: existingInterest } = await supabase
+    .from("opportunity_interests")
+    .select("id")
+    .eq("opportunity_id", opportunity.id)
+    .eq("volunteer_user_id", user.id)
+    .maybeSingle<{ id: string }>();
+
+  const hasAlreadyExpressedInterest = Boolean(existingInterest);
+
   const interestMatches = countMatches(
     volunteerProfile?.interests,
     opportunity.interests
@@ -172,7 +193,7 @@ export default async function OpportunityDetailPage({
   const skillMatches = countMatches(volunteerProfile?.skills, opportunity.skills);
 
   const listenText =
-    "This is an opportunity detail page. It explains the volunteering role, location, time commitment, interests, skills, support available, safety notes and contact information. Applications are not live yet, so this page is for reading and deciding if the role feels suitable.";
+    "This is an opportunity detail page. It explains the volunteering role, location, time commitment, interests, skills, support available, safety notes and contact information. The Express interest section lets you tell the organisation you are interested. You can add an optional message, or leave it blank.";
 
   return (
     <main className="dashboard-bg">
@@ -227,23 +248,23 @@ export default async function OpportunityDetailPage({
             <p className="dashboard-lead">{opportunity.summary}</p>
 
             <div className="dashboard-primary-actions">
+              <a
+                href="#express-interest"
+                className="primary-button dashboard-main-action"
+              >
+                <span className="dashboard-button-inner">
+                  <span aria-hidden="true">🌱</span>
+                  <span>Express interest</span>
+                </span>
+              </a>
+
               <Link
                 href="/opportunities"
-                className="primary-button dashboard-main-action"
+                className="secondary-button dashboard-main-action"
               >
                 <span className="dashboard-button-inner">
                   <span aria-hidden="true">🔎</span>
                   <span>Back to roles</span>
-                </span>
-              </Link>
-
-              <Link
-                href="/profile"
-                className="secondary-button dashboard-main-action"
-              >
-                <span className="dashboard-button-inner">
-                  <span aria-hidden="true">👤</span>
-                  <span>View my profile</span>
                 </span>
               </Link>
             </div>
@@ -272,6 +293,14 @@ export default async function OpportunityDetailPage({
             </p>
           </aside>
         </section>
+
+        {successMessage ? (
+          <div className="alert alert-success">{successMessage}</div>
+        ) : null}
+
+        {errorMessage ? (
+          <div className="alert alert-error">{errorMessage}</div>
+        ) : null}
 
         <section
           className="dashboard-grid opportunity-detail-grid"
@@ -344,7 +373,10 @@ export default async function OpportunityDetailPage({
             </p>
           </DetailCard>
 
-          <article className="info-card dashboard-pathway-card opportunity-detail-card">
+          <article
+            id="express-interest"
+            className="info-card dashboard-pathway-card opportunity-detail-card"
+          >
             <div
               className="dashboard-card-icon opportunity-detail-icon"
               aria-hidden="true"
@@ -355,15 +387,54 @@ export default async function OpportunityDetailPage({
             <div className="dashboard-card-copy opportunity-detail-copy">
               <div>
                 <p className="dashboard-card-label">Applications</p>
-                <h2>Express interest coming soon</h2>
+                <h2>
+                  {hasAlreadyExpressedInterest
+                    ? "Interest already sent"
+                    : "Express interest"}
+                </h2>
               </div>
 
               <div className="opportunity-detail-body">
-                <p>
-                  Applications are not live yet. For now, use this page to read
-                  the role and decide whether it feels suitable.
-                </p>
-                <p className="dashboard-muted-action">Read-only preview</p>
+                {hasAlreadyExpressedInterest ? (
+                  <>
+                    <p>
+                      You have already told this organisation you are interested
+                      in this role.
+                    </p>
+                    <p className="dashboard-muted-action">
+                      The organisation can see your interest.
+                    </p>
+                  </>
+                ) : (
+                  <form action={expressInterest} className="form-stack">
+                    <input
+                      type="hidden"
+                      name="opportunity_id"
+                      value={opportunity.id}
+                    />
+
+                    <label className="field-label">
+                      <span className="field-label-row">
+                        <span className="field-label-icon" aria-hidden="true">
+                          💬
+                        </span>
+                        <span>Optional message</span>
+                      </span>
+                      <textarea
+                        name="message"
+                        rows={4}
+                        placeholder="Optional. Example: I am interested in this role and would like to know more."
+                      />
+                    </label>
+
+                    <button type="submit" className="primary-button">
+                      <span className="button-balanced-inner">
+                        <span aria-hidden="true">🌱</span>
+                        <span>I’m interested</span>
+                      </span>
+                    </button>
+                  </form>
+                )}
               </div>
             </div>
           </article>
