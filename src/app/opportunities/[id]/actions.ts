@@ -17,6 +17,7 @@ type VolunteerProfile = {
   support_needs: string | null;
   share_accessibility_needs: boolean | null;
   preferred_contact_method: string | null;
+  phone_number: string | null;
 };
 
 type Opportunity = {
@@ -154,7 +155,7 @@ export async function expressInterest(formData: FormData) {
   const { data: volunteerProfile } = await supabase
     .from("volunteer_profiles")
     .select(
-      "city,goals,interests,skills,support_needs,share_accessibility_needs,preferred_contact_method"
+      "city,goals,interests,skills,support_needs,share_accessibility_needs,preferred_contact_method,phone_number"
     )
     .eq("user_id", user.id)
     .maybeSingle<VolunteerProfile>();
@@ -172,6 +173,11 @@ export async function expressInterest(formData: FormData) {
     email: user.email
   });
 
+  const volunteerPhone =
+    preferredContactMethod === "phone" || preferredContactMethod === "sms"
+      ? volunteerProfile?.phone_number?.trim() || null
+      : null;
+
   const { error } = await supabase.from("opportunity_interests").insert({
     opportunity_id: opportunity.id,
     organisation_user_id: opportunity.organisation_user_id,
@@ -187,6 +193,7 @@ export async function expressInterest(formData: FormData) {
       ? volunteerProfile?.support_needs || null
       : null,
     volunteer_preferred_contact_method: preferredContactMethod,
+    volunteer_phone: volunteerPhone,
     message: message || null,
     status: "new",
     updated_at: new Date().toISOString()
