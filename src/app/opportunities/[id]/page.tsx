@@ -15,6 +15,14 @@ type VolunteerProfile = {
   skills: string[] | null;
 };
 
+type VolunteerPreferences = {
+  view_mode: string | null;
+  colour_theme: string | null;
+  text_size: string | null;
+  avatar_icon: string | null;
+  listen_mode: string | null;
+};
+
 type Opportunity = {
   id: string;
   title: string;
@@ -41,6 +49,64 @@ function normaliseUserType(value: string | null | undefined) {
   return value?.trim().toLowerCase() === "organisation"
     ? "organisation"
     : "volunteer";
+}
+
+function normaliseViewMode(value: string | null | undefined) {
+  if (value === "simple" || value === "detailed") return value;
+  return "standard";
+}
+
+function normaliseColourTheme(value: string | null | undefined) {
+  if (
+    value === "calm_green" ||
+    value === "soft_blue" ||
+    value === "warm_peach" ||
+    value === "high_contrast"
+  ) {
+    return value;
+  }
+
+  return "default";
+}
+
+function normaliseTextSize(value: string | null | undefined) {
+  return value === "large" ? "large" : "standard";
+}
+
+function normaliseAvatarIcon(value: string | null | undefined) {
+  return value && value.trim() ? value : "🌱";
+}
+
+function normaliseListenMode(value: string | null | undefined) {
+  return value === "context" ? "context" : "always";
+}
+
+function getThemeClass(colourTheme: string) {
+  return `preference-theme-${colourTheme}`;
+}
+
+function getTextClass(textSize: string) {
+  return textSize === "large"
+    ? "preference-text-large"
+    : "preference-text-standard";
+}
+
+function getViewClass(viewMode: string) {
+  return `preference-view-${viewMode}`;
+}
+
+function getViewLabel(viewMode: string) {
+  if (viewMode === "simple") return "Simple view";
+  if (viewMode === "detailed") return "Detailed view";
+  return "Standard view";
+}
+
+function getThemeLabel(colourTheme: string) {
+  if (colourTheme === "calm_green") return "Calm green";
+  if (colourTheme === "soft_blue") return "Soft blue";
+  if (colourTheme === "warm_peach") return "Warm peach";
+  if (colourTheme === "high_contrast") return "High contrast";
+  return "SO default";
 }
 
 function formatLocationType(value: string | null | undefined) {
@@ -179,6 +245,12 @@ export default async function OpportunityDetailPage({
     .eq("user_id", user.id)
     .maybeSingle<VolunteerProfile>();
 
+  const { data: preferences } = await supabase
+    .from("volunteer_preferences")
+    .select("view_mode,colour_theme,text_size,avatar_icon,listen_mode")
+    .eq("user_id", user.id)
+    .maybeSingle<VolunteerPreferences>();
+
   const { data: opportunity } = await supabase
     .from("opportunities")
     .select(
@@ -199,6 +271,15 @@ export default async function OpportunityDetailPage({
     .eq("volunteer_user_id", user.id)
     .maybeSingle<ExistingInterest>();
 
+  const viewMode = normaliseViewMode(preferences?.view_mode);
+  const colourTheme = normaliseColourTheme(preferences?.colour_theme);
+  const textSize = normaliseTextSize(preferences?.text_size);
+  const avatarIcon = normaliseAvatarIcon(preferences?.avatar_icon);
+  const listenMode = normaliseListenMode(preferences?.listen_mode);
+
+  const simpleView = viewMode === "simple";
+  const detailedView = viewMode === "detailed";
+
   const hasAlreadyExpressedInterest = Boolean(existingInterest);
 
   const interestMatches = countMatches(
@@ -208,11 +289,19 @@ export default async function OpportunityDetailPage({
 
   const skillMatches = countMatches(volunteerProfile?.skills, opportunity.skills);
 
-  const listenText =
-    "You are on an opportunity details page. First, read the role title and short description at the top. Use the Back to roles button if you want to return to the opportunity list. The cards below explain where the role happens, the time commitment, interests, helpful skills, support available, safety notes and contact details. If the role feels right for you, go to the Interest section. If you have not expressed interest yet, you can press I’m interested. You can leave the supporting statement blank, write a short message, or write a fuller statement. If you have already expressed interest, this page will show Interest expressed and you can remove your interest if you no longer want the organisation to see it. The What happens next card explains what the organisation can see and what you can do later.";
+  const listenText = simpleView
+    ? "You are on an opportunity details page. Read the role. If it feels right, go to the Interest section and press I’m interested. If you have already expressed interest, you can remove it."
+    : "You are on an opportunity details page. First, read the role title and short description at the top. Use the Back to roles button if you want to return to the opportunity list. The cards below explain where the role happens, the time commitment, interests, helpful skills, support available, safety notes and contact details. If the role feels right for you, go to the Interest section. If you have not expressed interest yet, you can press I’m interested. You can leave the supporting statement blank, write a short message, or write a fuller statement. If you have already expressed interest, this page will show Interest expressed and you can remove your interest if you no longer want the organisation to see it. The What happens next card explains what the organisation can see and what you can do later.";
+
+  const shellClassName = [
+    "dashboard-bg",
+    getThemeClass(colourTheme),
+    getTextClass(textSize),
+    getViewClass(viewMode)
+  ].join(" ");
 
   return (
-    <main className="dashboard-bg">
+    <main className={shellClassName}>
       <section className="dashboard-shell">
         <header className="dashboard-topbar">
           <Link
@@ -235,7 +324,9 @@ export default async function OpportunityDetailPage({
           </Link>
 
           <div className="dashboard-topbar-actions">
-            <InclusiveAudioButton text={listenText} />
+            {listenMode === "always" || listenMode === "context" ? (
+              <InclusiveAudioButton text={listenText} />
+            ) : null}
 
             <Link
               href="/opportunities"
@@ -257,11 +348,15 @@ export default async function OpportunityDetailPage({
             <p className="dashboard-kicker">Opportunity details</p>
 
             <h1 id="opportunity-title" className="dashboard-title">
-              <span aria-hidden="true">📣</span>
+              <span aria-hidden="true">{avatarIcon}</span>
               <span>{opportunity.title}</span>
             </h1>
 
-            <p className="dashboard-lead">{opportunity.summary}</p>
+            <p className="dashboard-lead">
+              {simpleView
+                ? opportunity.summary
+                : opportunity.summary}
+            </p>
 
             <div className="dashboard-primary-actions">
               <a
@@ -299,13 +394,15 @@ export default async function OpportunityDetailPage({
           <aside className="dashboard-progress-card" aria-label="Match summary">
             <div className="dashboard-progress-header">
               <span className="dashboard-progress-icon" aria-hidden="true">
-                ✨
+                {avatarIcon}
               </span>
               <div>
                 <h2>May suit you</h2>
                 <p>
                   {interestMatches + skillMatches > 0
-                    ? "This role has some profile matches."
+                    ? simpleView
+                      ? "This role has matches."
+                      : "This role has some profile matches."
                     : "Read the details and decide if it feels right."}
                 </p>
               </div>
@@ -322,6 +419,13 @@ export default async function OpportunityDetailPage({
               <p className="dashboard-progress-note">
                 Your status:{" "}
                 <strong>{formatInterestStatus(existingInterest.status)}</strong>
+              </p>
+            ) : null}
+
+            {detailedView ? (
+              <p className="dashboard-progress-note">
+                App view: <strong>{getViewLabel(viewMode)}</strong> · Theme:{" "}
+                <strong>{getThemeLabel(colourTheme)}</strong>
               </p>
             ) : null}
           </aside>
@@ -391,34 +495,40 @@ export default async function OpportunityDetailPage({
             )}
           </DetailCard>
 
-          <DetailCard icon="👤" label="Contact" title="Who to contact">
-            <p>
-              Name:{" "}
-              <strong>
-                {opportunity.contact_name || "Contact name not listed"}
-              </strong>
-            </p>
-            <p>
-              Email:{" "}
-              <strong>
-                {opportunity.contact_email || "Contact email not listed"}
-              </strong>
-            </p>
-          </DetailCard>
+          {!simpleView ? (
+            <DetailCard icon="👤" label="Contact" title="Who to contact">
+              <p>
+                Name:{" "}
+                <strong>
+                  {opportunity.contact_name || "Contact name not listed"}
+                </strong>
+              </p>
+              <p>
+                Email:{" "}
+                <strong>
+                  {opportunity.contact_email || "Contact email not listed"}
+                </strong>
+              </p>
+            </DetailCard>
+          ) : null}
 
           <DetailCard icon="🧭" label="Next steps" title="What happens next?">
             <p>
               If you express interest, the organisation can see your interest in
               their inbox.
             </p>
-            <p>
-              They can review your profile summary, your skills and your
-              supporting statement if you write one.
-            </p>
-            <p>
-              They may contact you outside the platform for now, using the email
-              saved on your profile.
-            </p>
+            {!simpleView ? (
+              <>
+                <p>
+                  They can review your profile summary, your skills and your
+                  supporting statement if you write one.
+                </p>
+                <p>
+                  They may contact you outside the platform for now, using the
+                  email saved on your profile.
+                </p>
+              </>
+            ) : null}
             <p>
               You can remove your interest later if the role no longer feels
               right.
@@ -509,8 +619,12 @@ export default async function OpportunityDetailPage({
                       </span>
                       <textarea
                         name="message"
-                        rows={4}
-                        placeholder="Optional. You can leave this blank, write a short message, or add a fuller supporting statement explaining why you are interested."
+                        rows={simpleView ? 3 : 4}
+                        placeholder={
+                          simpleView
+                            ? "Optional. You can leave this blank."
+                            : "Optional. You can leave this blank, write a short message, or add a fuller supporting statement explaining why you are interested."
+                        }
                       />
                     </label>
 
@@ -529,6 +643,15 @@ export default async function OpportunityDetailPage({
       </section>
 
       <style>{`
+        .dashboard-grid {
+          align-items: stretch;
+        }
+
+        .dashboard-pathway-card {
+          height: 100%;
+          align-items: stretch;
+        }
+
         .opportunity-detail-grid {
           align-items: stretch;
         }
@@ -626,6 +749,117 @@ export default async function OpportunityDetailPage({
           outline-offset: 3px;
         }
 
+        .preference-text-large {
+          font-size: 1.06rem;
+        }
+
+        .preference-text-large .dashboard-lead,
+        .preference-text-large .opportunity-detail-body,
+        .preference-text-large .dashboard-progress-note {
+          font-size: 1.04em;
+        }
+
+        .preference-text-large .dashboard-title {
+          letter-spacing: -0.035em;
+        }
+
+        .preference-view-simple .dashboard-grid {
+          gap: 18px;
+        }
+
+        .preference-view-simple .opportunity-detail-card {
+          min-height: 190px;
+        }
+
+        .preference-view-simple .dashboard-card-icon {
+          font-size: 2rem;
+        }
+
+        .preference-view-detailed .opportunity-detail-card {
+          min-height: 230px;
+        }
+
+        .preference-theme-calm_green {
+          background:
+            radial-gradient(circle at top left, rgba(200, 243, 221, 0.58), transparent 34%),
+            linear-gradient(135deg, #f3fff8 0%, #f7fbf5 46%, #fffaf2 100%);
+        }
+
+        .preference-theme-calm_green .dashboard-welcome-card,
+        .preference-theme-calm_green .info-card,
+        .preference-theme-calm_green .dashboard-progress-card {
+          border-color: rgba(83, 111, 99, 0.2);
+        }
+
+        .preference-theme-calm_green .dashboard-card-icon,
+        .preference-theme-calm_green .dashboard-progress-icon {
+          background: rgba(226, 255, 239, 0.86);
+        }
+
+        .preference-theme-soft_blue {
+          background:
+            radial-gradient(circle at top left, rgba(197, 226, 255, 0.62), transparent 34%),
+            linear-gradient(135deg, #f3f9ff 0%, #f8fbff 48%, #fffaf2 100%);
+        }
+
+        .preference-theme-soft_blue .dashboard-welcome-card,
+        .preference-theme-soft_blue .info-card,
+        .preference-theme-soft_blue .dashboard-progress-card {
+          border-color: rgba(74, 112, 160, 0.2);
+        }
+
+        .preference-theme-soft_blue .dashboard-card-icon,
+        .preference-theme-soft_blue .dashboard-progress-icon {
+          background: rgba(231, 244, 255, 0.92);
+        }
+
+        .preference-theme-warm_peach {
+          background:
+            radial-gradient(circle at top left, rgba(255, 210, 184, 0.58), transparent 34%),
+            linear-gradient(135deg, #fff8f1 0%, #fffaf6 48%, #f7fff8 100%);
+        }
+
+        .preference-theme-warm_peach .dashboard-welcome-card,
+        .preference-theme-warm_peach .info-card,
+        .preference-theme-warm_peach .dashboard-progress-card {
+          border-color: rgba(190, 118, 76, 0.2);
+        }
+
+        .preference-theme-warm_peach .dashboard-card-icon,
+        .preference-theme-warm_peach .dashboard-progress-icon {
+          background: rgba(255, 239, 226, 0.92);
+        }
+
+        .preference-theme-high_contrast {
+          background: #f8fafc;
+        }
+
+        .preference-theme-high_contrast .dashboard-welcome-card,
+        .preference-theme-high_contrast .info-card,
+        .preference-theme-high_contrast .dashboard-progress-card {
+          border: 2px solid #1f2937;
+          background: rgba(255, 255, 255, 0.98);
+        }
+
+        .preference-theme-high_contrast .dashboard-title,
+        .preference-theme-high_contrast .dashboard-card-copy h2,
+        .preference-theme-high_contrast .dashboard-progress-card h2 {
+          color: #111827;
+        }
+
+        .preference-theme-high_contrast .dashboard-lead,
+        .preference-theme-high_contrast .opportunity-detail-body,
+        .preference-theme-high_contrast .dashboard-progress-note {
+          color: #1f2937;
+        }
+
+        .preference-theme-high_contrast .dashboard-card-icon,
+        .preference-theme-high_contrast .dashboard-progress-icon {
+          border: 2px solid #1f2937;
+          background: #ffffff;
+          color: #111827;
+        }
+
         @media (max-width: 640px) {
           .opportunity-detail-card {
             min-height: 0;
@@ -651,6 +885,15 @@ export default async function OpportunityDetailPage({
 
           .remove-interest-button {
             width: 100%;
+          }
+
+          .preference-text-large {
+            font-size: 1.03rem;
+          }
+
+          .preference-view-simple .opportunity-detail-card,
+          .preference-view-detailed .opportunity-detail-card {
+            min-height: 0;
           }
         }
       `}</style>
