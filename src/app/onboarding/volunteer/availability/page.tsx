@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { saveVolunteerAvailability } from "./actions";
 import { createClient } from "@/lib/supabase/server";
@@ -111,7 +112,7 @@ export default async function VolunteerAvailabilityPage({
   );
 
   const listenText =
-    "This is step five of your volunteer profile setup. This page is called Availability. Choose when or how often you might like to volunteer. You can choose more than one card. Then choose your preferred contact method. If you choose phone call or text message, add a phone number so an organisation can contact you if you express interest in one of their roles. The final button says Finish setup.";
+    "This is step five of your volunteer profile setup. This page is called Availability. If you opened this page by mistake, use the Dashboard button at the top or the Cancel and return to profile button near the bottom. Choose when or how often you might like to volunteer. You can choose more than one card. Then choose your preferred contact method. If you choose phone call or text message, add a phone number so an organisation can contact you if you express interest in one of their roles. The final button says Finish setup.";
 
   return (
     <main className="onboarding-shell">
@@ -121,7 +122,16 @@ export default async function VolunteerAvailabilityPage({
             <p className="brand-eyebrow">Profile setup</p>
           </div>
 
-          <InclusiveAudioButton text={listenText} />
+          <div className="onboarding-top-actions">
+            <InclusiveAudioButton text={listenText} />
+
+            <Link href="/dashboard" className="secondary-button onboarding-back-button">
+              <span className="button-balanced-inner">
+                <span aria-hidden="true">←</span>
+                <span>Dashboard</span>
+              </span>
+            </Link>
+          </div>
         </div>
 
         <div className="onboarding-hero-grid">
@@ -207,14 +217,78 @@ export default async function VolunteerAvailabilityPage({
             placeholder="You can leave this blank. Example: I can only do school term time, I need flexible times, or I would like short shifts to begin with."
           />
 
-          <button type="submit" className="primary-button onboarding-submit-button">
-            <span className="button-balanced-inner">
-              <span aria-hidden="true">✅</span>
-              <span>Finish setup</span>
-            </span>
-          </button>
+          <div className="onboarding-form-actions">
+            <Link href="/profile" className="secondary-button onboarding-cancel-button">
+              <span className="button-balanced-inner">
+                <span aria-hidden="true">←</span>
+                <span>Cancel and return to profile</span>
+              </span>
+            </Link>
+
+            <button
+              type="submit"
+              className="primary-button onboarding-submit-button"
+            >
+              <span className="button-balanced-inner">
+                <span aria-hidden="true">✅</span>
+                <span>Finish setup</span>
+              </span>
+            </button>
+          </div>
         </form>
       </section>
+
+      <style>{`
+        .onboarding-top-actions {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 12px;
+          align-items: center;
+          justify-content: flex-end;
+        }
+
+        .onboarding-back-button,
+        .onboarding-cancel-button {
+          min-height: 44px;
+          text-decoration: none;
+        }
+
+        .onboarding-form-actions {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 14px;
+          align-items: center;
+          justify-content: space-between;
+          padding-top: 4px;
+        }
+
+        .onboarding-form-actions .primary-button,
+        .onboarding-form-actions .secondary-button {
+          width: fit-content;
+        }
+
+        @media (max-width: 640px) {
+          .onboarding-top-actions {
+            width: 100%;
+            justify-content: stretch;
+          }
+
+          .onboarding-top-actions .secondary-button,
+          .onboarding-top-actions button {
+            width: 100%;
+          }
+
+          .onboarding-form-actions {
+            align-items: stretch;
+            flex-direction: column-reverse;
+          }
+
+          .onboarding-form-actions .primary-button,
+          .onboarding-form-actions .secondary-button {
+            width: 100%;
+          }
+        }
+      `}</style>
     </main>
   );
 }
