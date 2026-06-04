@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { InclusiveAudioButton } from "@/components/InclusiveSupport";
-import { expressInterest } from "./actions";
+import { expressInterest, removeInterestFromOpportunity } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -31,6 +31,12 @@ type Opportunity = {
   status: string;
 };
 
+type ExistingInterest = {
+  id: string;
+  status: string;
+  message: string | null;
+};
+
 function normaliseUserType(value: string | null | undefined) {
   return value?.trim().toLowerCase() === "organisation"
     ? "organisation"
@@ -41,6 +47,13 @@ function formatLocationType(value: string | null | undefined) {
   if (value === "remote") return "Remote / online";
   if (value === "hybrid") return "Hybrid";
   return "In-person";
+}
+
+function formatInterestStatus(status: string) {
+  if (status === "reviewed") return "Reviewed";
+  if (status === "contacted") return "Contacted";
+  if (status === "closed") return "Closed";
+  return "New";
 }
 
 function countMatches(
@@ -95,7 +108,10 @@ function DetailCard({
 }) {
   return (
     <article className="info-card dashboard-pathway-card opportunity-detail-card">
-      <div className="dashboard-card-icon opportunity-detail-icon" aria-hidden="true">
+      <div
+        className="dashboard-card-icon opportunity-detail-icon"
+        aria-hidden="true"
+      >
         {icon}
       </div>
 
@@ -178,10 +194,10 @@ export default async function OpportunityDetailPage({
 
   const { data: existingInterest } = await supabase
     .from("opportunity_interests")
-    .select("id")
+    .select("id,status,message")
     .eq("opportunity_id", opportunity.id)
     .eq("volunteer_user_id", user.id)
-    .maybeSingle<{ id: string }>();
+    .maybeSingle<ExistingInterest>();
 
   const hasAlreadyExpressedInterest = Boolean(existingInterest);
 
@@ -193,7 +209,7 @@ export default async function OpportunityDetailPage({
   const skillMatches = countMatches(volunteerProfile?.skills, opportunity.skills);
 
   const listenText =
-    "This is an opportunity detail page. It explains the volunteering role, location, time commitment, interests, skills, support available, safety notes and contact information. The Express interest section lets you tell the organisation you are interested. You can add an optional message, or leave it blank.";
+    "This is an opportunity detail page. It explains the volunteering role, location, time commitment, interests, skills, support available, safety notes and contact information. If you have not expressed interest yet, you can add an optional supporting statement. If you have already expressed interest, this page shows that and gives you the option to remove your interest.";
 
   return (
     <main className="dashboard-bg">
@@ -250,11 +266,21 @@ export default async function OpportunityDetailPage({
             <div className="dashboard-primary-actions">
               <a
                 href="#express-interest"
-                className="primary-button dashboard-main-action"
+                className={
+                  hasAlreadyExpressedInterest
+                    ? "secondary-button dashboard-main-action"
+                    : "primary-button dashboard-main-action"
+                }
               >
                 <span className="dashboard-button-inner">
-                  <span aria-hidden="true">🌱</span>
-                  <span>Express interest</span>
+                  <span aria-hidden="true">
+                    {hasAlreadyExpressedInterest ? "✅" : "🌱"}
+                  </span>
+                  <span>
+                    {hasAlreadyExpressedInterest
+                      ? "Interest expressed"
+                      : "Express interest"}
+                  </span>
                 </span>
               </a>
 
@@ -291,6 +317,13 @@ export default async function OpportunityDetailPage({
             <p className="dashboard-progress-note">
               Skill matches: <strong>{skillMatches}</strong>
             </p>
+
+            {existingInterest ? (
+              <p className="dashboard-progress-note">
+                Your status:{" "}
+                <strong>{formatInterestStatus(existingInterest.status)}</strong>
+              </p>
+            ) : null}
           </aside>
         </section>
 
@@ -381,29 +414,64 @@ export default async function OpportunityDetailPage({
               className="dashboard-card-icon opportunity-detail-icon"
               aria-hidden="true"
             >
-              🌱
+              {hasAlreadyExpressedInterest ? "✅" : "🌱"}
             </div>
 
             <div className="dashboard-card-copy opportunity-detail-copy">
               <div>
-                <p className="dashboard-card-label">Applications</p>
+                <p className="dashboard-card-label">Interest</p>
                 <h2>
                   {hasAlreadyExpressedInterest
-                    ? "Interest already sent"
+                    ? "Interest expressed"
                     : "Express interest"}
                 </h2>
               </div>
 
               <div className="opportunity-detail-body">
-                {hasAlreadyExpressedInterest ? (
+                {hasAlreadyExpressedInterest && existingInterest ? (
                   <>
                     <p>
                       You have already told this organisation you are interested
                       in this role.
                     </p>
-                    <p className="dashboard-muted-action">
-                      The organisation can see your interest.
+
+                    <p>
+                      Current status:{" "}
+                      <strong>
+                        {formatInterestStatus(existingInterest.status)}
+                      </strong>
                     </p>
+
+                    {existingInterest.message ? (
+                      <div className="supporting-statement-box">
+                        <p className="dashboard-card-label">
+                          Your supporting statement
+                        </p>
+                        <p>{existingInterest.message}</p>
+                      </div>
+                    ) : null}
+
+                    <div className="interest-management-actions">
+                      <Link href="/my-interests" className="text-link">
+                        View roles I am interested in
+                      </Link>
+
+                      <form action={removeInterestFromOpportunity}>
+                        <input
+                          type="hidden"
+                          name="interest_id"
+                          value={existingInterest.id}
+                        />
+                        <input
+                          type="hidden"
+                          name="opportunity_id"
+                          value={opportunity.id}
+                        />
+                        <button type="submit" className="remove-interest-button">
+                          Remove interest
+                        </button>
+                      </form>
+                    </div>
                   </>
                 ) : (
                   <form action={expressInterest} className="form-stack">
@@ -418,7 +486,7 @@ export default async function OpportunityDetailPage({
                         <span className="field-label-icon" aria-hidden="true">
                           💬
                         </span>
-                       <span>Optional supporting statement</span>
+                        <span>Optional supporting statement</span>
                       </span>
                       <textarea
                         name="message"
@@ -496,6 +564,49 @@ export default async function OpportunityDetailPage({
           white-space: normal;
         }
 
+        .supporting-statement-box {
+          display: grid;
+          gap: 6px;
+          padding: 12px;
+          border: 1px solid rgba(108, 92, 160, 0.14);
+          border-radius: 18px;
+          background: rgba(255, 255, 255, 0.72);
+        }
+
+        .interest-management-actions {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 12px;
+          align-items: center;
+          justify-content: space-between;
+          padding-top: 6px;
+        }
+
+        .remove-interest-button {
+          appearance: none;
+          border: 1px solid rgba(190, 80, 80, 0.28);
+          border-radius: 999px;
+          background: rgba(255, 255, 255, 0.9);
+          color: #9b3d3d;
+          cursor: pointer;
+          font: inherit;
+          font-size: 0.9rem;
+          font-weight: 850;
+          min-height: 44px;
+          padding: 10px 16px;
+          box-shadow: 0 10px 22px rgba(33, 56, 48, 0.06);
+        }
+
+        .remove-interest-button:hover {
+          background: rgba(255, 245, 245, 0.98);
+          border-color: rgba(190, 80, 80, 0.42);
+        }
+
+        .remove-interest-button:focus-visible {
+          outline: 4px solid rgba(190, 80, 80, 0.22);
+          outline-offset: 3px;
+        }
+
         @media (max-width: 640px) {
           .opportunity-detail-card {
             min-height: 0;
@@ -512,6 +623,15 @@ export default async function OpportunityDetailPage({
           .opportunity-chip {
             border-radius: 18px;
             font-size: 0.86rem;
+          }
+
+          .interest-management-actions {
+            align-items: stretch;
+            flex-direction: column;
+          }
+
+          .remove-interest-button {
+            width: 100%;
           }
         }
       `}</style>
