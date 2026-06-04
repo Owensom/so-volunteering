@@ -24,13 +24,19 @@ type Opportunity = {
   status: string;
 };
 
+type InterestOwner = {
+  id: string;
+  volunteer_user_id: string;
+  opportunity_id: string;
+};
+
 function normaliseUserType(value: string | null | undefined) {
   return value?.trim().toLowerCase() === "organisation"
     ? "organisation"
     : "volunteer";
 }
 
-export async function expressInterest(formData: FormData) {
+async function requireVolunteerUser() {
   const supabase = await createClient();
 
   const {
@@ -39,13 +45,6 @@ export async function expressInterest(formData: FormData) {
 
   if (!user) {
     redirect("/login");
-  }
-
-  const opportunityId = String(formData.get("opportunity_id") || "").trim();
-  const message = String(formData.get("message") || "").trim();
-
-  if (!opportunityId) {
-    redirect("/opportunities");
   }
 
   const { data: profile } = await supabase
@@ -63,6 +62,19 @@ export async function expressInterest(formData: FormData) {
 
   if (userType === "organisation") {
     redirect("/organisation/dashboard");
+  }
+
+  return { supabase, user, profile };
+}
+
+export async function expressInterest(formData: FormData) {
+  const { supabase, user, profile } = await requireVolunteerUser();
+
+  const opportunityId = String(formData.get("opportunity_id") || "").trim();
+  const message = String(formData.get("message") || "").trim();
+
+  if (!opportunityId) {
+    redirect("/opportunities");
   }
 
   const { data: opportunity } = await supabase
@@ -136,6 +148,49 @@ export async function expressInterest(formData: FormData) {
   redirect(
     `/opportunities/${opportunity.id}?message=${encodeURIComponent(
       "Interest sent. The organisation can now see that you are interested."
+    )}`
+  );
+}
+
+export async function removeInterestFromOpportunity(formData: FormData) {
+  const { supabase, user } = await requireVolunteerUser();
+
+  const interestId = String(formData.get("interest_id") || "").trim();
+  const opportunityId = String(formData.get("opportunity_id") || "").trim();
+
+  if (!interestId || !opportunityId) {
+    redirect("/opportunities");
+  }
+
+  const { data: interest } = await supabase
+    .from("opportunity_interests")
+    .select("id,volunteer_user_id,opportunity_id")
+    .eq("id", interestId)
+    .eq("volunteer_user_id", user.id)
+    .eq("opportunity_id", opportunityId)
+    .maybeSingle<InterestOwner>();
+
+  if (!interest) {
+    redirect(`/opportunities/${opportunityId}`);
+  }
+
+  const { error } = await supabase
+    .from("opportunity_interests")
+    .delete()
+    .eq("id", interest.id)
+    .eq("volunteer_user_id", user.id);
+
+  if (error) {
+    redirect(
+      `/opportunities/${opportunityId}?error=${encodeURIComponent(
+        error.message
+      )}`
+    );
+  }
+
+  redirect(
+    `/opportunities/${opportunityId}?message=${encodeURIComponent(
+      "Interest removed. The organisation will no longer see this interest."
     )}`
   );
 }
