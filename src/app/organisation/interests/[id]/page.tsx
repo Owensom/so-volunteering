@@ -240,7 +240,7 @@ export default async function OrganisationInterestDetailPage({
   });
 
   const listenText =
-    "You are on a volunteer interest detail page. First, read the volunteer name and current status at the top. Use the Back to inbox button if you want to return to the interest inbox. Use the Open role button to view the volunteering role this person is interested in. The cards below show the role, volunteer contact details, their preferred contact method, their supporting statement if they wrote one, their goals, interests, skills and shared support information. The Prepare contact email card gives you a suggested first message you can copy or open in your email app. The platform does not send the email for you yet. If support preferences were not shared, the support card will say that clearly. The What happens next card explains the recommended workflow. When you have reviewed the details, go to the Update status card. Choose New, Reviewed, Contacted or Closed. Use Reviewed when you have looked at the interest. Use Contacted when you have contacted the volunteer outside the platform using their preferred contact method where possible. Use Closed when the interest no longer needs action. Press Save status to update the inbox and dashboard counts.";
+    "You are on a volunteer interest detail page. First, read the volunteer name and current status at the top. The cards below show the role, volunteer contact details, preferred contact method, supporting statement, goals, interests, skills and shared support information. The Prepare contact email card gives you a suggested first message. Open the preview only if you want to read the full draft. The platform does not send the email for you yet. Use the Update status card to mark this interest as reviewed, contacted or closed.";
 
   return (
     <main className="dashboard-bg">
@@ -398,18 +398,22 @@ export default async function OrganisationInterestDetailPage({
             </p>
           </DetailCard>
 
-          <DetailCard icon="✉️" label="Contact helper" title="Prepare contact email">
+          <DetailCard icon="✉️" label="Contact helper" title="Prepare contact">
             <p>
-              Use this as a starting point. You can copy it into your email app
-              and adjust it before sending.
+              A friendly first message is ready. Open the preview only if you
+              want to check or copy the full wording.
             </p>
 
-            <div className="contact-email-preview" aria-label="Suggested email">
-              <p>
-                <strong>Subject:</strong> {contactEmailSubject}
-              </p>
-              <pre>{contactEmailBody}</pre>
-            </div>
+            <p>
+              Suggested subject: <strong>{contactEmailSubject}</strong>
+            </p>
+
+            <details className="contact-email-details">
+              <summary>Preview suggested email</summary>
+              <div className="contact-email-preview" aria-label="Suggested email">
+                <pre>{contactEmailBody}</pre>
+              </div>
+            </details>
 
             {contactMailtoHref ? (
               <a href={contactMailtoHref} className="contact-email-button">
@@ -582,9 +586,38 @@ export default async function OrganisationInterestDetailPage({
           white-space: normal;
         }
 
-        .contact-email-preview {
+        .contact-email-details {
           display: grid;
           gap: 10px;
+        }
+
+        .contact-email-details summary {
+          display: inline-flex;
+          width: fit-content;
+          max-width: 100%;
+          min-height: 40px;
+          align-items: center;
+          justify-content: center;
+          padding: 9px 14px;
+          border: 1px solid rgba(108, 92, 160, 0.16);
+          border-radius: 999px;
+          background: rgba(255, 255, 255, 0.84);
+          color: #536f63;
+          cursor: pointer;
+          font-weight: 900;
+          line-height: 1.15;
+          box-shadow: 0 10px 22px rgba(33, 56, 48, 0.06);
+          list-style: none;
+        }
+
+        .contact-email-details summary::-webkit-details-marker {
+          display: none;
+        }
+
+        .contact-email-preview {
+          display: grid;
+          max-height: 260px;
+          overflow: auto;
           padding: 14px;
           border: 1px solid rgba(108, 92, 160, 0.14);
           border-radius: 18px;
@@ -643,8 +676,13 @@ export default async function OrganisationInterestDetailPage({
             font-size: 0.86rem;
           }
 
+          .contact-email-details summary,
           .contact-email-button {
             width: 100%;
+          }
+
+          .contact-email-preview {
+            max-height: 220px;
           }
         }
       `}</style>
