@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { saveVolunteerSkills } from "./actions";
 import { createClient } from "@/lib/supabase/server";
@@ -90,7 +91,7 @@ export default async function VolunteerSkillsPage({
   }
 
   const listenText =
-    "This is step three of your volunteer profile setup. This page is called Skills. At the top there is Listen support and your setup progress. Choose skills you already have or would like to build. You can choose more than one large card. You do not need to type anything unless you want to. Near the bottom there is an optional box where you can add anything else in your own words. The final button says Save and continue.";
+    "This is step three of your volunteer profile setup. This page is called Skills. If you opened this page by mistake, use the Dashboard button at the top or the Cancel and return to profile button near the bottom. Choose skills you already have or would like to build. You can choose more than one large card. You do not need to type anything unless you want to. Near the bottom there is an optional box where you can add anything else in your own words. The final button says Save and continue.";
 
   return (
     <main className="onboarding-shell">
@@ -100,7 +101,16 @@ export default async function VolunteerSkillsPage({
             <p className="brand-eyebrow">Profile setup</p>
           </div>
 
-          <InclusiveAudioButton text={listenText} />
+          <div className="onboarding-top-actions">
+            <InclusiveAudioButton text={listenText} />
+
+            <Link href="/dashboard" className="secondary-button onboarding-back-button">
+              <span className="button-balanced-inner">
+                <span aria-hidden="true">←</span>
+                <span>Dashboard</span>
+              </span>
+            </Link>
+          </div>
         </div>
 
         <div className="onboarding-hero-grid">
@@ -151,14 +161,78 @@ export default async function VolunteerSkillsPage({
             placeholder="You can leave this blank. Example: I like practical tasks, I want to build confidence, or I prefer learning one step at a time."
           />
 
-          <button type="submit" className="primary-button onboarding-submit-button">
-            <span className="button-balanced-inner">
-              <span aria-hidden="true">➡️</span>
-              <span>Save and continue</span>
-            </span>
-          </button>
+          <div className="onboarding-form-actions">
+            <Link href="/profile" className="secondary-button onboarding-cancel-button">
+              <span className="button-balanced-inner">
+                <span aria-hidden="true">←</span>
+                <span>Cancel and return to profile</span>
+              </span>
+            </Link>
+
+            <button
+              type="submit"
+              className="primary-button onboarding-submit-button"
+            >
+              <span className="button-balanced-inner">
+                <span aria-hidden="true">➡️</span>
+                <span>Save and continue</span>
+              </span>
+            </button>
+          </div>
         </form>
       </section>
+
+      <style>{`
+        .onboarding-top-actions {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 12px;
+          align-items: center;
+          justify-content: flex-end;
+        }
+
+        .onboarding-back-button,
+        .onboarding-cancel-button {
+          min-height: 44px;
+          text-decoration: none;
+        }
+
+        .onboarding-form-actions {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 14px;
+          align-items: center;
+          justify-content: space-between;
+          padding-top: 4px;
+        }
+
+        .onboarding-form-actions .primary-button,
+        .onboarding-form-actions .secondary-button {
+          width: fit-content;
+        }
+
+        @media (max-width: 640px) {
+          .onboarding-top-actions {
+            width: 100%;
+            justify-content: stretch;
+          }
+
+          .onboarding-top-actions .secondary-button,
+          .onboarding-top-actions button {
+            width: 100%;
+          }
+
+          .onboarding-form-actions {
+            align-items: stretch;
+            flex-direction: column-reverse;
+          }
+
+          .onboarding-form-actions .primary-button,
+          .onboarding-form-actions .secondary-button {
+            width: 100%;
+          }
+        }
+      `}</style>
     </main>
   );
 }
