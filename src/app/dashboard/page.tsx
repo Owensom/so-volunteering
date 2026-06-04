@@ -12,30 +12,28 @@ type Profile = {
   user_type: string | null;
 };
 
-type VolunteerProfile = {
-  city: string | null;
-  goals: string[] | null;
-  interests: string[] | null;
-  skills: string[] | null;
-  support_needs: string | null;
-  share_accessibility_needs: boolean | null;
-  wants_wellbeing_support: boolean | null;
-  accessibility_completed: boolean | null;
-  availability_notes: string | null;
-  preferred_contact_method: string | null;
-  onboarding_completed: boolean | null;
+type OrganisationProfile = {
+  organisation_name: string | null;
+  contact_email: string | null;
+  profile_completed: boolean | null;
 };
 
-type VolunteerPreferences = {
-  view_mode: string | null;
-  colour_theme: string | null;
-  text_size: string | null;
-  avatar_icon: string | null;
-  listen_mode: string | null;
+type OpportunitySummary = {
+  status: string;
 };
 
 type InterestSummary = {
   status: string;
+};
+
+type OrganisationCardProps = {
+  href?: string;
+  icon: string;
+  label: string;
+  title: string;
+  description: string;
+  action: string;
+  muted?: boolean;
 };
 
 function normaliseUserType(value: string | null | undefined) {
@@ -44,187 +42,57 @@ function normaliseUserType(value: string | null | undefined) {
     : "volunteer";
 }
 
-function normaliseViewMode(value: string | null | undefined) {
-  if (value === "simple" || value === "detailed") return value;
-  return "standard";
-}
+function OrganisationCard({
+  href,
+  icon,
+  label,
+  title,
+  description,
+  action,
+  muted = false
+}: OrganisationCardProps) {
+  const content = (
+    <>
+      <div
+        className="dashboard-card-icon organisation-card-icon"
+        aria-hidden="true"
+      >
+        {icon}
+      </div>
 
-function normaliseColourTheme(value: string | null | undefined) {
-  if (
-    value === "calm_green" ||
-    value === "soft_blue" ||
-    value === "warm_peach" ||
-    value === "high_contrast"
-  ) {
-    return value;
+      <div className="dashboard-card-copy organisation-card-copy">
+        <div className="organisation-card-main">
+          <p className="dashboard-card-label">{label}</p>
+          <h2>{title}</h2>
+          <p>{description}</p>
+        </div>
+
+        <p className={muted ? "dashboard-muted-action" : "card-action text-link"}>
+          {action}
+        </p>
+      </div>
+    </>
+  );
+
+  if (href) {
+    return (
+      <Link
+        href={href}
+        className="info-card dashboard-pathway-card organisation-card"
+      >
+        {content}
+      </Link>
+    );
   }
 
-  return "default";
+  return (
+    <article className="info-card dashboard-pathway-card organisation-card">
+      {content}
+    </article>
+  );
 }
 
-function normaliseTextSize(value: string | null | undefined) {
-  return value === "large" ? "large" : "standard";
-}
-
-function normaliseAvatarIcon(value: string | null | undefined) {
-  return value && value.trim() ? value : "🌱";
-}
-
-function normaliseListenMode(value: string | null | undefined) {
-  return value === "context" ? "context" : "always";
-}
-
-function hasArrayValue(value: string[] | null | undefined) {
-  return Array.isArray(value) && value.length > 0;
-}
-
-function hasTextValue(value: string | null | undefined) {
-  return typeof value === "string" && value.trim().length > 0;
-}
-
-function getVolunteerProgress(volunteerProfile: VolunteerProfile | null) {
-  if (!volunteerProfile) {
-    return {
-      completedSteps: 0,
-      totalSteps: 5,
-      percentage: 0,
-      nextStepHref: "/onboarding/volunteer",
-      nextStepLabel: "Start setup",
-      nextStepIcon: "🌱",
-      nextStepText: "Start with your goals and nearest town or city."
-    };
-  }
-
-  const goalsComplete =
-    hasTextValue(volunteerProfile.city) && hasArrayValue(volunteerProfile.goals);
-
-  const interestsComplete = hasArrayValue(volunteerProfile.interests);
-  const skillsComplete = hasArrayValue(volunteerProfile.skills);
-
-  const accessibilityComplete =
-    volunteerProfile.accessibility_completed === true ||
-    hasTextValue(volunteerProfile.support_needs) ||
-    volunteerProfile.share_accessibility_needs === true ||
-    volunteerProfile.wants_wellbeing_support === true;
-
-  const availabilityComplete =
-    volunteerProfile.onboarding_completed === true ||
-    hasTextValue(volunteerProfile.availability_notes) ||
-    hasTextValue(volunteerProfile.preferred_contact_method);
-
-  const steps = [
-    goalsComplete,
-    interestsComplete,
-    skillsComplete,
-    accessibilityComplete,
-    availabilityComplete
-  ];
-
-  const completedSteps = steps.filter(Boolean).length;
-  const totalSteps = steps.length;
-  const percentage = Math.round((completedSteps / totalSteps) * 100);
-
-  if (!goalsComplete) {
-    return {
-      completedSteps,
-      totalSteps,
-      percentage,
-      nextStepHref: "/onboarding/volunteer",
-      nextStepLabel: "Continue goals",
-      nextStepIcon: "🌱",
-      nextStepText: "Tell us what you would like to achieve."
-    };
-  }
-
-  if (!interestsComplete) {
-    return {
-      completedSteps,
-      totalSteps,
-      percentage,
-      nextStepHref: "/onboarding/volunteer/interests",
-      nextStepLabel: "Continue interests",
-      nextStepIcon: "💚",
-      nextStepText: "Choose what you enjoy or might like to try."
-    };
-  }
-
-  if (!skillsComplete) {
-    return {
-      completedSteps,
-      totalSteps,
-      percentage,
-      nextStepHref: "/onboarding/volunteer/skills",
-      nextStepLabel: "Continue skills",
-      nextStepIcon: "⭐",
-      nextStepText: "Choose skills you have or want to build."
-    };
-  }
-
-  if (!accessibilityComplete) {
-    return {
-      completedSteps,
-      totalSteps,
-      percentage,
-      nextStepHref: "/onboarding/volunteer/accessibility",
-      nextStepLabel: "Continue support",
-      nextStepIcon: "💛",
-      nextStepText: "Choose anything that helps you feel comfortable and safe."
-    };
-  }
-
-  if (!availabilityComplete) {
-    return {
-      completedSteps,
-      totalSteps,
-      percentage,
-      nextStepHref: "/onboarding/volunteer/availability",
-      nextStepLabel: "Continue availability",
-      nextStepIcon: "📅",
-      nextStepText: "Tell us when volunteering might work for you."
-    };
-  }
-
-  return {
-    completedSteps,
-    totalSteps,
-    percentage: 100,
-    nextStepHref: "/opportunities",
-    nextStepLabel: "Find opportunities",
-    nextStepIcon: "🔎",
-    nextStepText:
-      "Your pathway profile is ready. You can now browse published opportunities."
-  };
-}
-
-function getThemeClass(colourTheme: string) {
-  return `preference-theme-${colourTheme}`;
-}
-
-function getTextClass(textSize: string) {
-  return textSize === "large"
-    ? "preference-text-large"
-    : "preference-text-standard";
-}
-
-function getViewClass(viewMode: string) {
-  return `preference-view-${viewMode}`;
-}
-
-function getViewLabel(viewMode: string) {
-  if (viewMode === "simple") return "Simple view";
-  if (viewMode === "detailed") return "Detailed view";
-  return "Standard view";
-}
-
-function getThemeLabel(colourTheme: string) {
-  if (colourTheme === "calm_green") return "Calm green";
-  if (colourTheme === "soft_blue") return "Soft blue";
-  if (colourTheme === "warm_peach") return "Warm peach";
-  if (colourTheme === "high_contrast") return "High contrast";
-  return "SO default";
-}
-
-export default async function DashboardPage() {
+export default async function OrganisationDashboardPage() {
   const supabase = await createClient();
 
   const {
@@ -248,72 +116,68 @@ export default async function DashboardPage() {
 
   const userType = normaliseUserType(profile?.user_type || metadataUserType);
 
-  if (userType === "organisation") {
-    redirect("/organisation/dashboard");
+  if (userType !== "organisation") {
+    redirect("/dashboard");
   }
 
-  const { data: volunteerProfile } = await supabase
-    .from("volunteer_profiles")
-    .select(
-      "city,goals,interests,skills,support_needs,share_accessibility_needs,wants_wellbeing_support,accessibility_completed,availability_notes,preferred_contact_method,onboarding_completed"
-    )
+  const { data: organisationProfile } = await supabase
+    .from("organisation_profiles")
+    .select("organisation_name,contact_email,profile_completed")
     .eq("user_id", user.id)
-    .maybeSingle<VolunteerProfile>();
+    .maybeSingle<OrganisationProfile>();
 
-  const { data: preferences } = await supabase
-    .from("volunteer_preferences")
-    .select("view_mode,colour_theme,text_size,avatar_icon,listen_mode")
-    .eq("user_id", user.id)
-    .maybeSingle<VolunteerPreferences>();
+  const { data: opportunities } = await supabase
+    .from("opportunities")
+    .select("status")
+    .eq("organisation_user_id", user.id);
 
   const { data: interests } = await supabase
     .from("opportunity_interests")
     .select("status")
-    .eq("volunteer_user_id", user.id);
+    .eq("organisation_user_id", user.id);
 
+  const opportunityRows = (opportunities as OpportunitySummary[] | null) ?? [];
   const interestRows = (interests as InterestSummary[] | null) ?? [];
-  const activeInterestCount = interestRows.filter(
-    (interest) => interest.status !== "closed"
+
+  const publishedCount = opportunityRows.filter(
+    (opportunity) => opportunity.status === "published"
   ).length;
 
-  const viewMode = normaliseViewMode(preferences?.view_mode);
-  const colourTheme = normaliseColourTheme(preferences?.colour_theme);
-  const textSize = normaliseTextSize(preferences?.text_size);
-  const avatarIcon = normaliseAvatarIcon(preferences?.avatar_icon);
-  const listenMode = normaliseListenMode(preferences?.listen_mode);
+  const draftCount = opportunityRows.filter(
+    (opportunity) => opportunity.status === "draft"
+  ).length;
+
+  const newInterestCount = interestRows.filter(
+    (interest) => interest.status === "new"
+  ).length;
 
   const displayName =
+    organisationProfile?.organisation_name?.trim() ||
     profile?.full_name?.trim() ||
     (typeof user.user_metadata?.full_name === "string"
       ? user.user_metadata.full_name
       : "") ||
     "there";
 
-  const progress = getVolunteerProgress(volunteerProfile);
+  const emailAddress =
+    organisationProfile?.contact_email?.trim() ||
+    profile?.email?.trim() ||
+    user.email ||
+    "";
 
-  const simpleView = viewMode === "simple";
-  const detailedView = viewMode === "detailed";
+  const profileCompleted = organisationProfile?.profile_completed === true;
 
   const listenText =
-    simpleView
-      ? "You are on your SO Volunteering dashboard. This is your home page. First, check your progress. Then use the main button to continue. You can also find roles, check your saved roles, view your profile, or change your app settings."
-      : "You are on your SO Volunteering dashboard. This is your home base. First, check the Profile progress card on the right to see how many setup steps are complete. Use the main button near the top to continue your next step, or to find opportunities if your setup is complete. Use the Roles I am interested in button to track roles where you clicked I’m interested. The cards below give quick links. View my profile opens your saved details. See my pathway shows all setup steps. Wellbeing and support lets you review what helps you feel comfortable. Find opportunities opens published volunteering roles. Roles I am interested in shows roles you have saved and their current status. Personalise my app lets you choose view mode, colour theme, text size, avatar and Listen preference.";
-
-  const shellClassName = [
-    "dashboard-bg",
-    getThemeClass(colourTheme),
-    getTextClass(textSize),
-    getViewClass(viewMode)
-  ].join(" ");
+    "You are on the organisation dashboard. This is your workspace for creating volunteering roles and reviewing volunteer interest. First, check the Workspace status card. It shows whether your organisation profile is complete, how many roles are published, how many are drafts, and how many new volunteer interests need review. Use the Create role button to make a new volunteering role. Use the View interest button to open the interest inbox. The cards below give quick links. Organisation profile lets you review your organisation details. Create a role opens the role setup form. Opportunity list shows draft, published and closed roles. Interest inbox shows volunteers who have clicked I’m interested. Volunteer matches is a later feature.";
 
   return (
-    <main className={shellClassName}>
-      <section className="dashboard-shell">
-        <header className="dashboard-topbar">
+    <main className="dashboard-bg organisation-dashboard-page">
+      <section className="dashboard-shell organisation-dashboard-shell">
+        <header className="dashboard-topbar organisation-topbar">
           <Link
-            href="/dashboard"
+            href="/organisation/dashboard"
             className="dashboard-brand"
-            aria-label="SO Volunteering dashboard"
+            aria-label="SO Volunteering organisation dashboard"
           >
             <img
               src="/brand/so-volunteering-logo-mark.png"
@@ -329,10 +193,8 @@ export default async function DashboardPage() {
             </span>
           </Link>
 
-          <div className="dashboard-topbar-actions">
-            {listenMode === "always" || listenMode === "context" ? (
-              <InclusiveAudioButton text={listenText} />
-            ) : null}
+          <div className="dashboard-topbar-actions organisation-topbar-actions">
+            <InclusiveAudioButton text={listenText} />
 
             <form action={signOut}>
               <button
@@ -349,219 +211,163 @@ export default async function DashboardPage() {
         </header>
 
         <section
-          className="dashboard-welcome-card"
-          aria-labelledby="dashboard-title"
+          className="dashboard-welcome-card organisation-hero-card"
+          aria-labelledby="organisation-dashboard-title"
         >
-          <div className="dashboard-welcome-copy">
-            <p className="dashboard-kicker">Your home base</p>
-
-            <h1 id="dashboard-title" className="dashboard-title">
-              <span aria-hidden="true">{avatarIcon}</span>
-              <span>Welcome, {displayName}</span>
-            </h1>
-
-            <p className="dashboard-lead">
-              {simpleView
-                ? "Choose what you want to do next."
-                : "Your volunteering journey is ready. Use this dashboard to continue your pathway, view your profile and browse opportunities."}
+          <div className="dashboard-welcome-copy organisation-hero-copy">
+            <p className="dashboard-kicker organisation-kicker">
+              Organisation workspace
             </p>
 
-            <div className="dashboard-primary-actions">
+            <h1
+              id="organisation-dashboard-title"
+              className="dashboard-title organisation-hero-title"
+            >
+              <span aria-hidden="true">🏢</span>
+              <span>Build inclusive opportunities</span>
+            </h1>
+
+            <p className="dashboard-lead organisation-hero-lead">
+              Hi {displayName}. Create accessible volunteering roles, review
+              volunteer interest, and keep support information clear from the
+              start.
+            </p>
+
+            <div className="dashboard-primary-actions organisation-hero-actions">
               <Link
-                href={progress.nextStepHref}
+                href="/organisation/opportunities/new"
                 className="primary-button dashboard-main-action"
               >
                 <span className="dashboard-button-inner">
-                  <span aria-hidden="true">{progress.nextStepIcon}</span>
-                  <span>{progress.nextStepLabel}</span>
+                  <span aria-hidden="true">📣</span>
+                  <span>Create role</span>
                 </span>
               </Link>
 
               <Link
-                href="/my-interests"
+                href="/organisation/interests"
                 className="secondary-button dashboard-main-action"
               >
                 <span className="dashboard-button-inner">
                   <span aria-hidden="true">📬</span>
-                  <span>Roles I am interested in</span>
+                  <span>View interest</span>
                 </span>
               </Link>
             </div>
           </div>
 
-          <aside className="dashboard-progress-card" aria-label="Profile progress">
-            <div className="dashboard-progress-header">
+          <aside
+            className="dashboard-progress-card organisation-status-card"
+            aria-label="Organisation profile status"
+          >
+            <div className="dashboard-progress-header organisation-status-header">
               <span className="dashboard-progress-icon" aria-hidden="true">
-                {avatarIcon}
+                ✨
               </span>
+
               <div>
-                <h2>Profile progress</h2>
+                <h2>Workspace status</h2>
                 <p>
-                  {progress.completedSteps} of {progress.totalSteps || 5} steps
-                  complete.
+                  Profile:{" "}
+                  <strong>{profileCompleted ? "Complete" : "Needs setup"}</strong>
                 </p>
               </div>
             </div>
 
-            <div className="progress-wrap dashboard-progress-wrap">
-              <div className="progress-meta">
-                <span>
-                  {progress.percentage === 100 ? "Complete" : "In progress"}
-                </span>
-                <span>{progress.percentage}%</span>
-              </div>
-              <div className="progress-track" aria-hidden="true">
-                <span
-                  className="progress-fill"
-                  style={{ width: `${progress.percentage}%` }}
-                />
-              </div>
-            </div>
-
-            <p className="dashboard-progress-note">{progress.nextStepText}</p>
-            <p className="dashboard-progress-note">
-              Active interested roles: <strong>{activeInterestCount}</strong>
-            </p>
-
-            {detailedView ? (
-              <p className="dashboard-progress-note">
-                App view: <strong>{getViewLabel(viewMode)}</strong> · Theme:{" "}
-                <strong>{getThemeLabel(colourTheme)}</strong>
+            {emailAddress ? (
+              <p className="dashboard-progress-note organisation-status-note">
+                {emailAddress}
               </p>
-            ) : null}
+            ) : (
+              <p className="dashboard-progress-note organisation-status-note">
+                Email not available.
+              </p>
+            )}
+
+            <p className="dashboard-progress-note organisation-status-note">
+              Published roles: <strong>{publishedCount}</strong>
+            </p>
+            <p className="dashboard-progress-note organisation-status-note">
+              Draft roles: <strong>{draftCount}</strong>
+            </p>
+            <p className="dashboard-progress-note organisation-status-note">
+              New interest: <strong>{newInterestCount}</strong>
+            </p>
           </aside>
         </section>
 
-        <section className="dashboard-grid" aria-label="Dashboard actions">
-          <Link href="/profile" className="info-card dashboard-pathway-card">
-            <div className="dashboard-card-icon" aria-hidden="true">
-              👤
-            </div>
-            <div className="dashboard-card-copy">
-              <div className="dashboard-card-main">
-                <p className="dashboard-card-label">Your details</p>
-                <h2>View my profile</h2>
-                <p>
-                  {simpleView
-                    ? "See your saved profile."
-                    : "Review your goals, interests, skills, support preferences and availability."}
-                </p>
-              </div>
-              <span className="dashboard-card-action-pill">Open profile</span>
-            </div>
-          </Link>
+        <section
+          className="dashboard-grid organisation-card-grid"
+          aria-label="Organisation workspace actions"
+        >
+          <OrganisationCard
+            href="/organisation/profile"
+            icon="🏢"
+            label="Profile"
+            title="Organisation profile"
+            description="Review your name, purpose, location, contact details and support approach."
+            action={profileCompleted ? "Review profile" : "Start profile"}
+          />
 
-          <Link href="/pathway" className="info-card dashboard-pathway-card">
-            <div className="dashboard-card-icon" aria-hidden="true">
-              🧭
-            </div>
-            <div className="dashboard-card-copy">
-              <div className="dashboard-card-main">
-                <p className="dashboard-card-label">Your progress</p>
-                <h2>See my pathway</h2>
-                <p>
-                  {simpleView
-                    ? "Check your setup steps."
-                    : "View all five setup steps and update any section of your pathway."}
-                </p>
-              </div>
-              <span className="dashboard-card-action-pill">Open pathway</span>
-            </div>
-          </Link>
+          <OrganisationCard
+            href="/organisation/opportunities/new"
+            icon="📣"
+            label="Opportunities"
+            title="Create a role"
+            description="Build plain-language roles with tasks, timings, skills and support notes."
+            action="Create role"
+          />
 
-          <Link
-            href="/onboarding/volunteer/accessibility"
-            className="info-card dashboard-pathway-card"
-          >
-            <div className="dashboard-card-icon" aria-hidden="true">
-              💛
-            </div>
-            <div className="dashboard-card-copy">
-              <div className="dashboard-card-main">
-                <p className="dashboard-card-label">Support</p>
-                <h2>Wellbeing and support</h2>
-                <p>
-                  {simpleView
-                    ? "Review what helps you."
-                    : "Review what helps you feel safe, comfortable and included."}
-                </p>
-              </div>
-              <span className="dashboard-card-action-pill">Review support</span>
-            </div>
-          </Link>
+          <OrganisationCard
+            href="/organisation/opportunities"
+            icon="✅"
+            label="Role list"
+            title="Opportunity list"
+            description="Review draft, published and closed roles before volunteers respond."
+            action="View roles"
+          />
 
-          <Link href="/opportunities" className="info-card dashboard-pathway-card">
-            <div className="dashboard-card-icon" aria-hidden="true">
-              🔎
-            </div>
-            <div className="dashboard-card-copy">
-              <div className="dashboard-card-main">
-                <p className="dashboard-card-label">Browse roles</p>
-                <h2>Find opportunities</h2>
-                <p>
-                  {simpleView
-                    ? "Find volunteering roles."
-                    : "Browse published volunteering roles and read what support is available."}
-                </p>
-              </div>
-              <span className="dashboard-card-action-pill">Open opportunities</span>
-            </div>
-          </Link>
+          <OrganisationCard
+            href="/organisation/interests"
+            icon="📬"
+            label="Volunteer interest"
+            title="Interest inbox"
+            description="See volunteers who have expressed interest in your published roles."
+            action="View interest"
+          />
 
-          <Link href="/my-interests" className="info-card dashboard-pathway-card">
-            <div className="dashboard-card-icon" aria-hidden="true">
-              📬
-            </div>
-            <div className="dashboard-card-copy">
-              <div className="dashboard-card-main">
-                <p className="dashboard-card-label">Track roles</p>
-                <h2>Roles I am interested in</h2>
-                <p>
-                  {simpleView
-                    ? "Track roles you saved."
-                    : "See roles where you clicked “I’m interested” and track their current status."}
-                </p>
-              </div>
-              <span className="dashboard-card-action-pill">
-                Open interested roles
-              </span>
-            </div>
-          </Link>
-
-          <Link
-            href="/settings/personalise"
-            className="info-card dashboard-pathway-card"
-          >
-            <div className="dashboard-card-icon" aria-hidden="true">
-              {avatarIcon}
-            </div>
-            <div className="dashboard-card-copy">
-              <div className="dashboard-card-main">
-                <p className="dashboard-card-label">App settings</p>
-                <h2>Personalise my app</h2>
-                <p>
-                  {simpleView
-                    ? "Change your app view."
-                    : "Choose your view mode, colour theme, text size, avatar and Listen preference."}
-                </p>
-              </div>
-              <span className="dashboard-card-action-pill">Open settings</span>
-            </div>
-          </Link>
+          <OrganisationCard
+            icon="🤝"
+            label="Matching"
+            title="Volunteer matches"
+            description="Match roles with volunteer interests, skills, availability and support preferences."
+            action="Later phase"
+            muted
+          />
         </section>
       </section>
 
       <style>{`
-        .dashboard-grid {
+        .organisation-dashboard-page,
+        .organisation-dashboard-page * {
+          box-sizing: border-box;
+        }
+
+        .organisation-dashboard-page {
+          overflow-x: hidden;
+        }
+
+        .organisation-card-grid {
           align-items: stretch;
         }
 
-        .dashboard-pathway-card {
+        .organisation-card {
+          min-height: 224px;
           height: 100%;
           align-items: stretch;
         }
 
-        .dashboard-card-copy {
+        .organisation-card-copy {
           display: flex;
           min-height: 100%;
           flex-direction: column;
@@ -569,176 +375,198 @@ export default async function DashboardPage() {
           gap: 18px;
         }
 
-        .dashboard-card-main {
+        .organisation-card-main {
           display: grid;
           gap: 8px;
+          min-width: 0;
         }
 
-        .dashboard-card-main h2 {
+        .organisation-card-main h2 {
           margin-bottom: 0;
+          overflow-wrap: anywhere;
         }
 
-        .dashboard-card-main p {
+        .organisation-card-main p:last-child {
           margin: 0;
         }
 
-        .dashboard-card-action-pill {
-          display: inline-flex;
-          width: fit-content;
-          max-width: 100%;
-          min-height: 42px;
-          align-items: center;
-          justify-content: center;
-          margin-top: auto;
-          padding: 10px 16px;
-          border: 1px solid rgba(83, 111, 99, 0.2);
-          border-radius: 999px;
-          background: rgba(255, 255, 255, 0.88);
-          color: #536f63;
-          font-size: 0.94rem;
-          font-weight: 900;
-          line-height: 1.15;
-          box-shadow: 0 10px 24px rgba(33, 56, 48, 0.07);
+        .organisation-card .card-action,
+        .organisation-card .dashboard-muted-action {
+          margin-top: auto !important;
         }
 
-        .dashboard-pathway-card:hover .dashboard-card-action-pill {
-          border-color: rgba(83, 111, 99, 0.34);
-          background: rgba(244, 255, 249, 0.96);
+        .organisation-hero-card,
+        .organisation-status-card {
+          overflow: hidden;
         }
 
-        .preference-text-large {
-          font-size: 1.06rem;
+        .organisation-hero-copy,
+        .organisation-status-card,
+        .organisation-status-card * {
+          min-width: 0;
         }
 
-        .preference-text-large .dashboard-lead,
-        .preference-text-large .dashboard-card-copy p,
-        .preference-text-large .dashboard-progress-note {
-          font-size: 1.04em;
+        .organisation-status-note {
+          overflow-wrap: anywhere;
+          word-break: break-word;
         }
 
-        .preference-text-large .dashboard-title {
-          letter-spacing: -0.035em;
-        }
-
-        .preference-view-simple .dashboard-grid {
-          gap: 18px;
-        }
-
-        .preference-view-simple .dashboard-pathway-card {
-          min-height: 190px;
-        }
-
-        .preference-view-simple .dashboard-card-icon {
-          font-size: 2rem;
-        }
-
-        .preference-view-detailed .dashboard-pathway-card {
-          min-height: 230px;
-        }
-
-        .preference-theme-calm_green {
-          background:
-            radial-gradient(circle at top left, rgba(200, 243, 221, 0.58), transparent 34%),
-            linear-gradient(135deg, #f3fff8 0%, #f7fbf5 46%, #fffaf2 100%);
-        }
-
-        .preference-theme-calm_green .dashboard-welcome-card,
-        .preference-theme-calm_green .info-card,
-        .preference-theme-calm_green .dashboard-progress-card {
-          border-color: rgba(83, 111, 99, 0.2);
-        }
-
-        .preference-theme-calm_green .dashboard-card-icon,
-        .preference-theme-calm_green .dashboard-progress-icon {
-          background: rgba(226, 255, 239, 0.86);
-        }
-
-        .preference-theme-soft_blue {
-          background:
-            radial-gradient(circle at top left, rgba(197, 226, 255, 0.62), transparent 34%),
-            linear-gradient(135deg, #f3f9ff 0%, #f8fbff 48%, #fffaf2 100%);
-        }
-
-        .preference-theme-soft_blue .dashboard-welcome-card,
-        .preference-theme-soft_blue .info-card,
-        .preference-theme-soft_blue .dashboard-progress-card {
-          border-color: rgba(74, 112, 160, 0.2);
-        }
-
-        .preference-theme-soft_blue .dashboard-card-icon,
-        .preference-theme-soft_blue .dashboard-progress-icon {
-          background: rgba(231, 244, 255, 0.92);
-        }
-
-        .preference-theme-warm_peach {
-          background:
-            radial-gradient(circle at top left, rgba(255, 210, 184, 0.58), transparent 34%),
-            linear-gradient(135deg, #fff8f1 0%, #fffaf6 48%, #f7fff8 100%);
-        }
-
-        .preference-theme-warm_peach .dashboard-welcome-card,
-        .preference-theme-warm_peach .info-card,
-        .preference-theme-warm_peach .dashboard-progress-card {
-          border-color: rgba(190, 118, 76, 0.2);
-        }
-
-        .preference-theme-warm_peach .dashboard-card-icon,
-        .preference-theme-warm_peach .dashboard-progress-icon {
-          background: rgba(255, 239, 226, 0.92);
-        }
-
-        .preference-theme-high_contrast {
-          background: #f8fafc;
-        }
-
-        .preference-theme-high_contrast .dashboard-welcome-card,
-        .preference-theme-high_contrast .info-card,
-        .preference-theme-high_contrast .dashboard-progress-card {
-          border: 2px solid #1f2937;
-          background: rgba(255, 255, 255, 0.98);
-        }
-
-        .preference-theme-high_contrast .dashboard-title,
-        .preference-theme-high_contrast .dashboard-card-copy h2,
-        .preference-theme-high_contrast .dashboard-progress-card h2 {
-          color: #111827;
-        }
-
-        .preference-theme-high_contrast .dashboard-lead,
-        .preference-theme-high_contrast .dashboard-card-copy p,
-        .preference-theme-high_contrast .dashboard-progress-note {
-          color: #1f2937;
-        }
-
-        .preference-theme-high_contrast .dashboard-card-icon,
-        .preference-theme-high_contrast .dashboard-progress-icon {
-          border: 2px solid #1f2937;
-          background: #ffffff;
-          color: #111827;
-        }
-
-        .preference-theme-high_contrast .dashboard-card-action-pill {
-          border: 2px solid #1f2937;
-          background: #ffffff;
-          color: #111827;
-        }
-
-        @media (max-width: 640px) {
-          .preference-text-large {
-            font-size: 1.03rem;
+        @media (max-width: 760px) {
+          .organisation-dashboard-shell {
+            width: 100%;
+            max-width: 100%;
+            padding: 18px 16px 40px;
           }
 
-          .preference-view-simple .dashboard-pathway-card,
-          .preference-view-detailed .dashboard-pathway-card {
-            min-height: 0;
-          }
-
-          .dashboard-card-copy {
+          .organisation-topbar {
             gap: 14px;
           }
 
-          .dashboard-card-action-pill {
+          .organisation-topbar-actions {
             width: 100%;
+            justify-content: stretch;
+          }
+
+          .organisation-topbar-actions > *,
+          .organisation-topbar-actions form,
+          .organisation-topbar-actions button {
+            width: 100%;
+          }
+
+          .organisation-hero-card {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 18px;
+            width: 100%;
+            padding: 24px 20px;
+            border-radius: 30px;
+          }
+
+          .organisation-kicker {
+            font-size: 0.78rem;
+            line-height: 1.25;
+            letter-spacing: 0.2em;
+          }
+
+          .organisation-hero-title {
+            display: flex;
+            gap: 10px;
+            align-items: flex-start;
+            max-width: 100%;
+            font-size: 2.2rem !important;
+            line-height: 1.03 !important;
+            letter-spacing: -0.045em !important;
+            overflow-wrap: normal;
+            word-break: normal;
+            hyphens: none;
+          }
+
+          .organisation-hero-title span:last-child {
+            min-width: 0;
+            max-width: 100%;
+          }
+
+          .organisation-hero-lead {
+            max-width: 100%;
+            font-size: 1.05rem !important;
+            line-height: 1.5 !important;
+            letter-spacing: 0;
+            overflow-wrap: normal;
+            word-break: normal;
+          }
+
+          .organisation-hero-actions {
+            width: 100%;
+            gap: 12px;
+          }
+
+          .organisation-hero-actions .dashboard-main-action {
+            width: 100%;
+            min-height: 58px;
+          }
+
+          .organisation-status-card {
+            width: 100%;
+            padding: 18px;
+            border-radius: 24px;
+          }
+
+          .organisation-status-header {
+            align-items: flex-start;
+            gap: 12px;
+          }
+
+          .organisation-status-header h2 {
+            font-size: 1.35rem !important;
+            line-height: 1.1 !important;
+            letter-spacing: -0.02em;
+            overflow-wrap: normal;
+          }
+
+          .organisation-status-header p,
+          .organisation-status-note {
+            font-size: 0.98rem !important;
+            line-height: 1.35 !important;
+            letter-spacing: 0;
+          }
+
+          .organisation-status-note {
+            margin-top: 9px;
+          }
+
+          .organisation-card {
+            min-height: 0;
+            padding: 20px;
+          }
+
+          .organisation-card-copy {
+            gap: 14px;
+          }
+
+          .organisation-card-main h2 {
+            font-size: 1.35rem !important;
+            line-height: 1.14 !important;
+          }
+
+          .organisation-card-main p {
+            font-size: 0.98rem !important;
+            line-height: 1.45 !important;
+          }
+        }
+
+        @media (max-width: 420px) {
+          .organisation-dashboard-shell {
+            padding-left: 14px;
+            padding-right: 14px;
+          }
+
+          .organisation-hero-card {
+            padding: 22px 18px;
+            border-radius: 28px;
+          }
+
+          .organisation-hero-title {
+            font-size: 2rem !important;
+            line-height: 1.04 !important;
+          }
+
+          .organisation-hero-lead {
+            font-size: 1rem !important;
+            line-height: 1.48 !important;
+          }
+
+          .organisation-status-card {
+            padding: 16px;
+          }
+        }
+
+        @media (max-width: 360px) {
+          .organisation-hero-title {
+            font-size: 1.82rem !important;
+          }
+
+          .organisation-hero-lead {
+            font-size: 0.96rem !important;
           }
         }
       `}</style>
