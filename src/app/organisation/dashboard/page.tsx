@@ -172,8 +172,8 @@ export default async function OrganisationDashboardPage() {
 
   return (
     <main className="dashboard-bg organisation-dashboard-page">
-      <section className="dashboard-shell">
-        <header className="dashboard-topbar">
+      <section className="dashboard-shell organisation-dashboard-shell">
+        <header className="dashboard-topbar organisation-topbar">
           <Link
             href="/organisation/dashboard"
             className="dashboard-brand"
@@ -193,7 +193,7 @@ export default async function OrganisationDashboardPage() {
             </span>
           </Link>
 
-          <div className="dashboard-topbar-actions">
+          <div className="dashboard-topbar-actions organisation-topbar-actions">
             <InclusiveAudioButton text={listenText} />
 
             <form action={signOut}>
@@ -215,7 +215,9 @@ export default async function OrganisationDashboardPage() {
           aria-labelledby="organisation-dashboard-title"
         >
           <div className="dashboard-welcome-copy organisation-hero-copy">
-            <p className="dashboard-kicker">Organisation workspace</p>
+            <p className="dashboard-kicker organisation-kicker">
+              Organisation workspace
+            </p>
 
             <h1
               id="organisation-dashboard-title"
@@ -351,6 +353,10 @@ export default async function OrganisationDashboardPage() {
           box-sizing: border-box;
         }
 
+        .organisation-dashboard-page {
+          overflow-x: hidden;
+        }
+
         .organisation-card-grid {
           align-items: stretch;
         }
@@ -389,10 +395,12 @@ export default async function OrganisationDashboardPage() {
           margin-top: auto !important;
         }
 
+        .organisation-hero-card,
         .organisation-status-card {
           overflow: hidden;
         }
 
+        .organisation-hero-copy,
         .organisation-status-card,
         .organisation-status-card * {
           min-width: 0;
@@ -404,34 +412,40 @@ export default async function OrganisationDashboardPage() {
         }
 
         @media (max-width: 760px) {
-          .organisation-dashboard-page .dashboard-shell {
-            width: min(100%, 100vw);
-            padding-left: 18px;
-            padding-right: 18px;
+          .organisation-dashboard-shell {
+            width: 100%;
+            max-width: 100%;
+            padding: 18px 16px 40px;
           }
 
-          .organisation-dashboard-page .dashboard-topbar {
+          .organisation-topbar {
             gap: 14px;
           }
 
-          .organisation-dashboard-page .dashboard-topbar-actions {
+          .organisation-topbar-actions {
             width: 100%;
             justify-content: stretch;
           }
 
-          .organisation-dashboard-page .dashboard-topbar-actions > *,
-          .organisation-dashboard-page .dashboard-topbar-actions button {
+          .organisation-topbar-actions > *,
+          .organisation-topbar-actions form,
+          .organisation-topbar-actions button {
             width: 100%;
           }
 
           .organisation-hero-card {
-            gap: 22px;
-            padding: 28px 22px;
-            overflow: hidden;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 18px;
+            width: 100%;
+            padding: 24px 20px;
+            border-radius: 30px;
           }
 
-          .organisation-hero-copy {
-            min-width: 0;
+          .organisation-kicker {
+            font-size: 0.78rem;
+            line-height: 1.25;
+            letter-spacing: 0.2em;
           }
 
           .organisation-hero-title {
@@ -439,22 +453,26 @@ export default async function OrganisationDashboardPage() {
             gap: 10px;
             align-items: flex-start;
             max-width: 100%;
-            font-size: clamp(2.2rem, 12vw, 3.25rem);
-            line-height: 0.98;
-            letter-spacing: -0.055em;
-            overflow-wrap: anywhere;
+            font-size: 2.2rem !important;
+            line-height: 1.03 !important;
+            letter-spacing: -0.045em !important;
+            overflow-wrap: normal;
             word-break: normal;
+            hyphens: none;
           }
 
           .organisation-hero-title span:last-child {
             min-width: 0;
+            max-width: 100%;
           }
 
           .organisation-hero-lead {
             max-width: 100%;
-            font-size: 1.08rem;
-            line-height: 1.48;
-            overflow-wrap: anywhere;
+            font-size: 1.05rem !important;
+            line-height: 1.5 !important;
+            letter-spacing: 0;
+            overflow-wrap: normal;
+            word-break: normal;
           }
 
           .organisation-hero-actions {
@@ -464,38 +482,41 @@ export default async function OrganisationDashboardPage() {
 
           .organisation-hero-actions .dashboard-main-action {
             width: 100%;
+            min-height: 58px;
           }
 
           .organisation-status-card {
             width: 100%;
-            padding: 22px;
-            border-radius: 26px;
+            padding: 18px;
+            border-radius: 24px;
           }
 
           .organisation-status-header {
             align-items: flex-start;
-            gap: 14px;
+            gap: 12px;
           }
 
           .organisation-status-header h2 {
-            font-size: 1.45rem;
-            line-height: 1.08;
-            overflow-wrap: anywhere;
+            font-size: 1.35rem !important;
+            line-height: 1.1 !important;
+            letter-spacing: -0.02em;
+            overflow-wrap: normal;
           }
 
           .organisation-status-header p,
           .organisation-status-note {
-            font-size: 1rem;
-            line-height: 1.35;
+            font-size: 0.98rem !important;
+            line-height: 1.35 !important;
+            letter-spacing: 0;
           }
 
           .organisation-status-note {
-            margin-top: 10px;
+            margin-top: 9px;
           }
 
           .organisation-card {
             min-height: 0;
-            padding: 22px;
+            padding: 20px;
           }
 
           .organisation-card-copy {
@@ -503,33 +524,49 @@ export default async function OrganisationDashboardPage() {
           }
 
           .organisation-card-main h2 {
-            font-size: 1.45rem;
-            line-height: 1.14;
+            font-size: 1.35rem !important;
+            line-height: 1.14 !important;
           }
 
           .organisation-card-main p {
-            font-size: 1rem;
-            line-height: 1.48;
+            font-size: 0.98rem !important;
+            line-height: 1.45 !important;
           }
         }
 
         @media (max-width: 420px) {
-          .organisation-dashboard-page .dashboard-shell {
+          .organisation-dashboard-shell {
             padding-left: 14px;
             padding-right: 14px;
           }
 
           .organisation-hero-card {
-            padding: 24px 18px;
+            padding: 22px 18px;
             border-radius: 28px;
           }
 
           .organisation-hero-title {
-            font-size: clamp(2rem, 11vw, 2.75rem);
+            font-size: 2rem !important;
+            line-height: 1.04 !important;
+          }
+
+          .organisation-hero-lead {
+            font-size: 1rem !important;
+            line-height: 1.48 !important;
           }
 
           .organisation-status-card {
-            padding: 18px;
+            padding: 16px;
+          }
+        }
+
+        @media (max-width: 360px) {
+          .organisation-hero-title {
+            font-size: 1.82rem !important;
+          }
+
+          .organisation-hero-lead {
+            font-size: 0.96rem !important;
           }
         }
       `}</style>
