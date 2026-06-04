@@ -16,6 +16,7 @@ type VolunteerProfile = {
   skills: string[] | null;
   support_needs: string | null;
   share_accessibility_needs: boolean | null;
+  preferred_contact_method: string | null;
 };
 
 type Opportunity = {
@@ -34,6 +35,12 @@ function normaliseUserType(value: string | null | undefined) {
   return value?.trim().toLowerCase() === "organisation"
     ? "organisation"
     : "volunteer";
+}
+
+function normalisePreferredContactMethod(value: string | null | undefined) {
+  if (value === "phone") return "phone";
+  if (value === "sms") return "sms";
+  return "email";
 }
 
 async function requireVolunteerUser() {
@@ -106,13 +113,17 @@ export async function expressInterest(formData: FormData) {
   const { data: volunteerProfile } = await supabase
     .from("volunteer_profiles")
     .select(
-      "city,goals,interests,skills,support_needs,share_accessibility_needs"
+      "city,goals,interests,skills,support_needs,share_accessibility_needs,preferred_contact_method"
     )
     .eq("user_id", user.id)
     .maybeSingle<VolunteerProfile>();
 
   const shareSupportNeeds =
     volunteerProfile?.share_accessibility_needs === true;
+
+  const preferredContactMethod = normalisePreferredContactMethod(
+    volunteerProfile?.preferred_contact_method
+  );
 
   const { error } = await supabase.from("opportunity_interests").insert({
     opportunity_id: opportunity.id,
@@ -132,6 +143,7 @@ export async function expressInterest(formData: FormData) {
     volunteer_support_needs: shareSupportNeeds
       ? volunteerProfile?.support_needs || null
       : null,
+    volunteer_preferred_contact_method: preferredContactMethod,
     message: message || null,
     status: "new",
     updated_at: new Date().toISOString()
