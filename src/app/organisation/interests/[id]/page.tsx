@@ -22,6 +22,7 @@ type InterestRow = {
   volunteer_skills: string[] | null;
   volunteer_support_shared: boolean | null;
   volunteer_support_needs: string | null;
+  volunteer_preferred_contact_method: string | null;
   message: string | null;
   status: string;
   created_at: string;
@@ -35,10 +36,6 @@ type OpportunityRow = {
   location: string | null;
   time_commitment: string | null;
   status: string;
-};
-
-type VolunteerContactProfile = {
-  preferred_contact_method: string | null;
 };
 
 function normaliseUserType(value: string | null | undefined) {
@@ -170,7 +167,7 @@ export default async function OrganisationInterestDetailPage({
   const { data: interest } = await supabase
     .from("opportunity_interests")
     .select(
-      "id,opportunity_id,volunteer_user_id,volunteer_name,volunteer_email,volunteer_city,volunteer_goals,volunteer_interests,volunteer_skills,volunteer_support_shared,volunteer_support_needs,message,status,created_at"
+      "id,opportunity_id,volunteer_user_id,volunteer_name,volunteer_email,volunteer_city,volunteer_goals,volunteer_interests,volunteer_skills,volunteer_support_shared,volunteer_support_needs,volunteer_preferred_contact_method,message,status,created_at"
     )
     .eq("id", interestId)
     .eq("organisation_user_id", user.id)
@@ -187,14 +184,8 @@ export default async function OrganisationInterestDetailPage({
     .eq("organisation_user_id", user.id)
     .maybeSingle<OpportunityRow>();
 
-  const { data: volunteerContactProfile } = await supabase
-    .from("volunteer_profiles")
-    .select("preferred_contact_method")
-    .eq("user_id", interest.volunteer_user_id)
-    .maybeSingle<VolunteerContactProfile>();
-
   const preferredContactMethod = formatContactMethod(
-    volunteerContactProfile?.preferred_contact_method
+    interest.volunteer_preferred_contact_method
   );
 
   const listenText =
