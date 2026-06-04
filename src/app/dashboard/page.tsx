@@ -147,10 +147,10 @@ function getVolunteerProgress(volunteerProfile: VolunteerProfile | null) {
     completedSteps,
     totalSteps,
     percentage: 100,
-    nextStepHref: "/profile",
-    nextStepLabel: "View my profile",
-    nextStepIcon: "👤",
-    nextStepText: "Your pathway profile is ready. You can update it later."
+    nextStepHref: "/opportunities",
+    nextStepLabel: "Find opportunities",
+    nextStepIcon: "🔎",
+    nextStepText: "Your pathway profile is ready. You can now browse published opportunities."
   };
 }
 
@@ -200,7 +200,7 @@ export default async function DashboardPage() {
   const progress = getVolunteerProgress(volunteerProfile);
 
   const listenText =
-    "This is your SO Volunteering dashboard. It is your quick home base. You can continue your next setup step, view your profile, see your pathway, review wellbeing support, and later find opportunities.";
+    "This is your SO Volunteering dashboard. It is your quick home base. You can continue your next setup step, view your profile, see your pathway, review wellbeing support, and browse published volunteering opportunities.";
 
   return (
     <main className="dashboard-bg">
@@ -256,7 +256,7 @@ export default async function DashboardPage() {
 
             <p className="dashboard-lead">
               Your volunteering journey is ready. Use this dashboard to continue
-              your pathway, view your profile and find your next step.
+              your pathway, view your profile and browse opportunities.
             </p>
 
             <div className="dashboard-primary-actions">
@@ -366,21 +366,21 @@ export default async function DashboardPage() {
             </div>
           </Link>
 
-          <article className="info-card dashboard-pathway-card">
+          <Link href="/opportunities" className="info-card dashboard-pathway-card">
             <div className="dashboard-card-icon" aria-hidden="true">
               🔎
             </div>
 
             <div className="dashboard-card-copy">
-              <p className="dashboard-card-label">Coming soon</p>
+              <p className="dashboard-card-label">Browse roles</p>
               <h2>Find opportunities</h2>
               <p>
-                Inclusive volunteering opportunities will appear here when this
-                section is live.
+                Browse published volunteering roles and read what support is
+                available.
               </p>
-              <p className="dashboard-muted-action">Not live yet</p>
+              <p className="card-action text-link">Open opportunities</p>
             </div>
-          </article>
+          </Link>
         </section>
       </section>
     </main>
