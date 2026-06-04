@@ -4,104 +4,24 @@ import { signOut } from "@/app/auth/actions";
 import { createClient } from "@/lib/supabase/server";
 import { InclusiveAudioButton } from "@/components/InclusiveSupport";
 
+export const dynamic = "force-dynamic";
+
 type Profile = {
   full_name: string | null;
   email: string | null;
   user_type: string | null;
 };
 
-function AccessMessage({
-  userType
-}: {
-  userType: string;
-}) {
-  return (
-    <main className="dashboard-bg">
-      <section className="dashboard-shell">
-        <header className="dashboard-topbar">
-          <Link
-            href="/dashboard"
-            className="dashboard-brand"
-            aria-label="SO Volunteering dashboard"
-          >
-            <img
-              src="/brand/so-volunteering-logo-mark.png"
-              alt=""
-              className="dashboard-brand-mark"
-              aria-hidden="true"
-            />
-            <span className="dashboard-brand-text">
-              <span className="dashboard-brand-name">SO Volunteering</span>
-              <span className="dashboard-brand-tagline">
-                Belong • Grow • Thrive
-              </span>
-            </span>
-          </Link>
-        </header>
+type OrganisationProfile = {
+  organisation_name: string | null;
+  contact_email: string | null;
+  profile_completed: boolean | null;
+};
 
-        <section
-          className="dashboard-welcome-card"
-          aria-labelledby="organisation-access-title"
-        >
-          <div className="dashboard-welcome-copy">
-            <p className="dashboard-kicker">Organisation access</p>
-
-            <h1 id="organisation-access-title" className="dashboard-title">
-              <span aria-hidden="true">🏢</span>
-              <span>Organisation dashboard</span>
-            </h1>
-
-            <p className="dashboard-lead">
-              This page is for organisation accounts. This account is currently
-              marked as <strong>{userType || "volunteer"}</strong>.
-            </p>
-
-            <div className="dashboard-primary-actions">
-              <Link
-                href="/dashboard"
-                className="primary-button dashboard-main-action"
-              >
-                <span className="dashboard-button-inner">
-                  <span aria-hidden="true">←</span>
-                  <span>Back to dashboard</span>
-                </span>
-              </Link>
-
-              <Link
-                href="/login"
-                className="secondary-button dashboard-main-action"
-              >
-                <span className="dashboard-button-inner">
-                  <span aria-hidden="true">🔐</span>
-                  <span>Sign in again</span>
-                </span>
-              </Link>
-            </div>
-          </div>
-
-          <aside className="dashboard-progress-card" aria-label="Account type">
-            <div className="dashboard-progress-header">
-              <span className="dashboard-progress-icon" aria-hidden="true">
-                ℹ️
-              </span>
-              <div>
-                <h2>Account type</h2>
-                <p>
-                  Current type: <strong>{userType || "volunteer"}</strong>
-                </p>
-              </div>
-            </div>
-
-            <p className="dashboard-progress-note">
-              If this should be an organisation account, update the
-              <strong> user_type</strong> value in Supabase profiles to
-              <strong> organisation</strong>.
-            </p>
-          </aside>
-        </section>
-      </section>
-    </main>
-  );
+function normaliseUserType(value: string | null | undefined) {
+  return value?.trim().toLowerCase() === "organisation"
+    ? "organisation"
+    : "volunteer";
 }
 
 export default async function OrganisationDashboardPage() {
@@ -126,23 +46,36 @@ export default async function OrganisationDashboardPage() {
       ? user.user_metadata.user_type
       : "volunteer";
 
-  const userType = profile?.user_type || metadataUserType || "volunteer";
+  const userType = normaliseUserType(profile?.user_type || metadataUserType);
 
   if (userType !== "organisation") {
-    return <AccessMessage userType={userType} />;
+    redirect("/dashboard");
   }
 
+  const { data: organisationProfile } = await supabase
+    .from("organisation_profiles")
+    .select("organisation_name,contact_email,profile_completed")
+    .eq("user_id", user.id)
+    .maybeSingle<OrganisationProfile>();
+
   const displayName =
+    organisationProfile?.organisation_name?.trim() ||
     profile?.full_name?.trim() ||
     (typeof user.user_metadata?.full_name === "string"
       ? user.user_metadata.full_name
       : "") ||
     "there";
 
-  const emailAddress = profile?.email?.trim() || user.email || "";
+  const emailAddress =
+    organisationProfile?.contact_email?.trim() ||
+    profile?.email?.trim() ||
+    user.email ||
+    "";
+
+  const profileCompleted = organisationProfile?.profile_completed === true;
 
   const listenText =
-    "This is the organisation workspace for SO Volunteering. It is different from the volunteer dashboard. This page helps organisations prepare their profile, create accessible volunteering opportunities, describe support available, and later review suitable volunteer matches. The first button moves to setup priorities. The second button moves to the opportunity plan. There is also a sign out button at the top.";
+    "This is the organisation workspace for SO Volunteering. It helps organisations prepare their profile, create accessible volunteering opportunities, describe support available, and later review suitable volunteer matches. The organisation profile button opens your organisation setup page.";
 
   return (
     <main className="dashboard-bg">
@@ -197,22 +130,25 @@ export default async function OrganisationDashboardPage() {
             </h1>
 
             <p className="dashboard-lead">
-              Hi {displayName}. This is your organisation area. The next stages
-              will help you set up your organisation profile, create clear
-              volunteering opportunities, and support volunteers before they
-              apply.
+              Hi {displayName}. Set up your organisation profile first, then
+              create clear volunteering opportunities with support information
+              built in from the start.
             </p>
 
             <div className="dashboard-primary-actions">
-              <a
-                href="#organisation-setup"
+              <Link
+                href="/organisation/profile"
                 className="primary-button dashboard-main-action"
               >
                 <span className="dashboard-button-inner">
-                  <span aria-hidden="true">🧭</span>
-                  <span>Setup priorities</span>
+                  <span aria-hidden="true">🏢</span>
+                  <span>
+                    {profileCompleted
+                      ? "Edit organisation profile"
+                      : "Set up organisation"}
+                  </span>
                 </span>
-              </a>
+              </Link>
 
               <a
                 href="#organisation-build-plan"
@@ -236,9 +172,10 @@ export default async function OrganisationDashboardPage() {
               </span>
 
               <div>
-                <h2>Organisation account</h2>
+                <h2>Organisation profile</h2>
                 <p>
-                  Status: <strong>Foundation setup</strong>
+                  Status:{" "}
+                  <strong>{profileCompleted ? "Complete" : "Needs setup"}</strong>
                 </p>
               </div>
             </div>
@@ -250,8 +187,8 @@ export default async function OrganisationDashboardPage() {
             )}
 
             <p className="dashboard-progress-note">
-              Organisation tools are being added carefully so opportunity
-              creation, inclusion and safeguarding stay clear from the start.
+              Complete your organisation profile before creating published
+              opportunities.
             </p>
           </aside>
         </section>
@@ -261,7 +198,10 @@ export default async function OrganisationDashboardPage() {
           className="dashboard-grid"
           aria-label="Organisation setup priorities"
         >
-          <article className="info-card dashboard-pathway-card">
+          <Link
+            href="/organisation/profile"
+            className="info-card dashboard-pathway-card"
+          >
             <div className="dashboard-card-icon" aria-hidden="true">
               🏢
             </div>
@@ -270,14 +210,19 @@ export default async function OrganisationDashboardPage() {
               <p className="dashboard-card-label">Priority 1</p>
               <h2>Organisation profile</h2>
               <p>
-                Add your organisation name, purpose, location, contact email,
-                website and the type of volunteering you offer.
+                Add your organisation name, purpose, location, contact details
+                and the type of volunteering you offer.
               </p>
-              <p className="dashboard-muted-action">Build next</p>
+              <p className="card-action text-link">
+                {profileCompleted ? "Review profile" : "Start profile"}
+              </p>
             </div>
-          </article>
+          </Link>
 
-          <article className="info-card dashboard-pathway-card">
+          <Link
+            href="/organisation/profile"
+            className="info-card dashboard-pathway-card"
+          >
             <div className="dashboard-card-icon" aria-hidden="true">
               💛
             </div>
@@ -287,13 +232,16 @@ export default async function OrganisationDashboardPage() {
               <h2>Inclusion and support</h2>
               <p>
                 Describe what support is available, such as clear instructions,
-                named contacts, flexible timings, quiet spaces or buddy support.
+                named contacts, flexible timings, quiet spaces or check-ins.
               </p>
-              <p className="dashboard-muted-action">Support-first setup</p>
+              <p className="card-action text-link">Review support setup</p>
             </div>
-          </article>
+          </Link>
 
-          <article className="info-card dashboard-pathway-card">
+          <Link
+            href="/organisation/profile"
+            className="info-card dashboard-pathway-card"
+          >
             <div className="dashboard-card-icon" aria-hidden="true">
               🛡️
             </div>
@@ -303,13 +251,11 @@ export default async function OrganisationDashboardPage() {
               <h2>Safety basics</h2>
               <p>
                 Add simple safeguarding, supervision and contact guidance so
-                volunteers know who will support them and what to expect.
+                volunteers know who will support them.
               </p>
-              <p className="dashboard-muted-action">
-                Coming with profile setup
-              </p>
+              <p className="card-action text-link">Review safety notes</p>
             </div>
-          </article>
+          </Link>
         </section>
 
         <section
@@ -326,9 +272,8 @@ export default async function OrganisationDashboardPage() {
               <p className="dashboard-card-label">Opportunities</p>
               <h2>Create a role</h2>
               <p>
-                Create volunteering opportunities with plain language, large
-                clear task choices, skills, interests, availability and support
-                notes.
+                Create volunteering opportunities with plain language, task
+                choices, skills, interests, availability and support notes.
               </p>
               <p className="dashboard-muted-action">Next major feature</p>
             </div>
@@ -362,56 +307,6 @@ export default async function OrganisationDashboardPage() {
               <p>
                 Later, the platform will suggest suitable volunteers using their
                 interests, skills, availability and support preferences.
-              </p>
-              <p className="dashboard-muted-action">Later phase</p>
-            </div>
-          </article>
-        </section>
-
-        <section className="dashboard-grid" aria-label="Organisation quick view">
-          <article className="info-card dashboard-pathway-card">
-            <div className="dashboard-card-icon" aria-hidden="true">
-              🔎
-            </div>
-
-            <div className="dashboard-card-copy">
-              <p className="dashboard-card-label">Live opportunities</p>
-              <h2>0 published</h2>
-              <p>
-                Published opportunities will appear here once the opportunity
-                system is live.
-              </p>
-              <p className="dashboard-muted-action">No action needed yet</p>
-            </div>
-          </article>
-
-          <article className="info-card dashboard-pathway-card">
-            <div className="dashboard-card-icon" aria-hidden="true">
-              📝
-            </div>
-
-            <div className="dashboard-card-copy">
-              <p className="dashboard-card-label">Drafts</p>
-              <h2>0 drafts</h2>
-              <p>
-                Draft opportunities will help organisations prepare roles before
-                publishing them to volunteers.
-              </p>
-              <p className="dashboard-muted-action">Coming soon</p>
-            </div>
-          </article>
-
-          <article className="info-card dashboard-pathway-card">
-            <div className="dashboard-card-icon" aria-hidden="true">
-              📬
-            </div>
-
-            <div className="dashboard-card-copy">
-              <p className="dashboard-card-label">Volunteer interest</p>
-              <h2>0 enquiries</h2>
-              <p>
-                When volunteers can express interest, enquiries and applications
-                will be shown here.
               </p>
               <p className="dashboard-muted-action">Later phase</p>
             </div>
