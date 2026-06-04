@@ -240,7 +240,7 @@ export default async function OrganisationInterestDetailPage({
   });
 
   const listenText =
-    "You are on a volunteer interest detail page. First, read the volunteer name and current status at the top. The cards below show the role, volunteer contact details, preferred contact method, supporting statement, goals, interests, skills and shared support information. The Prepare contact email card gives you a suggested first message. Open the preview only if you want to read the full draft. The platform does not send the email for you yet. Use the Update status card to mark this interest as reviewed, contacted or closed.";
+    "You are on a volunteer interest detail page. First, read the volunteer name and current status at the top. The cards below show the role, volunteer contact details, preferred contact method, supporting statement, goals, interests, skills and shared support information. The Status guide explains the workflow: New, Reviewed, Contacted and Closed. The Prepare contact card gives you a suggested first message. Open the preview only if you want to read the full draft. The platform does not send the email for you yet. Use the Update status card to mark this interest as reviewed, contacted or closed.";
 
   return (
     <main className="dashboard-bg">
@@ -396,6 +396,74 @@ export default async function OrganisationInterestDetailPage({
             <p>
               Area: <strong>{interest.volunteer_city || "Area not shared"}</strong>
             </p>
+          </DetailCard>
+
+          <DetailCard icon="📌" label="Status guide" title="How to use statuses">
+            <div className="status-guide-list" aria-label="Interest status guide">
+              <div
+                className={
+                  interest.status === "new"
+                    ? "status-guide-item status-guide-current"
+                    : "status-guide-item"
+                }
+              >
+                <span className="status-guide-badge">1</span>
+                <div>
+                  <p>
+                    <strong>New</strong>
+                  </p>
+                  <p>The volunteer has expressed interest and is waiting.</p>
+                </div>
+              </div>
+
+              <div
+                className={
+                  interest.status === "reviewed"
+                    ? "status-guide-item status-guide-current"
+                    : "status-guide-item"
+                }
+              >
+                <span className="status-guide-badge">2</span>
+                <div>
+                  <p>
+                    <strong>Reviewed</strong>
+                  </p>
+                  <p>You have read their details and considered fit/support.</p>
+                </div>
+              </div>
+
+              <div
+                className={
+                  interest.status === "contacted"
+                    ? "status-guide-item status-guide-current"
+                    : "status-guide-item"
+                }
+              >
+                <span className="status-guide-badge">3</span>
+                <div>
+                  <p>
+                    <strong>Contacted</strong>
+                  </p>
+                  <p>You have contacted the volunteer outside the platform.</p>
+                </div>
+              </div>
+
+              <div
+                className={
+                  interest.status === "closed"
+                    ? "status-guide-item status-guide-current"
+                    : "status-guide-item"
+                }
+              >
+                <span className="status-guide-badge">4</span>
+                <div>
+                  <p>
+                    <strong>Closed</strong>
+                  </p>
+                  <p>No further action is needed for this interest.</p>
+                </div>
+              </div>
+            </div>
           </DetailCard>
 
           <DetailCard icon="✉️" label="Contact helper" title="Prepare contact">
@@ -584,6 +652,41 @@ export default async function OrganisationInterestDetailPage({
           line-height: 1.2;
           box-shadow: 0 10px 22px rgba(33, 56, 48, 0.06);
           white-space: normal;
+        }
+
+        .status-guide-list {
+          display: grid;
+          gap: 10px;
+        }
+
+        .status-guide-item {
+          display: grid;
+          grid-template-columns: auto 1fr;
+          gap: 10px;
+          align-items: start;
+          padding: 10px;
+          border: 1px solid rgba(108, 92, 160, 0.12);
+          border-radius: 16px;
+          background: rgba(255, 255, 255, 0.66);
+        }
+
+        .status-guide-current {
+          border-color: rgba(83, 111, 99, 0.34);
+          background: rgba(244, 255, 249, 0.92);
+          box-shadow: 0 10px 24px rgba(33, 56, 48, 0.06);
+        }
+
+        .status-guide-badge {
+          display: inline-flex;
+          width: 28px;
+          height: 28px;
+          align-items: center;
+          justify-content: center;
+          border-radius: 999px;
+          background: rgba(83, 111, 99, 0.1);
+          color: #536f63;
+          font-size: 0.8rem;
+          font-weight: 950;
         }
 
         .contact-email-details {
