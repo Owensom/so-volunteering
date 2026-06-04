@@ -69,6 +69,10 @@ function shouldShowPhone(value: string | null | undefined) {
   return value === "phone" || value === "sms";
 }
 
+function getSafePhoneHref(phoneNumber: string) {
+  return phoneNumber.replace(/[^\d+]/g, "");
+}
+
 function buildContactEmail({
   volunteerName,
   roleTitle
@@ -89,6 +93,37 @@ Please let us know if you are still interested and what would be a good time to 
 Best wishes`;
 }
 
+function buildContactText({
+  volunteerName,
+  roleTitle
+}: {
+  volunteerName: string;
+  roleTitle: string;
+}) {
+  return `Hi ${volunteerName}, thanks for your interest in ${roleTitle}. We’d love to chat about whether it feels like a good fit. Is there a good time to contact you? Thanks.`;
+}
+
+function buildCallNotes({
+  volunteerName,
+  roleTitle,
+  preferredContactMethod
+}: {
+  volunteerName: string;
+  roleTitle: string;
+  preferredContactMethod: string;
+}) {
+  return [
+    `Ask for ${volunteerName}.`,
+    `Introduce yourself and say you are calling about ${roleTitle}.`,
+    "Thank them for expressing interest.",
+    "Ask if now is still a good time to talk.",
+    "Briefly explain the role in plain language.",
+    "Ask what support would help them feel comfortable.",
+    `Note that their preferred contact method is ${preferredContactMethod}.`,
+    "Agree the next step before ending the call."
+  ];
+}
+
 function buildMailtoHref({
   email,
   subject,
@@ -105,6 +140,22 @@ function buildMailtoHref({
   return `mailto:${encodeURIComponent(email.trim())}?subject=${encodeURIComponent(
     subject
   )}&body=${encodeURIComponent(body)}`;
+}
+
+function buildSmsHref({
+  phoneNumber,
+  body
+}: {
+  phoneNumber: string;
+  body: string;
+}) {
+  const safePhone = getSafePhoneHref(phoneNumber);
+
+  if (!safePhone) {
+    return "";
+  }
+
+  return `sms:${encodeURIComponent(safePhone)}?&body=${encodeURIComponent(body)}`;
 }
 
 function ChipList({
@@ -236,22 +287,50 @@ export default async function OrganisationInterestDetailPage({
   );
 
   const phoneNumber = interest.volunteer_phone?.trim() || "";
+  const safePhoneHref = getSafePhoneHref(phoneNumber);
 
   const volunteerName = interest.volunteer_name || "Volunteer";
   const roleTitle = opportunity?.title || "this volunteering role";
+
   const contactEmailSubject = `Your interest in ${roleTitle}`;
   const contactEmailBody = buildContactEmail({
     volunteerName,
     roleTitle
   });
+
+  const contactTextBody = buildContactText({
+    volunteerName,
+    roleTitle
+  });
+
+  const callNotes = buildCallNotes({
+    volunteerName,
+    roleTitle,
+    preferredContactMethod
+  });
+
   const contactMailtoHref = buildMailtoHref({
     email: interest.volunteer_email,
     subject: contactEmailSubject,
     body: contactEmailBody
   });
 
+  const contactSmsHref = phoneNumber
+    ? buildSmsHref({
+        phoneNumber,
+        body: contactTextBody
+      })
+    : "";
+
+  const contactHelperMode =
+    interest.volunteer_preferred_contact_method === "sms"
+      ? "sms"
+      : interest.volunteer_preferred_contact_method === "phone"
+        ? "phone"
+        : "email";
+
   const listenText =
-    "You are on a volunteer interest detail page. First, read the volunteer name and current status. The cards below show the role, volunteer contact details, preferred contact method, phone number if the volunteer chose phone or text, supporting statement, goals, interests, skills and shared support information. The Status guide explains the workflow: New, Reviewed, Contacted and Closed. The Prepare contact card gives you a suggested first message. Open the preview only if you want to read the full draft. The platform does not send the email for you yet. Use the Update status card to mark this interest as reviewed, contacted or closed.";
+    "You are on a volunteer interest detail page. First, read the volunteer name and current status. The cards below show the role, volunteer contact details, preferred contact method, phone number if the volunteer chose phone or text, supporting statement, goals, interests, skills and shared support information. The Status guide explains the workflow: New, Reviewed, Contacted and Closed. The Prepare contact card adapts to the volunteer’s preferred contact method. It can suggest an email, a text message, or phone call notes. The platform does not send messages for you yet. Use the Update status card to mark this interest as reviewed, contacted or closed.";
 
   return (
     <main className="dashboard-bg organisation-interest-page">
@@ -494,39 +573,121 @@ export default async function OrganisationInterestDetailPage({
             </div>
           </DetailCard>
 
-          <DetailCard icon="✉️" label="Contact helper" title="Prepare contact">
-            <p>
-              A friendly first message is ready. Open the preview only if you
-              want to check or copy the full wording.
-            </p>
+          <DetailCard
+            icon={
+              contactHelperMode === "sms"
+                ? "💬"
+                : contactHelperMode === "phone"
+                  ? "📞"
+                  : "✉️"
+            }
+            label="Contact helper"
+            title={
+              contactHelperMode === "sms"
+                ? "Prepare text"
+                : contactHelperMode === "phone"
+                  ? "Prepare call"
+                  : "Prepare email"
+            }
+          >
+            {contactHelperMode === "sms" ? (
+              <>
+                <p>
+                  The volunteer chose text message. Use a short, friendly first
+                  message and keep the next step clear.
+                </p>
 
-            <p>
-              Suggested subject: <strong>{contactEmailSubject}</strong>
-            </p>
+                <p>
+                  Phone/text number:{" "}
+                  <strong>{phoneNumber || "Not supplied"}</strong>
+                </p>
 
-            {showPhoneNumber && phoneNumber ? (
-              <p>
-                Phone/text number: <strong>{phoneNumber}</strong>
-              </p>
+                <div className="contact-email-preview" aria-label="Suggested text">
+                  <pre>{contactTextBody}</pre>
+                </div>
+
+                {contactSmsHref ? (
+                  <a href={contactSmsHref} className="contact-email-button">
+                    Open text app
+                  </a>
+                ) : (
+                  <p className="dashboard-muted-action">
+                    No phone number is available, so a text link cannot be
+                    prepared.
+                  </p>
+                )}
+              </>
             ) : null}
 
-            <details className="contact-email-details">
-              <summary>Preview suggested email</summary>
-              <div className="contact-email-preview" aria-label="Suggested email">
-                <pre>{contactEmailBody}</pre>
-              </div>
-            </details>
+            {contactHelperMode === "phone" ? (
+              <>
+                <p>
+                  The volunteer chose phone call. Use these notes to keep the
+                  call clear, kind and supportive.
+                </p>
 
-            {contactMailtoHref ? (
-              <a href={contactMailtoHref} className="contact-email-button">
-                Open in email app
-              </a>
-            ) : (
-              <p className="dashboard-muted-action">
-                No volunteer email is available, so an email link cannot be
-                prepared.
-              </p>
-            )}
+                <p>
+                  Phone number: <strong>{phoneNumber || "Not supplied"}</strong>
+                </p>
+
+                <div className="call-notes-box" aria-label="Suggested call notes">
+                  <ol>
+                    {callNotes.map((note) => (
+                      <li key={note}>{note}</li>
+                    ))}
+                  </ol>
+                </div>
+
+                {safePhoneHref ? (
+                  <a
+                    href={`tel:${safePhoneHref}`}
+                    className="contact-email-button"
+                  >
+                    Open phone app
+                  </a>
+                ) : (
+                  <p className="dashboard-muted-action">
+                    No phone number is available, so a phone link cannot be
+                    prepared.
+                  </p>
+                )}
+              </>
+            ) : null}
+
+            {contactHelperMode === "email" ? (
+              <>
+                <p>
+                  The volunteer chose email. A friendly first message is ready.
+                  Open the preview only if you want to check or copy the full
+                  wording.
+                </p>
+
+                <p>
+                  Suggested subject: <strong>{contactEmailSubject}</strong>
+                </p>
+
+                <details className="contact-email-details">
+                  <summary>Preview suggested email</summary>
+                  <div
+                    className="contact-email-preview"
+                    aria-label="Suggested email"
+                  >
+                    <pre>{contactEmailBody}</pre>
+                  </div>
+                </details>
+
+                {contactMailtoHref ? (
+                  <a href={contactMailtoHref} className="contact-email-button">
+                    Open email app
+                  </a>
+                ) : (
+                  <p className="dashboard-muted-action">
+                    No volunteer email is available, so an email link cannot be
+                    prepared.
+                  </p>
+                )}
+              </>
+            ) : null}
           </DetailCard>
 
           <DetailCard icon="💬" label="Statement" title="Supporting statement">
@@ -774,7 +935,8 @@ export default async function OrganisationInterestDetailPage({
           display: none;
         }
 
-        .contact-email-preview {
+        .contact-email-preview,
+        .call-notes-box {
           display: grid;
           max-height: 260px;
           overflow: auto;
@@ -792,6 +954,21 @@ export default async function OrganisationInterestDetailPage({
           color: #35453f;
           font: inherit;
           line-height: 1.55;
+        }
+
+        .call-notes-box ol {
+          margin: 0;
+          padding-left: 1.25rem;
+        }
+
+        .call-notes-box li {
+          margin: 0 0 8px;
+          color: #35453f;
+          line-height: 1.5;
+        }
+
+        .call-notes-box li:last-child {
+          margin-bottom: 0;
         }
 
         .contact-email-button {
@@ -939,7 +1116,8 @@ export default async function OrganisationInterestDetailPage({
             width: 100%;
           }
 
-          .contact-email-preview {
+          .contact-email-preview,
+          .call-notes-box {
             max-height: 220px;
           }
         }
