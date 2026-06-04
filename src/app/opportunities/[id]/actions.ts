@@ -43,6 +43,47 @@ function normalisePreferredContactMethod(value: string | null | undefined) {
   return "email";
 }
 
+function fallbackNameFromEmail(email: string | null | undefined) {
+  if (!email || !email.includes("@")) {
+    return "Volunteer";
+  }
+
+  const localPart = email.split("@")[0]?.trim();
+
+  if (!localPart) {
+    return "Volunteer";
+  }
+
+  return localPart
+    .replace(/[._-]+/g, " ")
+    .split(" ")
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function getVolunteerDisplayName({
+  profile,
+  metadataName,
+  email
+}: {
+  profile: Profile | null;
+  metadataName: unknown;
+  email: string | null | undefined;
+}) {
+  const profileName = profile?.full_name?.trim();
+
+  if (profileName) {
+    return profileName;
+  }
+
+  if (typeof metadataName === "string" && metadataName.trim()) {
+    return metadataName.trim();
+  }
+
+  return fallbackNameFromEmail(profile?.email || email);
+}
+
 async function requireVolunteerUser() {
   const supabase = await createClient();
 
@@ -125,15 +166,17 @@ export async function expressInterest(formData: FormData) {
     volunteerProfile?.preferred_contact_method
   );
 
+  const volunteerName = getVolunteerDisplayName({
+    profile,
+    metadataName: user.user_metadata?.full_name,
+    email: user.email
+  });
+
   const { error } = await supabase.from("opportunity_interests").insert({
     opportunity_id: opportunity.id,
     organisation_user_id: opportunity.organisation_user_id,
     volunteer_user_id: user.id,
-    volunteer_name:
-      profile?.full_name ||
-      (typeof user.user_metadata?.full_name === "string"
-        ? user.user_metadata.full_name
-        : null),
+    volunteer_name: volunteerName,
     volunteer_email: profile?.email || user.email || null,
     volunteer_city: volunteerProfile?.city || null,
     volunteer_goals: volunteerProfile?.goals || [],
