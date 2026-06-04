@@ -71,9 +71,9 @@ function ChipList({
   }
 
   return (
-    <div className="profile-chip-list">
+    <div className="opportunity-chip-list">
       {values.map((value) => (
-        <span key={value} className="profile-chip">
+        <span key={value} className="opportunity-chip">
           {value}
         </span>
       ))}
@@ -93,15 +93,18 @@ function DetailCard({
   children: React.ReactNode;
 }) {
   return (
-    <article className="info-card dashboard-pathway-card">
-      <div className="dashboard-card-icon" aria-hidden="true">
+    <article className="info-card dashboard-pathway-card opportunity-detail-card">
+      <div className="dashboard-card-icon opportunity-detail-icon" aria-hidden="true">
         {icon}
       </div>
 
-      <div className="dashboard-card-copy">
-        <p className="dashboard-card-label">{label}</p>
-        <h2>{title}</h2>
-        <div className="profile-section-body">{children}</div>
+      <div className="dashboard-card-copy opportunity-detail-copy">
+        <div>
+          <p className="dashboard-card-label">{label}</p>
+          <h2>{title}</h2>
+        </div>
+
+        <div className="opportunity-detail-body">{children}</div>
       </div>
     </article>
   );
@@ -166,10 +169,7 @@ export default async function OpportunityDetailPage({
     opportunity.interests
   );
 
-  const skillMatches = countMatches(
-    volunteerProfile?.skills,
-    opportunity.skills
-  );
+  const skillMatches = countMatches(volunteerProfile?.skills, opportunity.skills);
 
   const listenText =
     "This is an opportunity detail page. It explains the volunteering role, location, time commitment, interests, skills, support available, safety notes and contact information. Applications are not live yet, so this page is for reading and deciding if the role feels suitable.";
@@ -273,14 +273,20 @@ export default async function OpportunityDetailPage({
           </aside>
         </section>
 
-        <section className="dashboard-grid" aria-label="Opportunity information">
+        <section
+          className="dashboard-grid opportunity-detail-grid"
+          aria-label="Opportunity information"
+        >
           <DetailCard icon="📍" label="Location" title="Where it happens">
             <p>
-              Type: <strong>{formatLocationType(opportunity.location_type)}</strong>
+              Type:{" "}
+              <strong>{formatLocationType(opportunity.location_type)}</strong>
             </p>
             <p>
               Area:{" "}
-              <strong>{opportunity.location || "No specific location listed"}</strong>
+              <strong>
+                {opportunity.location || "No specific location listed"}
+              </strong>
             </p>
           </DetailCard>
 
@@ -326,7 +332,9 @@ export default async function OpportunityDetailPage({
           <DetailCard icon="👤" label="Contact" title="Who to contact">
             <p>
               Name:{" "}
-              <strong>{opportunity.contact_name || "Contact name not listed"}</strong>
+              <strong>
+                {opportunity.contact_name || "Contact name not listed"}
+              </strong>
             </p>
             <p>
               Email:{" "}
@@ -336,23 +344,106 @@ export default async function OpportunityDetailPage({
             </p>
           </DetailCard>
 
-          <article className="info-card dashboard-pathway-card">
-            <div className="dashboard-card-icon" aria-hidden="true">
+          <article className="info-card dashboard-pathway-card opportunity-detail-card">
+            <div
+              className="dashboard-card-icon opportunity-detail-icon"
+              aria-hidden="true"
+            >
               🌱
             </div>
 
-            <div className="dashboard-card-copy">
-              <p className="dashboard-card-label">Applications</p>
-              <h2>Express interest coming soon</h2>
-              <p>
-                Applications are not live yet. For now, use this page to read the
-                role and decide whether it feels suitable.
-              </p>
-              <p className="dashboard-muted-action">Read-only preview</p>
+            <div className="dashboard-card-copy opportunity-detail-copy">
+              <div>
+                <p className="dashboard-card-label">Applications</p>
+                <h2>Express interest coming soon</h2>
+              </div>
+
+              <div className="opportunity-detail-body">
+                <p>
+                  Applications are not live yet. For now, use this page to read
+                  the role and decide whether it feels suitable.
+                </p>
+                <p className="dashboard-muted-action">Read-only preview</p>
+              </div>
             </div>
           </article>
         </section>
       </section>
+
+      <style>{`
+        .opportunity-detail-grid {
+          align-items: stretch;
+        }
+
+        .opportunity-detail-card {
+          min-height: 210px;
+          height: 100%;
+          align-items: stretch;
+        }
+
+        .opportunity-detail-copy {
+          display: flex;
+          min-height: 100%;
+          flex-direction: column;
+          gap: 18px;
+        }
+
+        .opportunity-detail-body {
+          display: grid;
+          gap: 10px;
+          color: #5d6677;
+          line-height: 1.55;
+          overflow-wrap: anywhere;
+          word-break: normal;
+        }
+
+        .opportunity-detail-body p {
+          margin: 0;
+        }
+
+        .opportunity-chip-list {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 10px;
+          align-items: flex-start;
+        }
+
+        .opportunity-chip {
+          display: inline-flex;
+          align-items: center;
+          width: fit-content;
+          max-width: 100%;
+          padding: 9px 12px;
+          border: 1px solid rgba(108, 92, 160, 0.16);
+          border-radius: 999px;
+          background: rgba(255, 255, 255, 0.82);
+          color: #536f63;
+          font-size: 0.88rem;
+          font-weight: 800;
+          line-height: 1.2;
+          box-shadow: 0 10px 22px rgba(33, 56, 48, 0.06);
+          white-space: normal;
+        }
+
+        @media (max-width: 640px) {
+          .opportunity-detail-card {
+            min-height: 0;
+          }
+
+          .opportunity-detail-copy {
+            gap: 14px;
+          }
+
+          .opportunity-chip-list {
+            gap: 8px;
+          }
+
+          .opportunity-chip {
+            border-radius: 18px;
+            font-size: 0.86rem;
+          }
+        }
+      `}</style>
     </main>
   );
 }
