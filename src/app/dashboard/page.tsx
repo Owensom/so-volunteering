@@ -26,6 +26,10 @@ type VolunteerProfile = {
   onboarding_completed: boolean | null;
 };
 
+type InterestSummary = {
+  status: string;
+};
+
 function normaliseUserType(value: string | null | undefined) {
   return value?.trim().toLowerCase() === "organisation"
     ? "organisation"
@@ -190,6 +194,16 @@ export default async function DashboardPage() {
     .eq("user_id", user.id)
     .maybeSingle<VolunteerProfile>();
 
+  const { data: interests } = await supabase
+    .from("opportunity_interests")
+    .select("status")
+    .eq("volunteer_user_id", user.id);
+
+  const interestRows = (interests as InterestSummary[] | null) ?? [];
+  const activeInterestCount = interestRows.filter(
+    (interest) => interest.status !== "closed"
+  ).length;
+
   const displayName =
     profile?.full_name?.trim() ||
     (typeof user.user_metadata?.full_name === "string"
@@ -200,7 +214,7 @@ export default async function DashboardPage() {
   const progress = getVolunteerProgress(volunteerProfile);
 
   const listenText =
-    "This is your SO Volunteering dashboard. It is your quick home base. You can continue your next setup step, view your profile, see your pathway, review wellbeing support, and browse published volunteering opportunities.";
+    "This is your SO Volunteering dashboard. It is your quick home base. You can continue your next setup step, view your profile, see your pathway, review wellbeing support, browse published volunteering opportunities, and track roles you are interested in.";
 
   return (
     <main className="dashboard-bg">
@@ -271,12 +285,12 @@ export default async function DashboardPage() {
               </Link>
 
               <Link
-                href="/pathway"
+                href="/my-interests"
                 className="secondary-button dashboard-main-action"
               >
                 <span className="dashboard-button-inner">
-                  <span aria-hidden="true">🧭</span>
-                  <span>See my pathway</span>
+                  <span aria-hidden="true">📬</span>
+                  <span>Roles I am interested in</span>
                 </span>
               </Link>
             </div>
@@ -312,6 +326,9 @@ export default async function DashboardPage() {
             </div>
 
             <p className="dashboard-progress-note">{progress.nextStepText}</p>
+            <p className="dashboard-progress-note">
+              Active interested roles: <strong>{activeInterestCount}</strong>
+            </p>
           </aside>
         </section>
 
@@ -379,6 +396,22 @@ export default async function DashboardPage() {
                 available.
               </p>
               <p className="card-action text-link">Open opportunities</p>
+            </div>
+          </Link>
+
+          <Link href="/my-interests" className="info-card dashboard-pathway-card">
+            <div className="dashboard-card-icon" aria-hidden="true">
+              📬
+            </div>
+
+            <div className="dashboard-card-copy">
+              <p className="dashboard-card-label">Track roles</p>
+              <h2>Roles I am interested in</h2>
+              <p>
+                See roles where you clicked “I’m interested” and track their
+                current status.
+              </p>
+              <p className="card-action text-link">Open interested roles</p>
             </div>
           </Link>
         </section>
