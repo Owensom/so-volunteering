@@ -146,7 +146,7 @@ export default async function VolunteerInterestsPage({
   const selectedInterests = new Set(volunteerProfile?.interests ?? []);
 
   const listenText =
-    "You are on step two of your volunteer profile setup. This page asks what you might enjoy trying. First, choose one or more interest cards. You can choose as many as feel right. This does not lock you into anything. It just helps the app understand what might feel enjoyable, realistic and encouraging. If you are not sure, choose Open to ideas. Use Back to dashboard if you want to leave setup for now. Press Continue to skills when you are ready.";
+    "You are on step two of your volunteer profile setup. This page asks what you might enjoy trying. If you opened this page by mistake, use the Dashboard button at the top or the Cancel and return to profile button near the bottom. First, choose one or more interest cards. You can choose as many as feel right. This does not lock you into anything. It just helps the app understand what might feel enjoyable, realistic and encouraging. If you are not sure, choose Open to ideas. Press Continue to skills when you are ready.";
 
   return (
     <main className="dashboard-bg">
@@ -281,10 +281,10 @@ export default async function VolunteerInterestsPage({
           </section>
 
           <div className="onboarding-actions">
-            <Link href="/dashboard" className="secondary-button">
+            <Link href="/profile" className="secondary-button">
               <span className="dashboard-button-inner">
                 <span aria-hidden="true">←</span>
-                <span>Back to dashboard</span>
+                <span>Cancel and return to profile</span>
               </span>
             </Link>
 
@@ -430,7 +430,7 @@ export default async function VolunteerInterestsPage({
 
           .onboarding-actions {
             align-items: stretch;
-            flex-direction: column;
+            flex-direction: column-reverse;
           }
 
           .onboarding-actions .primary-button,
