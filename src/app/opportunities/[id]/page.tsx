@@ -209,7 +209,7 @@ export default async function OpportunityDetailPage({
   const skillMatches = countMatches(volunteerProfile?.skills, opportunity.skills);
 
   const listenText =
-    "You are on an opportunity details page. First, read the role title and short description at the top. Use the Back to roles button if you want to return to the opportunity list. The cards below explain where the role happens, the time commitment, interests, helpful skills, support available, safety notes and contact details. If the role feels right for you, go to the Interest section. If you have not expressed interest yet, you can press I’m interested. You can leave the supporting statement blank, write a short message, or write a fuller statement. If you have already expressed interest, this page will show Interest expressed and you can remove your interest if you no longer want the organisation to see it.";
+    "You are on an opportunity details page. First, read the role title and short description at the top. Use the Back to roles button if you want to return to the opportunity list. The cards below explain where the role happens, the time commitment, interests, helpful skills, support available, safety notes and contact details. If the role feels right for you, go to the Interest section. If you have not expressed interest yet, you can press I’m interested. You can leave the supporting statement blank, write a short message, or write a fuller statement. If you have already expressed interest, this page will show Interest expressed and you can remove your interest if you no longer want the organisation to see it. The What happens next card explains what the organisation can see and what you can do later.";
 
   return (
     <main className="dashboard-bg">
@@ -403,6 +403,25 @@ export default async function OpportunityDetailPage({
               <strong>
                 {opportunity.contact_email || "Contact email not listed"}
               </strong>
+            </p>
+          </DetailCard>
+
+          <DetailCard icon="🧭" label="Next steps" title="What happens next?">
+            <p>
+              If you express interest, the organisation can see your interest in
+              their inbox.
+            </p>
+            <p>
+              They can review your profile summary, your skills and your
+              supporting statement if you write one.
+            </p>
+            <p>
+              They may contact you outside the platform for now, using the email
+              saved on your profile.
+            </p>
+            <p>
+              You can remove your interest later if the role no longer feels
+              right.
             </p>
           </DetailCard>
 
