@@ -18,10 +18,60 @@ type OrganisationProfile = {
   profile_completed: boolean | null;
 };
 
+type OrganisationCardProps = {
+  href?: string;
+  icon: string;
+  label: string;
+  title: string;
+  description: string;
+  action: string;
+  muted?: boolean;
+};
+
 function normaliseUserType(value: string | null | undefined) {
   return value?.trim().toLowerCase() === "organisation"
     ? "organisation"
     : "volunteer";
+}
+
+function OrganisationCard({
+  href,
+  icon,
+  label,
+  title,
+  description,
+  action,
+  muted = false
+}: OrganisationCardProps) {
+  const content = (
+    <>
+      <div className="dashboard-card-icon organisation-card-icon" aria-hidden="true">
+        {icon}
+      </div>
+
+      <div className="dashboard-card-copy organisation-card-copy">
+        <div className="organisation-card-main">
+          <p className="dashboard-card-label">{label}</p>
+          <h2>{title}</h2>
+          <p>{description}</p>
+        </div>
+
+        <p className={muted ? "dashboard-muted-action" : "card-action text-link"}>
+          {action}
+        </p>
+      </div>
+    </>
+  );
+
+  if (href) {
+    return (
+      <Link href={href} className="info-card dashboard-pathway-card organisation-card">
+        {content}
+      </Link>
+    );
+  }
+
+  return <article className="info-card dashboard-pathway-card organisation-card">{content}</article>;
 }
 
 export default async function OrganisationDashboardPage() {
@@ -194,123 +244,118 @@ export default async function OrganisationDashboardPage() {
 
         <section
           id="organisation-setup"
-          className="dashboard-grid"
+          className="dashboard-grid organisation-card-grid"
           aria-label="Organisation setup priorities"
         >
-          <Link
+          <OrganisationCard
             href="/organisation/profile"
-            className="info-card dashboard-pathway-card"
-          >
-            <div className="dashboard-card-icon" aria-hidden="true">
-              🏢
-            </div>
+            icon="🏢"
+            label="Priority 1"
+            title="Organisation profile"
+            description="Add your name, purpose, location and contact details so volunteers know who you are."
+            action={profileCompleted ? "Review profile" : "Start profile"}
+          />
 
-            <div className="dashboard-card-copy">
-              <p className="dashboard-card-label">Priority 1</p>
-              <h2>Organisation profile</h2>
-              <p>
-                Add your name, purpose, location and contact details so
-                volunteers know who you are.
-              </p>
-              <p className="card-action text-link">
-                {profileCompleted ? "Review profile" : "Start profile"}
-              </p>
-            </div>
-          </Link>
-
-          <Link
+          <OrganisationCard
             href="/organisation/profile"
-            className="info-card dashboard-pathway-card"
-          >
-            <div className="dashboard-card-icon" aria-hidden="true">
-              💛
-            </div>
+            icon="💛"
+            label="Priority 2"
+            title="Inclusion and support"
+            description="Describe the support volunteers can expect before, during and after their role."
+            action="Review support"
+          />
 
-            <div className="dashboard-card-copy">
-              <p className="dashboard-card-label">Priority 2</p>
-              <h2>Inclusion and support</h2>
-              <p>
-                Describe the support volunteers can expect before, during and
-                after their role.
-              </p>
-              <p className="card-action text-link">Review support</p>
-            </div>
-          </Link>
-
-          <Link
+          <OrganisationCard
             href="/organisation/profile"
-            className="info-card dashboard-pathway-card"
-          >
-            <div className="dashboard-card-icon" aria-hidden="true">
-              🛡️
-            </div>
-
-            <div className="dashboard-card-copy">
-              <p className="dashboard-card-label">Priority 3</p>
-              <h2>Safety basics</h2>
-              <p>
-                Add simple supervision and safeguarding notes so volunteers know
-                who can help.
-              </p>
-              <p className="card-action text-link">Review safety</p>
-            </div>
-          </Link>
+            icon="🛡️"
+            label="Priority 3"
+            title="Safety basics"
+            description="Add supervision and safeguarding notes so volunteers know who can help."
+            action="Review safety"
+          />
         </section>
 
         <section
           id="organisation-build-plan"
-          className="dashboard-grid"
+          className="dashboard-grid organisation-card-grid"
           aria-label="Organisation opportunity build plan"
         >
-          <article className="info-card dashboard-pathway-card">
-            <div className="dashboard-card-icon" aria-hidden="true">
-              📣
-            </div>
+          <OrganisationCard
+            icon="📣"
+            label="Opportunities"
+            title="Create a role"
+            description="Build plain-language roles with tasks, timings, skills and support notes."
+            action="Next major feature"
+            muted
+          />
 
-            <div className="dashboard-card-copy">
-              <p className="dashboard-card-label">Opportunities</p>
-              <h2>Create a role</h2>
-              <p>
-                Build plain-language roles with tasks, timings, skills and
-                support notes.
-              </p>
-              <p className="dashboard-muted-action">Next major feature</p>
-            </div>
-          </article>
+          <OrganisationCard
+            icon="✅"
+            label="Readiness"
+            title="Opportunity checklist"
+            description="Check each role has a clear title, simple tasks, time commitment and contact details."
+            action="Planned workflow"
+            muted
+          />
 
-          <article className="info-card dashboard-pathway-card">
-            <div className="dashboard-card-icon" aria-hidden="true">
-              ✅
-            </div>
-
-            <div className="dashboard-card-copy">
-              <p className="dashboard-card-label">Readiness</p>
-              <h2>Opportunity checklist</h2>
-              <p>
-                Check each role has a clear title, simple tasks, time commitment
-                and contact details.
-              </p>
-              <p className="dashboard-muted-action">Planned workflow</p>
-            </div>
-          </article>
-
-          <article className="info-card dashboard-pathway-card">
-            <div className="dashboard-card-icon" aria-hidden="true">
-              🤝
-            </div>
-
-            <div className="dashboard-card-copy">
-              <p className="dashboard-card-label">Matching</p>
-              <h2>Volunteer matches</h2>
-              <p>
-                Match roles with volunteer interests, skills, availability and
-                support preferences.
-              </p>
-              <p className="dashboard-muted-action">Later phase</p>
-            </div>
-          </article>
+          <OrganisationCard
+            icon="🤝"
+            label="Matching"
+            title="Volunteer matches"
+            description="Match roles with volunteer interests, skills, availability and support preferences."
+            action="Later phase"
+            muted
+          />
         </section>
       </section>
+
+      <style>{`
+        .organisation-card-grid {
+          align-items: stretch;
+        }
+
+        .organisation-card {
+          min-height: 224px;
+          height: 100%;
+          align-items: stretch;
+        }
+
+        .organisation-card-copy {
+          display: flex;
+          min-height: 100%;
+          flex-direction: column;
+          justify-content: space-between;
+          gap: 18px;
+        }
+
+        .organisation-card-main {
+          display: grid;
+          gap: 8px;
+        }
+
+        .organisation-card-main h2 {
+          margin-bottom: 0;
+        }
+
+        .organisation-card-main p:last-child {
+          margin: 0;
+        }
+
+        .organisation-card .card-action,
+        .organisation-card .dashboard-muted-action {
+          margin-top: auto !important;
+        }
+
+        @media (max-width: 640px) {
+          .organisation-card {
+            min-height: 0;
+          }
+
+          .organisation-card-copy {
+            gap: 14px;
+          }
+        }
+      `}</style>
     </main>
   );
 }
