@@ -26,6 +26,14 @@ type VolunteerProfile = {
   onboarding_completed: boolean | null;
 };
 
+type VolunteerPreferences = {
+  view_mode: string | null;
+  colour_theme: string | null;
+  text_size: string | null;
+  avatar_icon: string | null;
+  listen_mode: string | null;
+};
+
 type InterestSummary = {
   status: string;
 };
@@ -34,6 +42,39 @@ function normaliseUserType(value: string | null | undefined) {
   return value?.trim().toLowerCase() === "organisation"
     ? "organisation"
     : "volunteer";
+}
+
+function normaliseViewMode(value: string | null | undefined) {
+  if (value === "simple" || value === "detailed") {
+    return value;
+  }
+
+  return "standard";
+}
+
+function normaliseColourTheme(value: string | null | undefined) {
+  if (
+    value === "calm_green" ||
+    value === "soft_blue" ||
+    value === "warm_peach" ||
+    value === "high_contrast"
+  ) {
+    return value;
+  }
+
+  return "default";
+}
+
+function normaliseTextSize(value: string | null | undefined) {
+  return value === "large" ? "large" : "standard";
+}
+
+function normaliseAvatarIcon(value: string | null | undefined) {
+  return value && value.trim() ? value : "🌱";
+}
+
+function normaliseListenMode(value: string | null | undefined) {
+  return value === "context" ? "context" : "always";
 }
 
 function hasArrayValue(value: string[] | null | undefined) {
@@ -159,6 +200,32 @@ function getVolunteerProgress(volunteerProfile: VolunteerProfile | null) {
   };
 }
 
+function getThemeClass(colourTheme: string) {
+  return `preference-theme-${colourTheme}`;
+}
+
+function getTextClass(textSize: string) {
+  return textSize === "large" ? "preference-text-large" : "preference-text-standard";
+}
+
+function getViewClass(viewMode: string) {
+  return `preference-view-${viewMode}`;
+}
+
+function getViewLabel(viewMode: string) {
+  if (viewMode === "simple") return "Simple view";
+  if (viewMode === "detailed") return "Detailed view";
+  return "Standard view";
+}
+
+function getThemeLabel(colourTheme: string) {
+  if (colourTheme === "calm_green") return "Calm green";
+  if (colourTheme === "soft_blue") return "Soft blue";
+  if (colourTheme === "warm_peach") return "Warm peach";
+  if (colourTheme === "high_contrast") return "High contrast";
+  return "SO default";
+}
+
 export default async function DashboardPage() {
   const supabase = await createClient();
 
@@ -195,6 +262,12 @@ export default async function DashboardPage() {
     .eq("user_id", user.id)
     .maybeSingle<VolunteerProfile>();
 
+  const { data: preferences } = await supabase
+    .from("volunteer_preferences")
+    .select("view_mode,colour_theme,text_size,avatar_icon,listen_mode")
+    .eq("user_id", user.id)
+    .maybeSingle<VolunteerPreferences>();
+
   const { data: interests } = await supabase
     .from("opportunity_interests")
     .select("status")
@@ -205,6 +278,12 @@ export default async function DashboardPage() {
     (interest) => interest.status !== "closed"
   ).length;
 
+  const viewMode = normaliseViewMode(preferences?.view_mode);
+  const colourTheme = normaliseColourTheme(preferences?.colour_theme);
+  const textSize = normaliseTextSize(preferences?.text_size);
+  const avatarIcon = normaliseAvatarIcon(preferences?.avatar_icon);
+  const listenMode = normaliseListenMode(preferences?.listen_mode);
+
   const displayName =
     profile?.full_name?.trim() ||
     (typeof user.user_metadata?.full_name === "string"
@@ -214,11 +293,23 @@ export default async function DashboardPage() {
 
   const progress = getVolunteerProgress(volunteerProfile);
 
+  const simpleView = viewMode === "simple";
+  const detailedView = viewMode === "detailed";
+
   const listenText =
-    "You are on your SO Volunteering dashboard. This is your home base. First, check the Profile progress card on the right to see how many setup steps are complete. Use the main button near the top to continue your next step, or to find opportunities if your setup is complete. Use the Roles I am interested in button to track roles where you clicked I’m interested. The cards below give quick links. View my profile opens your saved details. See my pathway shows all setup steps. Wellbeing and support lets you review what helps you feel comfortable. Find opportunities opens published volunteering roles. Roles I am interested in shows roles you have saved and their current status.";
+    simpleView
+      ? "You are on your SO Volunteering dashboard. This is your home page. First, check your progress. Then use the main button to continue. You can also find roles, check your saved roles, view your profile, or change your app settings."
+      : "You are on your SO Volunteering dashboard. This is your home base. First, check the Profile progress card on the right to see how many setup steps are complete. Use the main button near the top to continue your next step, or to find opportunities if your setup is complete. Use the Roles I am interested in button to track roles where you clicked I’m interested. The cards below give quick links. View my profile opens your saved details. See my pathway shows all setup steps. Wellbeing and support lets you review what helps you feel comfortable. Find opportunities opens published volunteering roles. Roles I am interested in shows roles you have saved and their current status. Personalise my app lets you choose view mode, colour theme, text size, avatar and Listen preference.";
+
+  const shellClassName = [
+    "dashboard-bg",
+    getThemeClass(colourTheme),
+    getTextClass(textSize),
+    getViewClass(viewMode)
+  ].join(" ");
 
   return (
-    <main className="dashboard-bg">
+    <main className={shellClassName}>
       <section className="dashboard-shell">
         <header className="dashboard-topbar">
           <Link
@@ -241,7 +332,9 @@ export default async function DashboardPage() {
           </Link>
 
           <div className="dashboard-topbar-actions">
-            <InclusiveAudioButton text={listenText} />
+            {listenMode === "always" || listenMode === "context" ? (
+              <InclusiveAudioButton text={listenText} />
+            ) : null}
 
             <form action={signOut}>
               <button
@@ -265,13 +358,14 @@ export default async function DashboardPage() {
             <p className="dashboard-kicker">Your home base</p>
 
             <h1 id="dashboard-title" className="dashboard-title">
-              <span aria-hidden="true">👋</span>
+              <span aria-hidden="true">{avatarIcon}</span>
               <span>Welcome, {displayName}</span>
             </h1>
 
             <p className="dashboard-lead">
-              Your volunteering journey is ready. Use this dashboard to continue
-              your pathway, view your profile and browse opportunities.
+              {simpleView
+                ? "Choose what you want to do next."
+                : "Your volunteering journey is ready. Use this dashboard to continue your pathway, view your profile and browse opportunities."}
             </p>
 
             <div className="dashboard-primary-actions">
@@ -300,7 +394,7 @@ export default async function DashboardPage() {
           <aside className="dashboard-progress-card" aria-label="Profile progress">
             <div className="dashboard-progress-header">
               <span className="dashboard-progress-icon" aria-hidden="true">
-                ✨
+                {avatarIcon}
               </span>
               <div>
                 <h2>Profile progress</h2>
@@ -330,6 +424,13 @@ export default async function DashboardPage() {
             <p className="dashboard-progress-note">
               Active interested roles: <strong>{activeInterestCount}</strong>
             </p>
+
+            {detailedView ? (
+              <p className="dashboard-progress-note">
+                App view: <strong>{getViewLabel(viewMode)}</strong> · Theme:{" "}
+                <strong>{getThemeLabel(colourTheme)}</strong>
+              </p>
+            ) : null}
           </aside>
         </section>
 
@@ -343,8 +444,9 @@ export default async function DashboardPage() {
               <p className="dashboard-card-label">Your details</p>
               <h2>View my profile</h2>
               <p>
-                Review your goals, interests, skills, support preferences and
-                availability.
+                {simpleView
+                  ? "See your saved profile."
+                  : "Review your goals, interests, skills, support preferences and availability."}
               </p>
               <p className="card-action text-link">Open profile</p>
             </div>
@@ -359,8 +461,9 @@ export default async function DashboardPage() {
               <p className="dashboard-card-label">Your progress</p>
               <h2>See my pathway</h2>
               <p>
-                View all five setup steps and update any section of your
-                pathway.
+                {simpleView
+                  ? "Check your setup steps."
+                  : "View all five setup steps and update any section of your pathway."}
               </p>
               <p className="card-action text-link">Open pathway</p>
             </div>
@@ -378,7 +481,9 @@ export default async function DashboardPage() {
               <p className="dashboard-card-label">Support</p>
               <h2>Wellbeing and support</h2>
               <p>
-                Review what helps you feel safe, comfortable and included.
+                {simpleView
+                  ? "Review what helps you."
+                  : "Review what helps you feel safe, comfortable and included."}
               </p>
               <p className="card-action text-link">Review support</p>
             </div>
@@ -393,8 +498,9 @@ export default async function DashboardPage() {
               <p className="dashboard-card-label">Browse roles</p>
               <h2>Find opportunities</h2>
               <p>
-                Browse published volunteering roles and read what support is
-                available.
+                {simpleView
+                  ? "Find volunteering roles."
+                  : "Browse published volunteering roles and read what support is available."}
               </p>
               <p className="card-action text-link">Open opportunities</p>
             </div>
@@ -409,14 +515,159 @@ export default async function DashboardPage() {
               <p className="dashboard-card-label">Track roles</p>
               <h2>Roles I am interested in</h2>
               <p>
-                See roles where you clicked “I’m interested” and track their
-                current status.
+                {simpleView
+                  ? "Track roles you saved."
+                  : "See roles where you clicked “I’m interested” and track their current status."}
               </p>
               <p className="card-action text-link">Open interested roles</p>
             </div>
           </Link>
+
+          <Link
+            href="/settings/personalise"
+            className="info-card dashboard-pathway-card"
+          >
+            <div className="dashboard-card-icon" aria-hidden="true">
+              {avatarIcon}
+            </div>
+
+            <div className="dashboard-card-copy">
+              <p className="dashboard-card-label">App settings</p>
+              <h2>Personalise my app</h2>
+              <p>
+                {simpleView
+                  ? "Change your app view."
+                  : "Choose your view mode, colour theme, text size, avatar and Listen preference."}
+              </p>
+              <p className="card-action text-link">Open settings</p>
+            </div>
+          </Link>
         </section>
       </section>
+
+      <style>{`
+        .preference-text-large {
+          font-size: 1.06rem;
+        }
+
+        .preference-text-large .dashboard-lead,
+        .preference-text-large .dashboard-card-copy p,
+        .preference-text-large .dashboard-progress-note {
+          font-size: 1.04em;
+        }
+
+        .preference-text-large .dashboard-title {
+          letter-spacing: -0.035em;
+        }
+
+        .preference-view-simple .dashboard-grid {
+          gap: 18px;
+        }
+
+        .preference-view-simple .dashboard-pathway-card {
+          min-height: 190px;
+        }
+
+        .preference-view-simple .dashboard-card-icon {
+          font-size: 2rem;
+        }
+
+        .preference-view-detailed .dashboard-pathway-card {
+          min-height: 230px;
+        }
+
+        .preference-theme-calm_green {
+          background:
+            radial-gradient(circle at top left, rgba(200, 243, 221, 0.58), transparent 34%),
+            linear-gradient(135deg, #f3fff8 0%, #f7fbf5 46%, #fffaf2 100%);
+        }
+
+        .preference-theme-calm_green .dashboard-welcome-card,
+        .preference-theme-calm_green .info-card,
+        .preference-theme-calm_green .dashboard-progress-card {
+          border-color: rgba(83, 111, 99, 0.2);
+        }
+
+        .preference-theme-calm_green .dashboard-card-icon,
+        .preference-theme-calm_green .dashboard-progress-icon {
+          background: rgba(226, 255, 239, 0.86);
+        }
+
+        .preference-theme-soft_blue {
+          background:
+            radial-gradient(circle at top left, rgba(197, 226, 255, 0.62), transparent 34%),
+            linear-gradient(135deg, #f3f9ff 0%, #f8fbff 48%, #fffaf2 100%);
+        }
+
+        .preference-theme-soft_blue .dashboard-welcome-card,
+        .preference-theme-soft_blue .info-card,
+        .preference-theme-soft_blue .dashboard-progress-card {
+          border-color: rgba(74, 112, 160, 0.2);
+        }
+
+        .preference-theme-soft_blue .dashboard-card-icon,
+        .preference-theme-soft_blue .dashboard-progress-icon {
+          background: rgba(231, 244, 255, 0.92);
+        }
+
+        .preference-theme-warm_peach {
+          background:
+            radial-gradient(circle at top left, rgba(255, 210, 184, 0.58), transparent 34%),
+            linear-gradient(135deg, #fff8f1 0%, #fffaf6 48%, #f7fff8 100%);
+        }
+
+        .preference-theme-warm_peach .dashboard-welcome-card,
+        .preference-theme-warm_peach .info-card,
+        .preference-theme-warm_peach .dashboard-progress-card {
+          border-color: rgba(190, 118, 76, 0.2);
+        }
+
+        .preference-theme-warm_peach .dashboard-card-icon,
+        .preference-theme-warm_peach .dashboard-progress-icon {
+          background: rgba(255, 239, 226, 0.92);
+        }
+
+        .preference-theme-high_contrast {
+          background: #f8fafc;
+        }
+
+        .preference-theme-high_contrast .dashboard-welcome-card,
+        .preference-theme-high_contrast .info-card,
+        .preference-theme-high_contrast .dashboard-progress-card {
+          border: 2px solid #1f2937;
+          background: rgba(255, 255, 255, 0.98);
+        }
+
+        .preference-theme-high_contrast .dashboard-title,
+        .preference-theme-high_contrast .dashboard-card-copy h2,
+        .preference-theme-high_contrast .dashboard-progress-card h2 {
+          color: #111827;
+        }
+
+        .preference-theme-high_contrast .dashboard-lead,
+        .preference-theme-high_contrast .dashboard-card-copy p,
+        .preference-theme-high_contrast .dashboard-progress-note {
+          color: #1f2937;
+        }
+
+        .preference-theme-high_contrast .dashboard-card-icon,
+        .preference-theme-high_contrast .dashboard-progress-icon {
+          border: 2px solid #1f2937;
+          background: #ffffff;
+          color: #111827;
+        }
+
+        @media (max-width: 640px) {
+          .preference-text-large {
+            font-size: 1.03rem;
+          }
+
+          .preference-view-simple .dashboard-pathway-card,
+          .preference-view-detailed .dashboard-pathway-card {
+            min-height: 0;
+          }
+        }
+      `}</style>
     </main>
   );
 }
