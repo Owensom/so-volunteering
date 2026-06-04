@@ -168,10 +168,10 @@ export default async function OrganisationDashboardPage() {
   const profileCompleted = organisationProfile?.profile_completed === true;
 
   const listenText =
-    "You are on the organisation dashboard. This is your workspace for creating volunteering roles and reviewing volunteer interest. First, check the Workspace status card on the right. It shows whether your organisation profile is complete, how many roles are published, how many are drafts, and how many new volunteer interests need review. Use the Create role button to make a new volunteering role. Use the View interest button to open the interest inbox. The cards below give quick links. Organisation profile lets you review your organisation details. Create a role opens the role setup form. Opportunity list shows draft, published and closed roles. Interest inbox shows volunteers who have clicked I’m interested. Volunteer matches is a later feature.";
+    "You are on the organisation dashboard. This is your workspace for creating volunteering roles and reviewing volunteer interest. First, check the Workspace status card. It shows whether your organisation profile is complete, how many roles are published, how many are drafts, and how many new volunteer interests need review. Use the Create role button to make a new volunteering role. Use the View interest button to open the interest inbox. The cards below give quick links. Organisation profile lets you review your organisation details. Create a role opens the role setup form. Opportunity list shows draft, published and closed roles. Interest inbox shows volunteers who have clicked I’m interested. Volunteer matches is a later feature.";
 
   return (
-    <main className="dashboard-bg">
+    <main className="dashboard-bg organisation-dashboard-page">
       <section className="dashboard-shell">
         <header className="dashboard-topbar">
           <Link
@@ -211,24 +211,27 @@ export default async function OrganisationDashboardPage() {
         </header>
 
         <section
-          className="dashboard-welcome-card"
+          className="dashboard-welcome-card organisation-hero-card"
           aria-labelledby="organisation-dashboard-title"
         >
-          <div className="dashboard-welcome-copy">
+          <div className="dashboard-welcome-copy organisation-hero-copy">
             <p className="dashboard-kicker">Organisation workspace</p>
 
-            <h1 id="organisation-dashboard-title" className="dashboard-title">
+            <h1
+              id="organisation-dashboard-title"
+              className="dashboard-title organisation-hero-title"
+            >
               <span aria-hidden="true">🏢</span>
               <span>Build inclusive opportunities</span>
             </h1>
 
-            <p className="dashboard-lead">
+            <p className="dashboard-lead organisation-hero-lead">
               Hi {displayName}. Create accessible volunteering roles, review
               volunteer interest, and keep support information clear from the
               start.
             </p>
 
-            <div className="dashboard-primary-actions">
+            <div className="dashboard-primary-actions organisation-hero-actions">
               <Link
                 href="/organisation/opportunities/new"
                 className="primary-button dashboard-main-action"
@@ -252,10 +255,10 @@ export default async function OrganisationDashboardPage() {
           </div>
 
           <aside
-            className="dashboard-progress-card"
+            className="dashboard-progress-card organisation-status-card"
             aria-label="Organisation profile status"
           >
-            <div className="dashboard-progress-header">
+            <div className="dashboard-progress-header organisation-status-header">
               <span className="dashboard-progress-icon" aria-hidden="true">
                 ✨
               </span>
@@ -270,18 +273,22 @@ export default async function OrganisationDashboardPage() {
             </div>
 
             {emailAddress ? (
-              <p className="dashboard-progress-note">{emailAddress}</p>
+              <p className="dashboard-progress-note organisation-status-note">
+                {emailAddress}
+              </p>
             ) : (
-              <p className="dashboard-progress-note">Email not available.</p>
+              <p className="dashboard-progress-note organisation-status-note">
+                Email not available.
+              </p>
             )}
 
-            <p className="dashboard-progress-note">
+            <p className="dashboard-progress-note organisation-status-note">
               Published roles: <strong>{publishedCount}</strong>
             </p>
-            <p className="dashboard-progress-note">
+            <p className="dashboard-progress-note organisation-status-note">
               Draft roles: <strong>{draftCount}</strong>
             </p>
-            <p className="dashboard-progress-note">
+            <p className="dashboard-progress-note organisation-status-note">
               New interest: <strong>{newInterestCount}</strong>
             </p>
           </aside>
@@ -339,6 +346,11 @@ export default async function OrganisationDashboardPage() {
       </section>
 
       <style>{`
+        .organisation-dashboard-page,
+        .organisation-dashboard-page * {
+          box-sizing: border-box;
+        }
+
         .organisation-card-grid {
           align-items: stretch;
         }
@@ -360,10 +372,12 @@ export default async function OrganisationDashboardPage() {
         .organisation-card-main {
           display: grid;
           gap: 8px;
+          min-width: 0;
         }
 
         .organisation-card-main h2 {
           margin-bottom: 0;
+          overflow-wrap: anywhere;
         }
 
         .organisation-card-main p:last-child {
@@ -375,13 +389,147 @@ export default async function OrganisationDashboardPage() {
           margin-top: auto !important;
         }
 
-        @media (max-width: 640px) {
+        .organisation-status-card {
+          overflow: hidden;
+        }
+
+        .organisation-status-card,
+        .organisation-status-card * {
+          min-width: 0;
+        }
+
+        .organisation-status-note {
+          overflow-wrap: anywhere;
+          word-break: break-word;
+        }
+
+        @media (max-width: 760px) {
+          .organisation-dashboard-page .dashboard-shell {
+            width: min(100%, 100vw);
+            padding-left: 18px;
+            padding-right: 18px;
+          }
+
+          .organisation-dashboard-page .dashboard-topbar {
+            gap: 14px;
+          }
+
+          .organisation-dashboard-page .dashboard-topbar-actions {
+            width: 100%;
+            justify-content: stretch;
+          }
+
+          .organisation-dashboard-page .dashboard-topbar-actions > *,
+          .organisation-dashboard-page .dashboard-topbar-actions button {
+            width: 100%;
+          }
+
+          .organisation-hero-card {
+            gap: 22px;
+            padding: 28px 22px;
+            overflow: hidden;
+          }
+
+          .organisation-hero-copy {
+            min-width: 0;
+          }
+
+          .organisation-hero-title {
+            display: flex;
+            gap: 10px;
+            align-items: flex-start;
+            max-width: 100%;
+            font-size: clamp(2.2rem, 12vw, 3.25rem);
+            line-height: 0.98;
+            letter-spacing: -0.055em;
+            overflow-wrap: anywhere;
+            word-break: normal;
+          }
+
+          .organisation-hero-title span:last-child {
+            min-width: 0;
+          }
+
+          .organisation-hero-lead {
+            max-width: 100%;
+            font-size: 1.08rem;
+            line-height: 1.48;
+            overflow-wrap: anywhere;
+          }
+
+          .organisation-hero-actions {
+            width: 100%;
+            gap: 12px;
+          }
+
+          .organisation-hero-actions .dashboard-main-action {
+            width: 100%;
+          }
+
+          .organisation-status-card {
+            width: 100%;
+            padding: 22px;
+            border-radius: 26px;
+          }
+
+          .organisation-status-header {
+            align-items: flex-start;
+            gap: 14px;
+          }
+
+          .organisation-status-header h2 {
+            font-size: 1.45rem;
+            line-height: 1.08;
+            overflow-wrap: anywhere;
+          }
+
+          .organisation-status-header p,
+          .organisation-status-note {
+            font-size: 1rem;
+            line-height: 1.35;
+          }
+
+          .organisation-status-note {
+            margin-top: 10px;
+          }
+
           .organisation-card {
             min-height: 0;
+            padding: 22px;
           }
 
           .organisation-card-copy {
             gap: 14px;
+          }
+
+          .organisation-card-main h2 {
+            font-size: 1.45rem;
+            line-height: 1.14;
+          }
+
+          .organisation-card-main p {
+            font-size: 1rem;
+            line-height: 1.48;
+          }
+        }
+
+        @media (max-width: 420px) {
+          .organisation-dashboard-page .dashboard-shell {
+            padding-left: 14px;
+            padding-right: 14px;
+          }
+
+          .organisation-hero-card {
+            padding: 24px 18px;
+            border-radius: 28px;
+          }
+
+          .organisation-hero-title {
+            font-size: clamp(2rem, 11vw, 2.75rem);
+          }
+
+          .organisation-status-card {
+            padding: 18px;
           }
         }
       `}</style>
