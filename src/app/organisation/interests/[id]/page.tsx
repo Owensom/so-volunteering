@@ -13,6 +13,7 @@ type Profile = {
 type InterestRow = {
   id: string;
   opportunity_id: string;
+  volunteer_user_id: string;
   volunteer_name: string | null;
   volunteer_email: string | null;
   volunteer_city: string | null;
@@ -36,6 +37,10 @@ type OpportunityRow = {
   status: string;
 };
 
+type VolunteerContactProfile = {
+  preferred_contact_method: string | null;
+};
+
 function normaliseUserType(value: string | null | undefined) {
   return value?.trim().toLowerCase() === "organisation"
     ? "organisation"
@@ -53,6 +58,13 @@ function formatLocationType(value: string | null | undefined) {
   if (value === "remote") return "Remote";
   if (value === "hybrid") return "Hybrid";
   return "In-person";
+}
+
+function formatContactMethod(value: string | null | undefined) {
+  if (value === "sms") return "Text message";
+  if (value === "phone") return "Phone call";
+  if (value === "email") return "Email";
+  return "Not chosen yet";
 }
 
 function ChipList({
@@ -158,7 +170,7 @@ export default async function OrganisationInterestDetailPage({
   const { data: interest } = await supabase
     .from("opportunity_interests")
     .select(
-      "id,opportunity_id,volunteer_name,volunteer_email,volunteer_city,volunteer_goals,volunteer_interests,volunteer_skills,volunteer_support_shared,volunteer_support_needs,message,status,created_at"
+      "id,opportunity_id,volunteer_user_id,volunteer_name,volunteer_email,volunteer_city,volunteer_goals,volunteer_interests,volunteer_skills,volunteer_support_shared,volunteer_support_needs,message,status,created_at"
     )
     .eq("id", interestId)
     .eq("organisation_user_id", user.id)
@@ -175,8 +187,18 @@ export default async function OrganisationInterestDetailPage({
     .eq("organisation_user_id", user.id)
     .maybeSingle<OpportunityRow>();
 
+  const { data: volunteerContactProfile } = await supabase
+    .from("volunteer_profiles")
+    .select("preferred_contact_method")
+    .eq("user_id", interest.volunteer_user_id)
+    .maybeSingle<VolunteerContactProfile>();
+
+  const preferredContactMethod = formatContactMethod(
+    volunteerContactProfile?.preferred_contact_method
+  );
+
   const listenText =
-    "You are on a volunteer interest detail page. First, read the volunteer name and current status at the top. Use the Back to inbox button if you want to return to the interest inbox. Use the Open role button to view the volunteering role this person is interested in. The cards below show the role, volunteer contact details, their supporting statement if they wrote one, their goals, interests, skills and shared support information. If support preferences were not shared, the support card will say that clearly. The What happens next card explains the recommended workflow. When you have reviewed the details, go to the Update status card. Choose New, Reviewed, Contacted or Closed. Use Reviewed when you have looked at the interest. Use Contacted when you have contacted the volunteer outside the platform. Use Closed when the interest no longer needs action. Press Save status to update the inbox and dashboard counts.";
+    "You are on a volunteer interest detail page. First, read the volunteer name and current status at the top. Use the Back to inbox button if you want to return to the interest inbox. Use the Open role button to view the volunteering role this person is interested in. The cards below show the role, volunteer contact details, their preferred contact method, their supporting statement if they wrote one, their goals, interests, skills and shared support information. If support preferences were not shared, the support card will say that clearly. The What happens next card explains the recommended workflow. When you have reviewed the details, go to the Update status card. Choose New, Reviewed, Contacted or Closed. Use Reviewed when you have looked at the interest. Use Contacted when you have contacted the volunteer outside the platform using their preferred contact method where possible. Use Closed when the interest no longer needs action. Press Save status to update the inbox and dashboard counts.";
 
   return (
     <main className="dashboard-bg">
@@ -272,6 +294,10 @@ export default async function OrganisationInterestDetailPage({
             </div>
 
             <p className="dashboard-progress-note">
+              Preferred contact: <strong>{preferredContactMethod}</strong>
+            </p>
+
+            <p className="dashboard-progress-note">
               Update the status when this interest has been reviewed or handled.
             </p>
           </aside>
@@ -321,6 +347,9 @@ export default async function OrganisationInterestDetailPage({
             <p>
               Email:{" "}
               <strong>{interest.volunteer_email || "Email not available"}</strong>
+            </p>
+            <p>
+              Preferred contact: <strong>{preferredContactMethod}</strong>
             </p>
             <p>
               Area: <strong>{interest.volunteer_city || "Area not shared"}</strong>
@@ -374,12 +403,10 @@ export default async function OrganisationInterestDetailPage({
               Read the volunteer’s details and decide whether the role looks like
               a good fit.
             </p>
+            <p>Mark the interest as Reviewed once you have looked at it.</p>
             <p>
-              Mark the interest as Reviewed once you have looked at it.
-            </p>
-            <p>
-              Contact the volunteer outside the platform for now using the email
-              shown on this page.
+              Contact the volunteer outside the platform for now, using their
+              preferred contact method where possible.
             </p>
             <p>
               Mark the interest as Contacted after you have reached out, or
