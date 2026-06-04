@@ -90,7 +90,10 @@ function DetailCard({
 }) {
   return (
     <article className="info-card dashboard-pathway-card interest-detail-card">
-      <div className="dashboard-card-icon interest-detail-icon" aria-hidden="true">
+      <div
+        className="dashboard-card-icon interest-detail-icon"
+        aria-hidden="true"
+      >
         {icon}
       </div>
 
@@ -173,7 +176,7 @@ export default async function OrganisationInterestDetailPage({
     .maybeSingle<OpportunityRow>();
 
   const listenText =
-    "This is the volunteer interest detail page for organisations. It shows the role, volunteer details, optional message, goals, interests, skills and shared support information. You can update the interest status to new, reviewed, contacted or closed.";
+    "You are on a volunteer interest detail page. First, read the volunteer name and current status at the top. Use the Back to inbox button if you want to return to the interest inbox. Use the Open role button to view the volunteering role this person is interested in. The cards below show the role, volunteer contact details, their supporting statement if they wrote one, their goals, interests, skills and shared support information. If support preferences were not shared, the support card will say that clearly. When you have reviewed the details, go to the Update status card. Choose New, Reviewed, Contacted or Closed. Use Reviewed when you have looked at the interest. Use Contacted when you have contacted the volunteer outside the platform. Use Closed when the interest no longer needs action. Press Save status to update the inbox and dashboard counts.";
 
   return (
     <main className="dashboard-bg">
@@ -311,24 +314,25 @@ export default async function OrganisationInterestDetailPage({
           <DetailCard icon="👤" label="Volunteer" title="Contact details">
             <p>
               Name:{" "}
-              <strong>{interest.volunteer_name || "Volunteer name not shared"}</strong>
+              <strong>
+                {interest.volunteer_name || "Volunteer name not shared"}
+              </strong>
             </p>
             <p>
               Email:{" "}
               <strong>{interest.volunteer_email || "Email not available"}</strong>
             </p>
             <p>
-              Area:{" "}
-              <strong>{interest.volunteer_city || "Area not shared"}</strong>
+              Area: <strong>{interest.volunteer_city || "Area not shared"}</strong>
             </p>
           </DetailCard>
 
-          <DetailCard icon="💬" label="Message" title="Volunteer message">
+          <DetailCard icon="💬" label="Statement" title="Supporting statement">
             {interest.message ? (
               <p>{interest.message}</p>
             ) : (
               <p className="dashboard-muted-action">
-                No optional message was added.
+                No supporting statement was added.
               </p>
             )}
           </DetailCard>
