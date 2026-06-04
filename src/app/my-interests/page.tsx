@@ -142,7 +142,7 @@ export default async function MyInterestsPage({
   const closedCount = rows.filter((row) => row.status === "closed").length;
 
   const listenText =
-    "This is your Roles I am interested in page. It shows volunteering roles where you clicked I am interested. Each card shows the role, the current status, your optional supporting statement, and a link back to the opportunity. You can also remove an interest if you no longer want the organisation to see it.";
+    "This is your Roles I am interested in page. It shows volunteering roles where you clicked I am interested. Each card shows the role, the current status, your optional supporting statement, and a link back to the opportunity. Each saved role also has a Remove interest button.";
 
   return (
     <main className="dashboard-bg">
@@ -457,22 +457,22 @@ export default async function MyInterestsPage({
 
         .remove-interest-button {
           appearance: none;
-          border: 1px solid rgba(190, 80, 80, 0.22);
+          border: 1px solid rgba(190, 80, 80, 0.28);
           border-radius: 999px;
-          background: rgba(255, 255, 255, 0.78);
+          background: rgba(255, 255, 255, 0.9);
           color: #9b3d3d;
           cursor: pointer;
           font: inherit;
           font-size: 0.9rem;
           font-weight: 850;
-          padding: 10px 14px;
-          min-height: 42px;
+          min-height: 44px;
+          padding: 10px 16px;
           box-shadow: 0 10px 22px rgba(33, 56, 48, 0.06);
         }
 
         .remove-interest-button:hover {
-          background: rgba(255, 245, 245, 0.94);
-          border-color: rgba(190, 80, 80, 0.34);
+          background: rgba(255, 245, 245, 0.98);
+          border-color: rgba(190, 80, 80, 0.42);
         }
 
         .remove-interest-button:focus-visible {
