@@ -110,7 +110,7 @@ export default async function VolunteerAccessibilityPage({
     })) ?? [];
 
   const listenText =
-    "This is step four of your volunteer profile setup. This page is called Accessibility and support. At the top there is Listen support, a Dashboard button, and your setup progress. Choose any accessibility or support options that would help make volunteering feel safer, easier or more welcoming. You do not need to type anything unless you want to. You can choose whether organisations can see this information. The final button says Save and continue.";
+    "This is step four of your volunteer profile setup. This page is called Accessibility and support. If you opened this page by mistake, use the Dashboard button at the top or the Cancel and return to profile button near the bottom. Choose any accessibility or support options that would help make volunteering feel safer, easier or more welcoming. You do not need to type anything unless you want to. You can choose whether organisations can see this information. The final button says Save and continue.";
 
   return (
     <main className="onboarding-shell">
@@ -120,14 +120,11 @@ export default async function VolunteerAccessibilityPage({
             <p className="brand-eyebrow">Profile setup</p>
           </div>
 
-          <div className="dashboard-topbar-actions">
+          <div className="onboarding-top-actions">
             <InclusiveAudioButton text={listenText} />
 
-            <Link
-              href="/dashboard"
-              className="secondary-button dashboard-signout-button"
-            >
-              <span className="dashboard-button-inner">
+            <Link href="/dashboard" className="secondary-button onboarding-back-button">
+              <span className="button-balanced-inner">
                 <span aria-hidden="true">←</span>
                 <span>Dashboard</span>
               </span>
@@ -143,9 +140,7 @@ export default async function VolunteerAccessibilityPage({
               </span>
 
               <div>
-                <h1 className="onboarding-title">
-                  What support helps you?
-                </h1>
+                <h1 className="onboarding-title">What support helps you?</h1>
                 <p className="onboarding-lead">
                   Choose anything that would make volunteering feel safer,
                   easier or more welcoming. You are in control of what is shared.
@@ -227,14 +222,78 @@ export default async function VolunteerAccessibilityPage({
             </select>
           </label>
 
-          <button type="submit" className="primary-button onboarding-submit-button">
-            <span className="button-balanced-inner">
-              <span aria-hidden="true">➡️</span>
-              <span>Save and continue</span>
-            </span>
-          </button>
+          <div className="onboarding-form-actions">
+            <Link href="/profile" className="secondary-button onboarding-cancel-button">
+              <span className="button-balanced-inner">
+                <span aria-hidden="true">←</span>
+                <span>Cancel and return to profile</span>
+              </span>
+            </Link>
+
+            <button
+              type="submit"
+              className="primary-button onboarding-submit-button"
+            >
+              <span className="button-balanced-inner">
+                <span aria-hidden="true">➡️</span>
+                <span>Save and continue</span>
+              </span>
+            </button>
+          </div>
         </form>
       </section>
+
+      <style>{`
+        .onboarding-top-actions {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 12px;
+          align-items: center;
+          justify-content: flex-end;
+        }
+
+        .onboarding-back-button,
+        .onboarding-cancel-button {
+          min-height: 44px;
+          text-decoration: none;
+        }
+
+        .onboarding-form-actions {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 14px;
+          align-items: center;
+          justify-content: space-between;
+          padding-top: 4px;
+        }
+
+        .onboarding-form-actions .primary-button,
+        .onboarding-form-actions .secondary-button {
+          width: fit-content;
+        }
+
+        @media (max-width: 640px) {
+          .onboarding-top-actions {
+            width: 100%;
+            justify-content: stretch;
+          }
+
+          .onboarding-top-actions .secondary-button,
+          .onboarding-top-actions button {
+            width: 100%;
+          }
+
+          .onboarding-form-actions {
+            align-items: stretch;
+            flex-direction: column-reverse;
+          }
+
+          .onboarding-form-actions .primary-button,
+          .onboarding-form-actions .secondary-button {
+            width: 100%;
+          }
+        }
+      `}</style>
     </main>
   );
 }
