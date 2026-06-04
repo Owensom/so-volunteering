@@ -45,10 +45,7 @@ function normaliseUserType(value: string | null | undefined) {
 }
 
 function normaliseViewMode(value: string | null | undefined) {
-  if (value === "simple" || value === "detailed") {
-    return value;
-  }
-
+  if (value === "simple" || value === "detailed") return value;
   return "standard";
 }
 
@@ -102,7 +99,6 @@ function getVolunteerProgress(volunteerProfile: VolunteerProfile | null) {
     hasTextValue(volunteerProfile.city) && hasArrayValue(volunteerProfile.goals);
 
   const interestsComplete = hasArrayValue(volunteerProfile.interests);
-
   const skillsComplete = hasArrayValue(volunteerProfile.skills);
 
   const accessibilityComplete =
@@ -205,7 +201,9 @@ function getThemeClass(colourTheme: string) {
 }
 
 function getTextClass(textSize: string) {
-  return textSize === "large" ? "preference-text-large" : "preference-text-standard";
+  return textSize === "large"
+    ? "preference-text-large"
+    : "preference-text-standard";
 }
 
 function getViewClass(viewMode: string) {
@@ -439,16 +437,17 @@ export default async function DashboardPage() {
             <div className="dashboard-card-icon" aria-hidden="true">
               👤
             </div>
-
             <div className="dashboard-card-copy">
-              <p className="dashboard-card-label">Your details</p>
-              <h2>View my profile</h2>
-              <p>
-                {simpleView
-                  ? "See your saved profile."
-                  : "Review your goals, interests, skills, support preferences and availability."}
-              </p>
-              <p className="card-action text-link">Open profile</p>
+              <div className="dashboard-card-main">
+                <p className="dashboard-card-label">Your details</p>
+                <h2>View my profile</h2>
+                <p>
+                  {simpleView
+                    ? "See your saved profile."
+                    : "Review your goals, interests, skills, support preferences and availability."}
+                </p>
+              </div>
+              <span className="dashboard-card-action-pill">Open profile</span>
             </div>
           </Link>
 
@@ -456,16 +455,17 @@ export default async function DashboardPage() {
             <div className="dashboard-card-icon" aria-hidden="true">
               🧭
             </div>
-
             <div className="dashboard-card-copy">
-              <p className="dashboard-card-label">Your progress</p>
-              <h2>See my pathway</h2>
-              <p>
-                {simpleView
-                  ? "Check your setup steps."
-                  : "View all five setup steps and update any section of your pathway."}
-              </p>
-              <p className="card-action text-link">Open pathway</p>
+              <div className="dashboard-card-main">
+                <p className="dashboard-card-label">Your progress</p>
+                <h2>See my pathway</h2>
+                <p>
+                  {simpleView
+                    ? "Check your setup steps."
+                    : "View all five setup steps and update any section of your pathway."}
+                </p>
+              </div>
+              <span className="dashboard-card-action-pill">Open pathway</span>
             </div>
           </Link>
 
@@ -476,16 +476,17 @@ export default async function DashboardPage() {
             <div className="dashboard-card-icon" aria-hidden="true">
               💛
             </div>
-
             <div className="dashboard-card-copy">
-              <p className="dashboard-card-label">Support</p>
-              <h2>Wellbeing and support</h2>
-              <p>
-                {simpleView
-                  ? "Review what helps you."
-                  : "Review what helps you feel safe, comfortable and included."}
-              </p>
-              <p className="card-action text-link">Review support</p>
+              <div className="dashboard-card-main">
+                <p className="dashboard-card-label">Support</p>
+                <h2>Wellbeing and support</h2>
+                <p>
+                  {simpleView
+                    ? "Review what helps you."
+                    : "Review what helps you feel safe, comfortable and included."}
+                </p>
+              </div>
+              <span className="dashboard-card-action-pill">Review support</span>
             </div>
           </Link>
 
@@ -493,16 +494,17 @@ export default async function DashboardPage() {
             <div className="dashboard-card-icon" aria-hidden="true">
               🔎
             </div>
-
             <div className="dashboard-card-copy">
-              <p className="dashboard-card-label">Browse roles</p>
-              <h2>Find opportunities</h2>
-              <p>
-                {simpleView
-                  ? "Find volunteering roles."
-                  : "Browse published volunteering roles and read what support is available."}
-              </p>
-              <p className="card-action text-link">Open opportunities</p>
+              <div className="dashboard-card-main">
+                <p className="dashboard-card-label">Browse roles</p>
+                <h2>Find opportunities</h2>
+                <p>
+                  {simpleView
+                    ? "Find volunteering roles."
+                    : "Browse published volunteering roles and read what support is available."}
+                </p>
+              </div>
+              <span className="dashboard-card-action-pill">Open opportunities</span>
             </div>
           </Link>
 
@@ -510,16 +512,19 @@ export default async function DashboardPage() {
             <div className="dashboard-card-icon" aria-hidden="true">
               📬
             </div>
-
             <div className="dashboard-card-copy">
-              <p className="dashboard-card-label">Track roles</p>
-              <h2>Roles I am interested in</h2>
-              <p>
-                {simpleView
-                  ? "Track roles you saved."
-                  : "See roles where you clicked “I’m interested” and track their current status."}
-              </p>
-              <p className="card-action text-link">Open interested roles</p>
+              <div className="dashboard-card-main">
+                <p className="dashboard-card-label">Track roles</p>
+                <h2>Roles I am interested in</h2>
+                <p>
+                  {simpleView
+                    ? "Track roles you saved."
+                    : "See roles where you clicked “I’m interested” and track their current status."}
+                </p>
+              </div>
+              <span className="dashboard-card-action-pill">
+                Open interested roles
+              </span>
             </div>
           </Link>
 
@@ -530,22 +535,77 @@ export default async function DashboardPage() {
             <div className="dashboard-card-icon" aria-hidden="true">
               {avatarIcon}
             </div>
-
             <div className="dashboard-card-copy">
-              <p className="dashboard-card-label">App settings</p>
-              <h2>Personalise my app</h2>
-              <p>
-                {simpleView
-                  ? "Change your app view."
-                  : "Choose your view mode, colour theme, text size, avatar and Listen preference."}
-              </p>
-              <p className="card-action text-link">Open settings</p>
+              <div className="dashboard-card-main">
+                <p className="dashboard-card-label">App settings</p>
+                <h2>Personalise my app</h2>
+                <p>
+                  {simpleView
+                    ? "Change your app view."
+                    : "Choose your view mode, colour theme, text size, avatar and Listen preference."}
+                </p>
+              </div>
+              <span className="dashboard-card-action-pill">Open settings</span>
             </div>
           </Link>
         </section>
       </section>
 
       <style>{`
+        .dashboard-grid {
+          align-items: stretch;
+        }
+
+        .dashboard-pathway-card {
+          height: 100%;
+          align-items: stretch;
+        }
+
+        .dashboard-card-copy {
+          display: flex;
+          min-height: 100%;
+          flex-direction: column;
+          justify-content: space-between;
+          gap: 18px;
+        }
+
+        .dashboard-card-main {
+          display: grid;
+          gap: 8px;
+        }
+
+        .dashboard-card-main h2 {
+          margin-bottom: 0;
+        }
+
+        .dashboard-card-main p {
+          margin: 0;
+        }
+
+        .dashboard-card-action-pill {
+          display: inline-flex;
+          width: fit-content;
+          max-width: 100%;
+          min-height: 42px;
+          align-items: center;
+          justify-content: center;
+          margin-top: auto;
+          padding: 10px 16px;
+          border: 1px solid rgba(83, 111, 99, 0.2);
+          border-radius: 999px;
+          background: rgba(255, 255, 255, 0.88);
+          color: #536f63;
+          font-size: 0.94rem;
+          font-weight: 900;
+          line-height: 1.15;
+          box-shadow: 0 10px 24px rgba(33, 56, 48, 0.07);
+        }
+
+        .dashboard-pathway-card:hover .dashboard-card-action-pill {
+          border-color: rgba(83, 111, 99, 0.34);
+          background: rgba(244, 255, 249, 0.96);
+        }
+
         .preference-text-large {
           font-size: 1.06rem;
         }
@@ -657,6 +717,12 @@ export default async function DashboardPage() {
           color: #111827;
         }
 
+        .preference-theme-high_contrast .dashboard-card-action-pill {
+          border: 2px solid #1f2937;
+          background: #ffffff;
+          color: #111827;
+        }
+
         @media (max-width: 640px) {
           .preference-text-large {
             font-size: 1.03rem;
@@ -665,6 +731,14 @@ export default async function DashboardPage() {
           .preference-view-simple .dashboard-pathway-card,
           .preference-view-detailed .dashboard-pathway-card {
             min-height: 0;
+          }
+
+          .dashboard-card-copy {
+            gap: 14px;
+          }
+
+          .dashboard-card-action-pill {
+            width: 100%;
           }
         }
       `}</style>
