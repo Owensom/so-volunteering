@@ -16,6 +16,7 @@ type InterestRow = {
   volunteer_user_id: string;
   volunteer_name: string | null;
   volunteer_email: string | null;
+  volunteer_phone: string | null;
   volunteer_city: string | null;
   volunteer_goals: string[] | null;
   volunteer_interests: string[] | null;
@@ -62,6 +63,10 @@ function formatContactMethod(value: string | null | undefined) {
   if (value === "phone") return "Phone call";
   if (value === "email") return "Email";
   return "Not chosen yet";
+}
+
+function shouldShowPhone(value: string | null | undefined) {
+  return value === "phone" || value === "sms";
 }
 
 function buildContactEmail({
@@ -205,7 +210,7 @@ export default async function OrganisationInterestDetailPage({
   const { data: interest } = await supabase
     .from("opportunity_interests")
     .select(
-      "id,opportunity_id,volunteer_user_id,volunteer_name,volunteer_email,volunteer_city,volunteer_goals,volunteer_interests,volunteer_skills,volunteer_support_shared,volunteer_support_needs,volunteer_preferred_contact_method,message,status,created_at"
+      "id,opportunity_id,volunteer_user_id,volunteer_name,volunteer_email,volunteer_phone,volunteer_city,volunteer_goals,volunteer_interests,volunteer_skills,volunteer_support_shared,volunteer_support_needs,volunteer_preferred_contact_method,message,status,created_at"
     )
     .eq("id", interestId)
     .eq("organisation_user_id", user.id)
@@ -226,6 +231,12 @@ export default async function OrganisationInterestDetailPage({
     interest.volunteer_preferred_contact_method
   );
 
+  const showPhoneNumber = shouldShowPhone(
+    interest.volunteer_preferred_contact_method
+  );
+
+  const phoneNumber = interest.volunteer_phone?.trim() || "";
+
   const volunteerName = interest.volunteer_name || "there";
   const roleTitle = opportunity?.title || "this volunteering role";
   const contactEmailSubject = `Your interest in ${roleTitle}`;
@@ -240,7 +251,7 @@ export default async function OrganisationInterestDetailPage({
   });
 
   const listenText =
-    "You are on a volunteer interest detail page. First, read the volunteer name and current status at the top. The cards below show the role, volunteer contact details, preferred contact method, supporting statement, goals, interests, skills and shared support information. The Status guide explains the workflow: New, Reviewed, Contacted and Closed. The Prepare contact card gives you a suggested first message. Open the preview only if you want to read the full draft. The platform does not send the email for you yet. Use the Update status card to mark this interest as reviewed, contacted or closed.";
+    "You are on a volunteer interest detail page. First, read the volunteer name and current status at the top. The cards below show the role, volunteer contact details, preferred contact method, phone number if the volunteer chose phone or text, supporting statement, goals, interests, skills and shared support information. The Status guide explains the workflow: New, Reviewed, Contacted and Closed. The Prepare contact card gives you a suggested first message. Open the preview only if you want to read the full draft. The platform does not send the email for you yet. Use the Update status card to mark this interest as reviewed, contacted or closed.";
 
   return (
     <main className="dashboard-bg">
@@ -339,6 +350,12 @@ export default async function OrganisationInterestDetailPage({
               Preferred contact: <strong>{preferredContactMethod}</strong>
             </p>
 
+            {showPhoneNumber ? (
+              <p className="dashboard-progress-note">
+                Phone: <strong>{phoneNumber || "Not supplied"}</strong>
+              </p>
+            ) : null}
+
             <p className="dashboard-progress-note">
               Update the status when this interest has been reviewed or handled.
             </p>
@@ -393,6 +410,11 @@ export default async function OrganisationInterestDetailPage({
             <p>
               Preferred contact: <strong>{preferredContactMethod}</strong>
             </p>
+            {showPhoneNumber ? (
+              <p>
+                Phone number: <strong>{phoneNumber || "Not supplied"}</strong>
+              </p>
+            ) : null}
             <p>
               Area: <strong>{interest.volunteer_city || "Area not shared"}</strong>
             </p>
@@ -475,6 +497,12 @@ export default async function OrganisationInterestDetailPage({
             <p>
               Suggested subject: <strong>{contactEmailSubject}</strong>
             </p>
+
+            {showPhoneNumber && phoneNumber ? (
+              <p>
+                Phone/text number: <strong>{phoneNumber}</strong>
+              </p>
+            ) : null}
 
             <details className="contact-email-details">
               <summary>Preview suggested email</summary>
