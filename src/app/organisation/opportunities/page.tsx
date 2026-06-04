@@ -83,7 +83,7 @@ export default async function OrganisationOpportunitiesPage() {
   ).length;
 
   const listenText =
-    "This is your organisation opportunities page. It shows the volunteering roles your organisation has created. You can create a new opportunity, review drafts and see published opportunities.";
+    "This is your organisation opportunities page. It shows the volunteering roles your organisation has created. Each role card opens the edit page. You can create a new opportunity, review drafts and see published opportunities.";
 
   return (
     <main className="dashboard-bg">
@@ -136,9 +136,8 @@ export default async function OrganisationOpportunitiesPage() {
             </h1>
 
             <p className="dashboard-lead">
-              Create clear, inclusive roles that explain what volunteers will do,
-              when it happens, what skills are useful, and what support is
-              available.
+              Create, review and publish inclusive volunteering roles. Start
+              with a draft, check the details, then publish when ready.
             </p>
 
             <div className="dashboard-primary-actions">
@@ -188,7 +187,10 @@ export default async function OrganisationOpportunitiesPage() {
 
         {rows.length === 0 ? (
           <section className="dashboard-grid" aria-label="Empty opportunity state">
-            <article className="info-card dashboard-pathway-card">
+            <Link
+              href="/organisation/opportunities/new"
+              className="info-card dashboard-pathway-card"
+            >
               <div className="dashboard-card-icon" aria-hidden="true">
                 📣
               </div>
@@ -200,26 +202,24 @@ export default async function OrganisationOpportunitiesPage() {
                   Create your first draft role. You can keep it private until it
                   is ready to publish.
                 </p>
-                <p className="card-action">
-                  <Link
-                    href="/organisation/opportunities/new"
-                    className="text-link"
-                  >
-                    Create first role
-                  </Link>
-                </p>
+                <p className="card-action text-link">Create first role</p>
               </div>
-            </article>
+            </Link>
           </section>
         ) : (
           <section className="dashboard-grid" aria-label="Opportunity list">
             {rows.map((opportunity) => (
-              <article
+              <Link
                 key={opportunity.id}
+                href={`/organisation/opportunities/${opportunity.id}`}
                 className="info-card dashboard-pathway-card"
               >
                 <div className="dashboard-card-icon" aria-hidden="true">
-                  {opportunity.status === "published" ? "✅" : "📝"}
+                  {opportunity.status === "published"
+                    ? "✅"
+                    : opportunity.status === "closed"
+                      ? "🚫"
+                      : "📝"}
                 </div>
 
                 <div className="dashboard-card-copy">
@@ -235,8 +235,9 @@ export default async function OrganisationOpportunitiesPage() {
                       ? ` · ${opportunity.time_commitment}`
                       : ""}
                   </p>
+                  <p className="card-action text-link">Edit role</p>
                 </div>
-              </article>
+              </Link>
             ))}
           </section>
         )}
