@@ -75,7 +75,7 @@ export default async function OrganisationDashboardPage() {
   const profileCompleted = organisationProfile?.profile_completed === true;
 
   const listenText =
-    "This is the organisation workspace for SO Volunteering. It helps organisations prepare their profile, create accessible volunteering opportunities, describe support available, and later review suitable volunteer matches. The organisation profile button opens your organisation setup page.";
+    "This is the organisation workspace for SO Volunteering. This page helps organisations set up their profile, prepare inclusive volunteering roles, add support and safety information, and later review volunteer interest. The main button opens the organisation profile. The opportunity tools are planned next.";
 
   return (
     <main className="dashboard-bg">
@@ -130,9 +130,9 @@ export default async function OrganisationDashboardPage() {
             </h1>
 
             <p className="dashboard-lead">
-              Hi {displayName}. Set up your organisation profile first, then
-              create clear volunteering opportunities with support information
-              built in from the start.
+              Hi {displayName}. Start by completing your organisation profile.
+              Then you will be able to create clear, accessible volunteering
+              roles with support built in from the beginning.
             </p>
 
             <div className="dashboard-primary-actions">
@@ -164,7 +164,7 @@ export default async function OrganisationDashboardPage() {
 
           <aside
             className="dashboard-progress-card"
-            aria-label="Organisation account"
+            aria-label="Organisation profile status"
           >
             <div className="dashboard-progress-header">
               <span className="dashboard-progress-icon" aria-hidden="true">
@@ -172,7 +172,7 @@ export default async function OrganisationDashboardPage() {
               </span>
 
               <div>
-                <h2>Organisation profile</h2>
+                <h2>Profile status</h2>
                 <p>
                   Status:{" "}
                   <strong>{profileCompleted ? "Complete" : "Needs setup"}</strong>
@@ -187,8 +187,7 @@ export default async function OrganisationDashboardPage() {
             )}
 
             <p className="dashboard-progress-note">
-              Complete your organisation profile before creating published
-              opportunities.
+              Complete your profile before publishing opportunities.
             </p>
           </aside>
         </section>
@@ -210,8 +209,8 @@ export default async function OrganisationDashboardPage() {
               <p className="dashboard-card-label">Priority 1</p>
               <h2>Organisation profile</h2>
               <p>
-                Add your organisation name, purpose, location, contact details
-                and the type of volunteering you offer.
+                Add your name, purpose, location and contact details so
+                volunteers know who you are.
               </p>
               <p className="card-action text-link">
                 {profileCompleted ? "Review profile" : "Start profile"}
@@ -231,10 +230,10 @@ export default async function OrganisationDashboardPage() {
               <p className="dashboard-card-label">Priority 2</p>
               <h2>Inclusion and support</h2>
               <p>
-                Describe what support is available, such as clear instructions,
-                named contacts, flexible timings, quiet spaces or check-ins.
+                Describe the support volunteers can expect before, during and
+                after their role.
               </p>
-              <p className="card-action text-link">Review support setup</p>
+              <p className="card-action text-link">Review support</p>
             </div>
           </Link>
 
@@ -250,10 +249,10 @@ export default async function OrganisationDashboardPage() {
               <p className="dashboard-card-label">Priority 3</p>
               <h2>Safety basics</h2>
               <p>
-                Add simple safeguarding, supervision and contact guidance so
-                volunteers know who will support them.
+                Add simple supervision and safeguarding notes so volunteers know
+                who can help.
               </p>
-              <p className="card-action text-link">Review safety notes</p>
+              <p className="card-action text-link">Review safety</p>
             </div>
           </Link>
         </section>
@@ -272,8 +271,8 @@ export default async function OrganisationDashboardPage() {
               <p className="dashboard-card-label">Opportunities</p>
               <h2>Create a role</h2>
               <p>
-                Create volunteering opportunities with plain language, task
-                choices, skills, interests, availability and support notes.
+                Build plain-language roles with tasks, timings, skills and
+                support notes.
               </p>
               <p className="dashboard-muted-action">Next major feature</p>
             </div>
@@ -288,9 +287,8 @@ export default async function OrganisationDashboardPage() {
               <p className="dashboard-card-label">Readiness</p>
               <h2>Opportunity checklist</h2>
               <p>
-                Each opportunity should show whether it has a clear title,
-                simple tasks, time commitment, support notes and contact
-                details.
+                Check each role has a clear title, simple tasks, time commitment
+                and contact details.
               </p>
               <p className="dashboard-muted-action">Planned workflow</p>
             </div>
@@ -305,8 +303,8 @@ export default async function OrganisationDashboardPage() {
               <p className="dashboard-card-label">Matching</p>
               <h2>Volunteer matches</h2>
               <p>
-                Later, the platform will suggest suitable volunteers using their
-                interests, skills, availability and support preferences.
+                Match roles with volunteer interests, skills, availability and
+                support preferences.
               </p>
               <p className="dashboard-muted-action">Later phase</p>
             </div>
