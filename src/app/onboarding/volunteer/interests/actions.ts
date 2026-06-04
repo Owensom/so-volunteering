@@ -7,6 +7,10 @@ type Profile = {
   user_type: string | null;
 };
 
+type ExistingVolunteerProfile = {
+  user_id: string;
+};
+
 function normaliseUserType(value: string | null | undefined) {
   return value?.trim().toLowerCase() === "organisation"
     ? "organisation"
@@ -70,21 +74,54 @@ export async function saveVolunteerInterests(formData: FormData) {
     );
   }
 
-  const { error } = await supabase.from("volunteer_profiles").upsert(
-    {
+  const { data: existingProfile } = await supabase
+    .from("volunteer_profiles")
+    .select("user_id")
+    .eq("user_id", user.id)
+    .maybeSingle<ExistingVolunteerProfile>();
+
+  if (existingProfile) {
+    const { error: updateError } = await supabase
+      .from("volunteer_profiles")
+      .update({
+        interests: selectedInterests,
+        updated_at: new Date().toISOString()
+      })
+      .eq("user_id", user.id);
+
+    if (updateError) {
+      redirect(
+        `/onboarding/volunteer/interests?error=${encodeURIComponent(
+          updateError.message
+        )}`
+      );
+    }
+
+    redirect("/onboarding/volunteer/skills");
+  }
+
+  const { error: insertError } = await supabase
+    .from("volunteer_profiles")
+    .insert({
       user_id: user.id,
       interests: selectedInterests,
+      goals: [],
+      skills: [],
+      city: "",
+      support_needs: "",
+      availability_notes: "",
+      preferred_contact_method: "email",
+      share_accessibility_needs: false,
+      wants_wellbeing_support: false,
+      accessibility_completed: false,
+      onboarding_completed: false,
       updated_at: new Date().toISOString()
-    },
-    {
-      onConflict: "user_id"
-    }
-  );
+    });
 
-  if (error) {
+  if (insertError) {
     redirect(
       `/onboarding/volunteer/interests?error=${encodeURIComponent(
-        error.message
+        insertError.message
       )}`
     );
   }
