@@ -49,12 +49,15 @@ function ChipList({
   }
 
   return (
-    <div className="profile-chip-list">
-      {values.map((value) => (
-        <span key={value} className="profile-chip">
+    <div className="interest-inbox-chip-list">
+      {values.slice(0, 4).map((value) => (
+        <span key={value} className="interest-inbox-chip">
           {value}
         </span>
       ))}
+      {values.length > 4 ? (
+        <span className="interest-inbox-chip">+{values.length - 4} more</span>
+      ) : null}
     </div>
   );
 }
@@ -122,9 +125,12 @@ export default async function OrganisationInterestsPage() {
   );
 
   const newCount = rows.filter((row) => row.status === "new").length;
+  const reviewedCount = rows.filter((row) => row.status === "reviewed").length;
+  const contactedCount = rows.filter((row) => row.status === "contacted").length;
+  const closedCount = rows.filter((row) => row.status === "closed").length;
 
   const listenText =
-    "This is the organisation interest inbox. It shows volunteers who have expressed interest in your opportunities. Each card shows the role, volunteer name, email, city, message, interests, skills and shared support information if the volunteer chose to share it.";
+    "This is the organisation interest inbox. It shows volunteers who have expressed interest in your opportunities. Each card opens a full detail page where you can review the volunteer and update the interest status.";
 
   return (
     <main className="dashboard-bg">
@@ -178,7 +184,7 @@ export default async function OrganisationInterestsPage() {
 
             <p className="dashboard-lead">
               Review volunteers who have expressed interest in your published
-              roles. Use the profile details to decide who to contact next.
+              roles. Open each card to manage the next step.
             </p>
 
             <div className="dashboard-primary-actions">
@@ -220,6 +226,15 @@ export default async function OrganisationInterestsPage() {
             <p className="dashboard-progress-note">
               New: <strong>{newCount}</strong>
             </p>
+            <p className="dashboard-progress-note">
+              Reviewed: <strong>{reviewedCount}</strong>
+            </p>
+            <p className="dashboard-progress-note">
+              Contacted: <strong>{contactedCount}</strong>
+            </p>
+            <p className="dashboard-progress-note">
+              Closed: <strong>{closedCount}</strong>
+            </p>
           </aside>
         </section>
 
@@ -246,81 +261,131 @@ export default async function OrganisationInterestsPage() {
             </article>
           </section>
         ) : (
-          <section className="dashboard-grid" aria-label="Volunteer interest list">
+          <section
+            className="dashboard-grid interest-inbox-grid"
+            aria-label="Volunteer interest list"
+          >
             {rows.map((interest) => {
               const opportunity = opportunityMap.get(interest.opportunity_id);
 
               return (
-                <article
+                <Link
                   key={interest.id}
-                  className="info-card dashboard-pathway-card"
+                  href={`/organisation/interests/${interest.id}`}
+                  className="info-card dashboard-pathway-card interest-inbox-card"
                 >
                   <div className="dashboard-card-icon" aria-hidden="true">
                     📬
                   </div>
 
-                  <div className="dashboard-card-copy">
-                    <p className="dashboard-card-label">
-                      {formatStatus(interest.status)}
-                    </p>
-
-                    <h2>{interest.volunteer_name || "Volunteer"}</h2>
-
-                    <p>
-                      Role:{" "}
-                      <strong>{opportunity?.title || "Opportunity"}</strong>
-                    </p>
-
-                    {interest.volunteer_email ? (
-                      <p>
-                        Email: <strong>{interest.volunteer_email}</strong>
+                  <div className="dashboard-card-copy interest-inbox-copy">
+                    <div className="interest-inbox-main">
+                      <p className="dashboard-card-label">
+                        {formatStatus(interest.status)}
                       </p>
-                    ) : null}
 
-                    {interest.volunteer_city ? (
+                      <h2>{interest.volunteer_name || "Volunteer"}</h2>
+
                       <p>
-                        Area: <strong>{interest.volunteer_city}</strong>
+                        Role:{" "}
+                        <strong>{opportunity?.title || "Opportunity"}</strong>
                       </p>
-                    ) : null}
 
-                    {interest.message ? <p>{interest.message}</p> : null}
+                      {interest.volunteer_city ? (
+                        <p>
+                          Area: <strong>{interest.volunteer_city}</strong>
+                        </p>
+                      ) : null}
 
-                    <div className="profile-section-body">
-                      <p className="dashboard-card-label">Goals</p>
-                      <ChipList
-                        values={interest.volunteer_goals}
-                        emptyText="No goals shared."
-                      />
+                      {interest.message ? <p>{interest.message}</p> : null}
 
-                      <p className="dashboard-card-label">Interests</p>
-                      <ChipList
-                        values={interest.volunteer_interests}
-                        emptyText="No interests shared."
-                      />
-
-                      <p className="dashboard-card-label">Skills</p>
                       <ChipList
                         values={interest.volunteer_skills}
                         emptyText="No skills shared."
                       />
-
-                      <p className="dashboard-card-label">Support</p>
-                      {interest.volunteer_support_shared &&
-                      interest.volunteer_support_needs ? (
-                        <p>{interest.volunteer_support_needs}</p>
-                      ) : (
-                        <p className="dashboard-muted-action">
-                          Support preferences not shared.
-                        </p>
-                      )}
                     </div>
+
+                    <p className="card-action text-link">Review interest</p>
                   </div>
-                </article>
+                </Link>
               );
             })}
           </section>
         )}
       </section>
+
+      <style>{`
+        .interest-inbox-grid {
+          align-items: stretch;
+        }
+
+        .interest-inbox-card {
+          min-height: 250px;
+          height: 100%;
+          align-items: stretch;
+        }
+
+        .interest-inbox-copy {
+          display: flex;
+          min-height: 100%;
+          flex-direction: column;
+          justify-content: space-between;
+          gap: 18px;
+        }
+
+        .interest-inbox-main {
+          display: grid;
+          gap: 8px;
+        }
+
+        .interest-inbox-main h2 {
+          margin-bottom: 0;
+        }
+
+        .interest-inbox-main p {
+          margin: 0;
+        }
+
+        .interest-inbox-chip-list {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+          align-items: flex-start;
+          margin-top: 4px;
+        }
+
+        .interest-inbox-chip {
+          display: inline-flex;
+          align-items: center;
+          width: fit-content;
+          max-width: 100%;
+          padding: 8px 10px;
+          border: 1px solid rgba(108, 92, 160, 0.16);
+          border-radius: 999px;
+          background: rgba(255, 255, 255, 0.82);
+          color: #536f63;
+          font-size: 0.82rem;
+          font-weight: 800;
+          line-height: 1.2;
+          box-shadow: 0 10px 22px rgba(33, 56, 48, 0.06);
+          white-space: normal;
+        }
+
+        @media (max-width: 640px) {
+          .interest-inbox-card {
+            min-height: 0;
+          }
+
+          .interest-inbox-copy {
+            gap: 14px;
+          }
+
+          .interest-inbox-chip {
+            border-radius: 18px;
+            font-size: 0.8rem;
+          }
+        }
+      `}</style>
     </main>
   );
 }
