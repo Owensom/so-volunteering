@@ -1,15 +1,34 @@
-"use server";
-
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { InclusiveAudioButton } from "@/components/InclusiveSupport";
+import { removeInterest } from "./actions";
+
+export const dynamic = "force-dynamic";
 
 type Profile = {
   user_type: string | null;
 };
 
-type InterestOwner = {
+type InterestRow = {
   id: string;
-  volunteer_user_id: string;
+  opportunity_id: string;
+  organisation_user_id: string;
+  message: string | null;
+  status: string;
+  created_at: string;
+};
+
+type OpportunityRow = {
+  id: string;
+  title: string;
+  summary: string;
+  location_type: string;
+  location: string | null;
+  time_commitment: string | null;
+  status: string;
+  contact_name: string | null;
+  contact_email: string | null;
 };
 
 function normaliseUserType(value: string | null | undefined) {
@@ -18,7 +37,51 @@ function normaliseUserType(value: string | null | undefined) {
     : "volunteer";
 }
 
-export async function removeInterest(formData: FormData) {
+function formatStatus(status: string) {
+  if (status === "reviewed") return "Reviewed";
+  if (status === "contacted") return "Contacted";
+  if (status === "closed") return "Closed";
+  return "New";
+}
+
+function statusIcon(status: string) {
+  if (status === "reviewed") return "👀";
+  if (status === "contacted") return "📬";
+  if (status === "closed") return "✅";
+  return "🌱";
+}
+
+function statusHelp(status: string) {
+  if (status === "reviewed") {
+    return "The organisation has reviewed your interest.";
+  }
+
+  if (status === "contacted") {
+    return "The organisation has marked this as contacted.";
+  }
+
+  if (status === "closed") {
+    return "This interest has been closed by the organisation.";
+  }
+
+  return "Your interest has been sent and is waiting to be reviewed.";
+}
+
+function formatLocationType(value: string | null | undefined) {
+  if (value === "remote") return "Remote";
+  if (value === "hybrid") return "Hybrid";
+  return "In-person";
+}
+
+export default async function MyInterestsPage({
+  searchParams
+}: {
+  searchParams: Promise<{ error?: string; message?: string }>;
+}) {
+  const params = await searchParams;
+  const errorMessage = params.error ? decodeURIComponent(params.error) : "";
+  const successMessage = params.message ? decodeURIComponent(params.message) : "";
+
   const supabase = await createClient();
 
   const {
@@ -27,12 +90,6 @@ export async function removeInterest(formData: FormData) {
 
   if (!user) {
     redirect("/login");
-  }
-
-  const interestId = String(formData.get("interest_id") || "").trim();
-
-  if (!interestId) {
-    redirect("/my-interests");
   }
 
   const { data: profile } = await supabase
@@ -52,30 +109,400 @@ export async function removeInterest(formData: FormData) {
     redirect("/organisation/dashboard");
   }
 
-  const { data: interest } = await supabase
+  const { data: interests } = await supabase
     .from("opportunity_interests")
-    .select("id,volunteer_user_id")
-    .eq("id", interestId)
+    .select("id,opportunity_id,organisation_user_id,message,status,created_at")
     .eq("volunteer_user_id", user.id)
-    .maybeSingle<InterestOwner>();
+    .order("created_at", { ascending: false });
 
-  if (!interest) {
-    redirect("/my-interests");
-  }
+  const rows = (interests as InterestRow[] | null) ?? [];
+  const opportunityIds = Array.from(
+    new Set(rows.map((row) => row.opportunity_id))
+  );
 
-  const { error } = await supabase
-    .from("opportunity_interests")
-    .delete()
-    .eq("id", interest.id)
-    .eq("volunteer_user_id", user.id);
+  const { data: opportunities } = opportunityIds.length
+    ? await supabase
+        .from("opportunities")
+        .select(
+          "id,title,summary,location_type,location,time_commitment,status,contact_name,contact_email"
+        )
+        .in("id", opportunityIds)
+    : { data: [] as OpportunityRow[] };
 
-  if (error) {
-    redirect(`/my-interests?error=${encodeURIComponent(error.message)}`);
-  }
+  const opportunityMap = new Map(
+    ((opportunities as OpportunityRow[] | null) ?? []).map((opportunity) => [
+      opportunity.id,
+      opportunity
+    ])
+  );
 
-  redirect(
-    `/my-interests?message=${encodeURIComponent(
-      "Interest removed. The organisation will no longer see this interest."
-    )}`
+  const newCount = rows.filter((row) => row.status === "new").length;
+  const reviewedCount = rows.filter((row) => row.status === "reviewed").length;
+  const contactedCount = rows.filter((row) => row.status === "contacted").length;
+  const closedCount = rows.filter((row) => row.status === "closed").length;
+
+  const listenText =
+    "This is your Roles I am interested in page. It shows volunteering roles where you clicked I am interested. Each card shows the role, the current status, your optional supporting statement, and a link back to the opportunity. You can also remove an interest if you no longer want the organisation to see it.";
+
+  return (
+    <main className="dashboard-bg">
+      <section className="dashboard-shell">
+        <header className="dashboard-topbar">
+          <Link
+            href="/dashboard"
+            className="dashboard-brand"
+            aria-label="Back to SO Volunteering dashboard"
+          >
+            <img
+              src="/brand/so-volunteering-logo-mark.png"
+              alt=""
+              className="dashboard-brand-mark"
+              aria-hidden="true"
+            />
+            <span className="dashboard-brand-text">
+              <span className="dashboard-brand-name">SO Volunteering</span>
+              <span className="dashboard-brand-tagline">
+                Belong • Grow • Thrive
+              </span>
+            </span>
+          </Link>
+
+          <div className="dashboard-topbar-actions">
+            <InclusiveAudioButton text={listenText} />
+
+            <Link
+              href="/dashboard"
+              className="secondary-button dashboard-signout-button"
+            >
+              <span className="dashboard-button-inner">
+                <span aria-hidden="true">←</span>
+                <span>Dashboard</span>
+              </span>
+            </Link>
+          </div>
+        </header>
+
+        <section
+          className="dashboard-welcome-card"
+          aria-labelledby="my-interests-title"
+        >
+          <div className="dashboard-welcome-copy">
+            <p className="dashboard-kicker">Your volunteering roles</p>
+
+            <h1 id="my-interests-title" className="dashboard-title">
+              <span aria-hidden="true">📬</span>
+              <span>Roles I am interested in</span>
+            </h1>
+
+            <p className="dashboard-lead">
+              Track the roles where you clicked “I’m interested”. You can remove
+              an interest at any time if the role no longer feels right.
+            </p>
+
+            <div className="dashboard-primary-actions">
+              <Link
+                href="/opportunities"
+                className="primary-button dashboard-main-action"
+              >
+                <span className="dashboard-button-inner">
+                  <span aria-hidden="true">🔎</span>
+                  <span>Find opportunities</span>
+                </span>
+              </Link>
+
+              <Link
+                href="/dashboard"
+                className="secondary-button dashboard-main-action"
+              >
+                <span className="dashboard-button-inner">
+                  <span aria-hidden="true">🏠</span>
+                  <span>Dashboard</span>
+                </span>
+              </Link>
+            </div>
+          </div>
+
+          <aside className="dashboard-progress-card" aria-label="Role interest status">
+            <div className="dashboard-progress-header">
+              <span className="dashboard-progress-icon" aria-hidden="true">
+                ✨
+              </span>
+              <div>
+                <h2>Role status</h2>
+                <p>
+                  {rows.length} role{rows.length === 1 ? "" : "s"} saved.
+                </p>
+              </div>
+            </div>
+
+            <p className="dashboard-progress-note">
+              New: <strong>{newCount}</strong>
+            </p>
+            <p className="dashboard-progress-note">
+              Reviewed: <strong>{reviewedCount}</strong>
+            </p>
+            <p className="dashboard-progress-note">
+              Contacted: <strong>{contactedCount}</strong>
+            </p>
+            <p className="dashboard-progress-note">
+              Closed: <strong>{closedCount}</strong>
+            </p>
+          </aside>
+        </section>
+
+        {successMessage ? (
+          <div className="alert alert-success">{successMessage}</div>
+        ) : null}
+
+        {errorMessage ? (
+          <div className="alert alert-error">{errorMessage}</div>
+        ) : null}
+
+        {rows.length === 0 ? (
+          <section className="dashboard-grid" aria-label="No roles of interest">
+            <article className="info-card dashboard-pathway-card">
+              <div className="dashboard-card-icon" aria-hidden="true">
+                🌱
+              </div>
+
+              <div className="dashboard-card-copy">
+                <p className="dashboard-card-label">No roles yet</p>
+                <h2>No roles saved</h2>
+                <p>
+                  When you click “I’m interested” on a volunteering role, it will
+                  appear here.
+                </p>
+                <p className="card-action">
+                  <Link href="/opportunities" className="text-link">
+                    Browse opportunities
+                  </Link>
+                </p>
+              </div>
+            </article>
+          </section>
+        ) : (
+          <section
+            className="dashboard-grid my-interests-grid"
+            aria-label="Roles I am interested in"
+          >
+            {rows.map((interest) => {
+              const opportunity = opportunityMap.get(interest.opportunity_id);
+              const canOpenOpportunity = opportunity?.status === "published";
+
+              return (
+                <article
+                  key={interest.id}
+                  className="info-card dashboard-pathway-card my-interest-card"
+                >
+                  <div
+                    className="dashboard-card-icon my-interest-icon"
+                    aria-hidden="true"
+                  >
+                    {statusIcon(interest.status)}
+                  </div>
+
+                  <div className="dashboard-card-copy my-interest-copy">
+                    <div className="my-interest-main">
+                      <p className="dashboard-card-label">
+                        {formatStatus(interest.status)}
+                      </p>
+
+                      <h2>{opportunity?.title || "Opportunity"}</h2>
+
+                      {opportunity?.summary ? (
+                        <p>{opportunity.summary}</p>
+                      ) : (
+                        <p className="dashboard-muted-action">
+                          This opportunity could not be loaded.
+                        </p>
+                      )}
+
+                      <div className="my-interest-status-panel">
+                        <p>
+                          <strong>{formatStatus(interest.status)}</strong>
+                        </p>
+                        <p>{statusHelp(interest.status)}</p>
+                      </div>
+
+                      {opportunity ? (
+                        <p className="dashboard-muted-action">
+                          {formatLocationType(opportunity.location_type)}
+                          {opportunity.location
+                            ? ` · ${opportunity.location}`
+                            : ""}
+                          {opportunity.time_commitment
+                            ? ` · ${opportunity.time_commitment}`
+                            : ""}
+                        </p>
+                      ) : null}
+
+                      {interest.message ? (
+                        <div className="my-interest-message">
+                          <p className="dashboard-card-label">
+                            Your supporting statement
+                          </p>
+                          <p>{interest.message}</p>
+                        </div>
+                      ) : null}
+
+                      {opportunity?.contact_name || opportunity?.contact_email ? (
+                        <div className="my-interest-message">
+                          <p className="dashboard-card-label">Role contact</p>
+                          {opportunity.contact_name ? (
+                            <p>{opportunity.contact_name}</p>
+                          ) : null}
+                          {opportunity.contact_email ? (
+                            <p>{opportunity.contact_email}</p>
+                          ) : null}
+                        </div>
+                      ) : null}
+                    </div>
+
+                    <div className="my-interest-actions">
+                      {canOpenOpportunity ? (
+                        <Link
+                          href={`/opportunities/${interest.opportunity_id}`}
+                          className="text-link"
+                        >
+                          Open opportunity
+                        </Link>
+                      ) : (
+                        <span className="dashboard-muted-action">
+                          Opportunity not currently public
+                        </span>
+                      )}
+
+                      <form action={removeInterest}>
+                        <input
+                          type="hidden"
+                          name="interest_id"
+                          value={interest.id}
+                        />
+                        <button
+                          type="submit"
+                          className="remove-interest-button"
+                          aria-label={`Remove interest in ${
+                            opportunity?.title || "this opportunity"
+                          }`}
+                        >
+                          Remove interest
+                        </button>
+                      </form>
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
+          </section>
+        )}
+      </section>
+
+      <style>{`
+        .my-interests-grid {
+          align-items: stretch;
+        }
+
+        .my-interest-card {
+          min-height: 280px;
+          height: 100%;
+          align-items: stretch;
+        }
+
+        .my-interest-copy {
+          display: flex;
+          min-height: 100%;
+          flex-direction: column;
+          justify-content: space-between;
+          gap: 18px;
+        }
+
+        .my-interest-main {
+          display: grid;
+          gap: 10px;
+        }
+
+        .my-interest-main h2 {
+          margin-bottom: 0;
+        }
+
+        .my-interest-main p {
+          margin: 0;
+        }
+
+        .my-interest-status-panel {
+          display: grid;
+          gap: 4px;
+          padding: 12px;
+          border: 1px solid rgba(108, 92, 160, 0.14);
+          border-radius: 18px;
+          background: rgba(255, 255, 255, 0.72);
+          color: #5d6677;
+        }
+
+        .my-interest-message {
+          display: grid;
+          gap: 6px;
+          color: #5d6677;
+        }
+
+        .my-interest-actions {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 12px;
+          align-items: center;
+          justify-content: space-between;
+          margin-top: auto;
+          padding-top: 10px;
+        }
+
+        .remove-interest-button {
+          appearance: none;
+          border: 1px solid rgba(190, 80, 80, 0.22);
+          border-radius: 999px;
+          background: rgba(255, 255, 255, 0.78);
+          color: #9b3d3d;
+          cursor: pointer;
+          font: inherit;
+          font-size: 0.9rem;
+          font-weight: 850;
+          padding: 10px 14px;
+          min-height: 42px;
+          box-shadow: 0 10px 22px rgba(33, 56, 48, 0.06);
+        }
+
+        .remove-interest-button:hover {
+          background: rgba(255, 245, 245, 0.94);
+          border-color: rgba(190, 80, 80, 0.34);
+        }
+
+        .remove-interest-button:focus-visible {
+          outline: 4px solid rgba(190, 80, 80, 0.22);
+          outline-offset: 3px;
+        }
+
+        @media (max-width: 640px) {
+          .my-interest-card {
+            min-height: 0;
+          }
+
+          .my-interest-copy {
+            gap: 14px;
+          }
+
+          .my-interest-status-panel {
+            border-radius: 16px;
+          }
+
+          .my-interest-actions {
+            align-items: stretch;
+            flex-direction: column;
+          }
+
+          .remove-interest-button {
+            width: 100%;
+          }
+        }
+      `}</style>
+    </main>
   );
 }
