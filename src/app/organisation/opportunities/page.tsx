@@ -38,11 +38,17 @@ function formatLocationType(value: string) {
   return "In-person";
 }
 
+function getStatusIcon(status: string) {
+  if (status === "published") return "✅";
+  if (status === "closed") return "🚫";
+  return "📝";
+}
+
 export default async function OrganisationOpportunitiesPage() {
   const supabase = await createClient();
 
   const {
-    data: { user }
+    data: { user },
   } = await supabase.auth.getUser();
 
   if (!user) {
@@ -68,25 +74,31 @@ export default async function OrganisationOpportunitiesPage() {
 
   const { data: opportunities } = await supabase
     .from("opportunities")
-    .select("id,title,summary,location_type,location,time_commitment,status,created_at")
+    .select(
+      "id,title,summary,location_type,location,time_commitment,status,created_at",
+    )
     .eq("organisation_user_id", user.id)
     .order("created_at", { ascending: false });
 
   const rows = (opportunities as Opportunity[] | null) ?? [];
 
   const publishedCount = rows.filter(
-    (opportunity) => opportunity.status === "published"
+    (opportunity) => opportunity.status === "published",
   ).length;
 
   const draftCount = rows.filter(
-    (opportunity) => opportunity.status === "draft"
+    (opportunity) => opportunity.status === "draft",
+  ).length;
+
+  const closedCount = rows.filter(
+    (opportunity) => opportunity.status === "closed",
   ).length;
 
   const listenText =
-    "This is your organisation opportunities page. It shows the volunteering roles your organisation has created. Each role card opens the edit page. You can create a new opportunity, review drafts and see published opportunities.";
+    "This is your organisation opportunities page. It shows the volunteering roles your organisation has created. Each role card has an Edit role button and a Skills reviews button. Use Skills reviews to add positive skills feedback for volunteers who registered interest in that role. You can also create a new opportunity, review drafts and see published opportunities.";
 
   return (
-    <main className="dashboard-bg">
+    <main className="dashboard-bg organisation-opportunities-page">
       <section className="dashboard-shell">
         <header className="dashboard-topbar">
           <Link
@@ -136,8 +148,9 @@ export default async function OrganisationOpportunitiesPage() {
             </h1>
 
             <p className="dashboard-lead">
-              Create, review and publish inclusive volunteering roles. Start
-              with a draft, check the details, then publish when ready.
+              Create, review and publish inclusive volunteering roles. Use
+              skills reviews to turn completed volunteering into positive
+              pathway evidence for volunteers.
             </p>
 
             <div className="dashboard-primary-actions">
@@ -182,6 +195,9 @@ export default async function OrganisationOpportunitiesPage() {
             <p className="dashboard-progress-note">
               Drafts: <strong>{draftCount}</strong>
             </p>
+            <p className="dashboard-progress-note">
+              Closed: <strong>{closedCount}</strong>
+            </p>
           </aside>
         </section>
 
@@ -209,39 +225,120 @@ export default async function OrganisationOpportunitiesPage() {
         ) : (
           <section className="dashboard-grid" aria-label="Opportunity list">
             {rows.map((opportunity) => (
-              <Link
+              <article
                 key={opportunity.id}
-                href={`/organisation/opportunities/${opportunity.id}`}
-                className="info-card dashboard-pathway-card"
+                className="info-card dashboard-pathway-card opportunity-card"
               >
                 <div className="dashboard-card-icon" aria-hidden="true">
-                  {opportunity.status === "published"
-                    ? "✅"
-                    : opportunity.status === "closed"
-                      ? "🚫"
-                      : "📝"}
+                  {getStatusIcon(opportunity.status)}
                 </div>
 
-                <div className="dashboard-card-copy">
-                  <p className="dashboard-card-label">
-                    {formatStatus(opportunity.status)}
-                  </p>
-                  <h2>{opportunity.title}</h2>
-                  <p>{opportunity.summary}</p>
-                  <p className="dashboard-muted-action">
-                    {formatLocationType(opportunity.location_type)}
-                    {opportunity.location ? ` · ${opportunity.location}` : ""}
-                    {opportunity.time_commitment
-                      ? ` · ${opportunity.time_commitment}`
-                      : ""}
-                  </p>
-                  <p className="card-action text-link">Edit role</p>
+                <div className="dashboard-card-copy opportunity-card-copy">
+                  <div className="opportunity-card-main">
+                    <p className="dashboard-card-label">
+                      {formatStatus(opportunity.status)}
+                    </p>
+                    <h2>{opportunity.title}</h2>
+                    <p>{opportunity.summary}</p>
+                    <p className="dashboard-muted-action">
+                      {formatLocationType(opportunity.location_type)}
+                      {opportunity.location ? ` · ${opportunity.location}` : ""}
+                      {opportunity.time_commitment
+                        ? ` · ${opportunity.time_commitment}`
+                        : ""}
+                    </p>
+                  </div>
+
+                  <div
+                    className="opportunity-card-actions"
+                    aria-label={`Actions for ${opportunity.title}`}
+                  >
+                    <Link
+                      href={`/organisation/opportunities/${opportunity.id}`}
+                      className="primary-button opportunity-card-button"
+                    >
+                      <span className="dashboard-button-inner">
+                        <span aria-hidden="true">📝</span>
+                        <span>Edit role</span>
+                      </span>
+                    </Link>
+
+                    <Link
+                      href={`/organisation/opportunities/${opportunity.id}/reviews`}
+                      className="secondary-button opportunity-card-button"
+                    >
+                      <span className="dashboard-button-inner">
+                        <span aria-hidden="true">⭐</span>
+                        <span>Skills reviews</span>
+                      </span>
+                    </Link>
+                  </div>
                 </div>
-              </Link>
+              </article>
             ))}
           </section>
         )}
       </section>
+
+      <style>{`
+        .organisation-opportunities-page,
+        .organisation-opportunities-page * {
+          box-sizing: border-box;
+        }
+
+        .dashboard-grid {
+          align-items: stretch;
+        }
+
+        .opportunity-card {
+          height: 100%;
+          align-items: stretch;
+        }
+
+        .opportunity-card-copy {
+          display: flex;
+          min-height: 100%;
+          flex-direction: column;
+          justify-content: space-between;
+          gap: 18px;
+        }
+
+        .opportunity-card-main {
+          display: grid;
+          gap: 8px;
+        }
+
+        .opportunity-card-main h2 {
+          margin-bottom: 0;
+        }
+
+        .opportunity-card-main p {
+          margin: 0;
+        }
+
+        .opportunity-card-actions {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 10px;
+          margin-top: auto;
+        }
+
+        .opportunity-card-button {
+          width: 100%;
+          min-height: 46px;
+          padding-inline: 14px;
+        }
+
+        @media (max-width: 760px) {
+          .opportunity-card-actions {
+            grid-template-columns: 1fr;
+          }
+
+          .opportunity-card-button {
+            width: 100%;
+          }
+        }
+      `}</style>
     </main>
   );
 }
