@@ -41,6 +41,21 @@ async function getSupportRequestCount(
   return count ?? 0;
 }
 
+async function getSafetyRequestCount(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+) {
+  const { count, error } = await supabase
+    .from("support_requests")
+    .select("id", { count: "exact", head: true })
+    .eq("category", "safety_or_safeguarding");
+
+  if (error) {
+    return null;
+  }
+
+  return count ?? 0;
+}
+
 function formatCategory(category: string) {
   if (category === "stuck_using_app") return "Stuck using the app";
   if (category === "something_not_working") return "Something is not working";
@@ -117,12 +132,16 @@ export default async function OwnerHomePage() {
     newRequests,
     reviewingRequests,
     resolvedRequests,
+    closedRequests,
+    safetyRequests,
     recentRequestsResult,
   ] = await Promise.all([
     getSupportRequestCount(supabase),
     getSupportRequestCount(supabase, "new"),
     getSupportRequestCount(supabase, "reviewing"),
     getSupportRequestCount(supabase, "resolved"),
+    getSupportRequestCount(supabase, "closed"),
+    getSafetyRequestCount(supabase),
     supabase
       .from("support_requests")
       .select("id,user_type,name,email,category,status,created_at")
@@ -192,6 +211,14 @@ export default async function OwnerHomePage() {
                 <span>View new requests</span>
               </Link>
 
+              <Link
+                href="/admin/app-help?category=safety_or_safeguarding"
+                className="secondary-button"
+              >
+                <span aria-hidden="true">🛡️</span>
+                <span>View safety requests</span>
+              </Link>
+
               <a href="/admin/app-help/export" className="secondary-button">
                 <span aria-hidden="true">⬇️</span>
                 <span>Export CSV</span>
@@ -215,7 +242,7 @@ export default async function OwnerHomePage() {
 
         <div className="stats-grid" aria-label="App help summary">
           <Link href="/admin/app-help" className="stat-card stat-link">
-            <span>Total requests</span>
+            <span>Total</span>
             <strong>{totalRequests ?? "—"}</strong>
           </Link>
 
@@ -241,6 +268,22 @@ export default async function OwnerHomePage() {
           >
             <span>Resolved</span>
             <strong>{resolvedRequests ?? "—"}</strong>
+          </Link>
+
+          <Link
+            href="/admin/app-help?status=closed"
+            className="stat-card stat-link"
+          >
+            <span>Closed</span>
+            <strong>{closedRequests ?? "—"}</strong>
+          </Link>
+
+          <Link
+            href="/admin/app-help?category=safety_or_safeguarding"
+            className="stat-card stat-link safety-stat"
+          >
+            <span>Safety</span>
+            <strong>{safetyRequests ?? "—"}</strong>
           </Link>
         </div>
 
@@ -276,19 +319,24 @@ export default async function OwnerHomePage() {
             </span>
           </a>
 
-          <div className="tool-card muted-tool" aria-disabled="true">
+          <Link
+            href="/admin/app-help?category=safety_or_safeguarding"
+            className="tool-card safety-tool"
+          >
             <span className="tool-icon" aria-hidden="true">
-              📣
+              🛡️
             </span>
             <span className="tool-content">
-              <span className="tool-title">Support operations</span>
+              <span className="tool-title">Safety requests</span>
               <span className="tool-text">
-                Planned tools for notes, contact actions, internal triage and
-                support status tracking.
+                Open app help requests marked as safety or safeguarding
+                concerns.
               </span>
             </span>
-            <span className="coming-soon">Later</span>
-          </div>
+            <span className="tool-arrow" aria-hidden="true">
+              →
+            </span>
+          </Link>
         </section>
 
         <section className="recent-panel" aria-labelledby="recent-requests-title">
@@ -590,7 +638,7 @@ const styles = `
 
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 14px;
 }
 
@@ -629,6 +677,13 @@ const styles = `
   background: linear-gradient(135deg, rgba(244, 183, 197, 0.2), rgba(255, 255, 255, 0.9));
 }
 
+.safety-stat,
+.safety-tool {
+  border-color: rgba(190, 90, 30, 0.28);
+  background:
+    linear-gradient(135deg, rgba(255, 248, 240, 0.96), rgba(255, 255, 255, 0.92));
+}
+
 .owner-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -655,10 +710,6 @@ const styles = `
     linear-gradient(135deg, rgba(143, 178, 158, 0.18), rgba(183, 167, 214, 0.16)),
     rgba(255, 255, 255, 0.9);
   border-color: rgba(143, 178, 158, 0.38);
-}
-
-.muted-tool {
-  opacity: 0.82;
 }
 
 .tool-icon {
@@ -692,15 +743,6 @@ const styles = `
 .tool-arrow {
   color: #6c5b9c;
   font-size: 1.5rem;
-  font-weight: 950;
-}
-
-.coming-soon {
-  border-radius: 999px;
-  padding: 7px 10px;
-  background: rgba(183, 167, 214, 0.12);
-  color: #6c5b9c;
-  font-size: 0.78rem;
   font-weight: 950;
 }
 
@@ -883,6 +925,12 @@ const styles = `
   color: #6c5b9c;
 }
 
+@media (max-width: 1040px) {
+  .stats-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 900px) {
   .owner-topbar {
     align-items: stretch;
@@ -902,9 +950,8 @@ const styles = `
     grid-template-columns: 1fr;
   }
 
-  .stats-grid,
   .owner-grid {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr;
   }
 
   .tool-card {
@@ -947,8 +994,7 @@ const styles = `
     font-size: 0.8rem;
   }
 
-  .stats-grid,
-  .owner-grid {
+  .stats-grid {
     grid-template-columns: 1fr;
   }
 
@@ -960,8 +1006,7 @@ const styles = `
     grid-template-columns: auto 1fr;
   }
 
-  .tool-arrow,
-  .coming-soon {
+  .tool-arrow {
     grid-column: 2;
     justify-self: start;
   }
