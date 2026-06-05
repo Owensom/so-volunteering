@@ -518,6 +518,13 @@ const styles = `
   align-items: center;
 }
 
+.owner-topbar-actions .secondary-button,
+.owner-topbar-actions .ghost-button,
+.owner-hero-actions .primary-button,
+.owner-hero-actions .secondary-button {
+  min-width: 190px;
+}
+
 .owner-hero {
   padding: clamp(24px, 5vw, 38px);
   display: grid;
@@ -983,6 +990,7 @@ const styles = `
   .owner-hero-actions .secondary-button,
   .recent-panel-header .secondary-button {
     width: 100%;
+    min-width: 0;
   }
 
   .owner-brand-mark {
