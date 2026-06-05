@@ -55,7 +55,7 @@ function formatDate(value: string) {
   return new Intl.DateTimeFormat("en-GB", {
     dateStyle: "medium",
     timeStyle: "short",
-    timeZone: "Europe/London"
+    timeZone: "Europe/London",
   }).format(new Date(value));
 }
 
@@ -76,18 +76,20 @@ function getCategoryIcon(category: string) {
 }
 
 export default async function AdminAppHelpPage({
-  searchParams
+  searchParams,
 }: {
   searchParams: Promise<{ error?: string; message?: string }>;
 }) {
   const params = await searchParams;
   const errorMessage = params.error ? decodeURIComponent(params.error) : "";
-  const successMessage = params.message ? decodeURIComponent(params.message) : "";
+  const successMessage = params.message
+    ? decodeURIComponent(params.message)
+    : "";
 
   const supabase = await createClient();
 
   const {
-    data: { user }
+    data: { user },
   } = await supabase.auth.getUser();
 
   if (!user) {
@@ -107,7 +109,7 @@ export default async function AdminAppHelpPage({
   const { data: requests, error } = await supabase
     .from("support_requests")
     .select(
-      "id,user_id,user_type,name,email,category,message,status,page_context,admin_note,created_at,updated_at"
+      "id,user_id,user_type,name,email,category,message,status,page_context,admin_note,created_at,updated_at",
     )
     .order("created_at", { ascending: false })
     .limit(100);
@@ -117,23 +119,23 @@ export default async function AdminAppHelpPage({
   const newCount = requestRows.filter((request) => request.status === "new")
     .length;
   const reviewingCount = requestRows.filter(
-    (request) => request.status === "reviewing"
+    (request) => request.status === "reviewing",
   ).length;
   const safetyCount = requestRows.filter(
-    (request) => request.category === "safety_or_safeguarding"
+    (request) => request.category === "safety_or_safeguarding",
   ).length;
 
   const listenText =
-    "You are on the admin app help inbox. This page shows help requests submitted through Help using the app. Use the Back to workspace button to return to your organisation dashboard. Review new requests first. Safety or safeguarding concerns should be checked as soon as possible. Each card shows the user type, name, email, category, page area, message and status. You can update the status and add an internal note. This page is only for app help requests, not volunteer personal support needs.";
+    "You are on the owner app help inbox. This page shows help requests submitted through Help using the app. Use the Back to owner home button to return to the owner access page. Review new requests first. Safety or safeguarding concerns should be checked as soon as possible. Each card shows the user type, name, email, category, page area, message and status. You can update the status and add an internal note. This page is only for app help requests, not volunteer personal support needs.";
 
   return (
     <main className="dashboard-bg app-help-admin-page">
       <section className="dashboard-shell">
         <header className="dashboard-topbar app-help-admin-topbar">
           <Link
-            href="/organisation/dashboard"
+            href="/owner"
             className="dashboard-brand"
-            aria-label="Back to organisation dashboard"
+            aria-label="Back to owner home"
           >
             <img
               src="/brand/so-volunteering-logo-mark.png"
@@ -153,12 +155,12 @@ export default async function AdminAppHelpPage({
             <InclusiveAudioButton text={listenText} />
 
             <Link
-              href="/organisation/dashboard"
+              href="/owner"
               className="secondary-button dashboard-signout-button"
             >
               <span className="dashboard-button-inner">
                 <span aria-hidden="true">←</span>
-                <span>Back to workspace</span>
+                <span>Back to owner home</span>
               </span>
             </Link>
 
@@ -192,10 +194,10 @@ export default async function AdminAppHelpPage({
             </p>
 
             <div className="dashboard-primary-actions app-help-admin-actions">
-              <Link href="/organisation/dashboard" className="primary-button">
+              <Link href="/owner" className="primary-button">
                 <span className="dashboard-button-inner">
                   <span aria-hidden="true">←</span>
-                  <span>Back to workspace</span>
+                  <span>Back to owner home</span>
                 </span>
               </Link>
 
@@ -207,7 +209,10 @@ export default async function AdminAppHelpPage({
               </Link>
             </div>
 
-            <div className="app-help-admin-stats" aria-label="Help request summary">
+            <div
+              className="app-help-admin-stats"
+              aria-label="Help request summary"
+            >
               <span>New: {newCount}</span>
               <span>Reviewing: {reviewingCount}</span>
               <span>Safety: {safetyCount}</span>
