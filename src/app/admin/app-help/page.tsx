@@ -244,7 +244,7 @@ export default async function AdminAppHelpPage({
   ).length;
 
   const listenText =
-    "You are on the owner app help inbox. This page shows help requests submitted through Help using the app. Use the Back to owner home button to return to the owner access page. Use the filter buttons to view all requests, new requests, reviewing requests, resolved requests, closed requests, or safety requests. Use the search box to find requests by name, email, message, page area, status, category, organisation or volunteer. Each request card has a contact requester link if an email address was provided. Review new requests first. Safety or safeguarding concerns should be checked as soon as possible. You can update the status and add an internal note. This page is only for app help requests, not volunteer personal support needs.";
+    "You are on the owner app help inbox. This page shows help requests submitted through Help using the app. Use the Back to owner home button to return to the owner access page. Use Export CSV to download the current app help request records. Use the filter buttons to view all requests, new requests, reviewing requests, resolved requests, closed requests, or safety requests. Use the search box to find requests by name, email, message, page area, status, category, organisation or volunteer. Each request card has a contact requester link if an email address was provided. Review new requests first. Safety or safeguarding concerns should be checked as soon as possible. You can update the status and add an internal note. This page is only for app help requests, not volunteer personal support needs.";
 
   return (
     <main className="dashboard-bg app-help-admin-page">
@@ -282,6 +282,16 @@ export default async function AdminAppHelpPage({
               </span>
             </Link>
 
+            <a
+              href="/admin/app-help/export"
+              className="secondary-button dashboard-signout-button"
+            >
+              <span className="dashboard-button-inner">
+                <span aria-hidden="true">⬇️</span>
+                <span>Export CSV</span>
+              </span>
+            </a>
+
             <Link
               href="/help"
               className="secondary-button dashboard-signout-button"
@@ -318,6 +328,13 @@ export default async function AdminAppHelpPage({
                   <span>Back to owner home</span>
                 </span>
               </Link>
+
+              <a href="/admin/app-help/export" className="secondary-button">
+                <span className="dashboard-button-inner">
+                  <span aria-hidden="true">⬇️</span>
+                  <span>Export CSV</span>
+                </span>
+              </a>
 
               <Link href="/help" className="secondary-button">
                 <span className="dashboard-button-inner">
