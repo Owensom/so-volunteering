@@ -132,6 +132,35 @@ function buildFilterHref(
   return queryString ? `/admin/app-help?${queryString}` : "/admin/app-help";
 }
 
+function buildContactHref(request: SupportRequestRow) {
+  const rawEmail = request.email?.trim().replace(/[\r\n]/g, "") ?? "";
+
+  if (!rawEmail || !rawEmail.includes("@") || rawEmail.includes(" ")) {
+    return "";
+  }
+
+  const subject = `SO Volunteering app help: ${formatCategory(
+    request.category,
+  )}`;
+
+  const body = [
+    `Hi ${request.name || "there"},`,
+    "",
+    "Thanks for contacting SO Volunteering through Help using the app.",
+    "",
+    "I am getting in touch about your app help request:",
+    "",
+    `"${request.message}"`,
+    "",
+    "Best wishes,",
+    "SO Volunteering Support",
+  ].join("\n");
+
+  return `mailto:${rawEmail}?subject=${encodeURIComponent(
+    subject,
+  )}&body=${encodeURIComponent(body)}`;
+}
+
 export default async function AdminAppHelpPage({
   searchParams,
 }: {
@@ -213,7 +242,7 @@ export default async function AdminAppHelpPage({
   ).length;
 
   const listenText =
-    "You are on the owner app help inbox. This page shows help requests submitted through Help using the app. Use the Back to owner home button to return to the owner access page. Use the filter buttons to view all requests, new requests, reviewing requests, resolved requests, or safety requests. Use the search box to find requests by name, email, message, page area, status, category, organisation or volunteer. Review new requests first. Safety or safeguarding concerns should be checked as soon as possible. Each card shows the user type, name, email, category, page area, message and status. You can update the status and add an internal note. This page is only for app help requests, not volunteer personal support needs.";
+    "You are on the owner app help inbox. This page shows help requests submitted through Help using the app. Use the Back to owner home button to return to the owner access page. Use the filter buttons to view all requests, new requests, reviewing requests, resolved requests, or safety requests. Use the search box to find requests by name, email, message, page area, status, category, organisation or volunteer. Each request card has a contact requester link if an email address was provided. Review new requests first. Safety or safeguarding concerns should be checked as soon as possible. You can update the status and add an internal note. This page is only for app help requests, not volunteer personal support needs.";
 
   return (
     <main className="dashboard-bg app-help-admin-page">
@@ -476,101 +505,130 @@ export default async function AdminAppHelpPage({
             </article>
           ) : null}
 
-          {filteredRows.map((request) => (
-            <article
-              key={request.id}
-              id={`request-${request.id}`}
-              className={
-                request.category === "safety_or_safeguarding"
-                  ? "info-card app-help-request-card safety-request-card"
-                  : "info-card app-help-request-card"
-              }
-            >
-              <div className="app-help-request-header">
-                <div className="app-help-request-title-row">
-                  <span className="dashboard-card-icon" aria-hidden="true">
-                    {getCategoryIcon(request.category)}
-                  </span>
+          {filteredRows.map((request) => {
+            const contactHref = buildContactHref(request);
 
-                  <div>
-                    <p className="dashboard-card-label">
-                      {formatUserType(request.user_type)}
-                    </p>
-                    <h2>{formatCategory(request.category)}</h2>
+            return (
+              <article
+                key={request.id}
+                id={`request-${request.id}`}
+                className={
+                  request.category === "safety_or_safeguarding"
+                    ? "info-card app-help-request-card safety-request-card"
+                    : "info-card app-help-request-card"
+                }
+              >
+                <div className="app-help-request-header">
+                  <div className="app-help-request-title-row">
+                    <span className="dashboard-card-icon" aria-hidden="true">
+                      {getCategoryIcon(request.category)}
+                    </span>
+
+                    <div>
+                      <p className="dashboard-card-label">
+                        {formatUserType(request.user_type)}
+                      </p>
+                      <h2>{formatCategory(request.category)}</h2>
+                    </div>
                   </div>
+
+                  <span className={getStatusClass(request.status)}>
+                    {formatStatus(request.status)}
+                  </span>
                 </div>
 
-                <span className={getStatusClass(request.status)}>
-                  {formatStatus(request.status)}
-                </span>
-              </div>
+                <div className="app-help-request-meta">
+                  <p>
+                    <strong>Name:</strong> {request.name || "Not supplied"}
+                  </p>
+                  <p>
+                    <strong>Email:</strong> {request.email || "Not supplied"}
+                  </p>
+                  <p>
+                    <strong>Page / area:</strong>{" "}
+                    {request.page_context || "Not supplied"}
+                  </p>
+                  <p>
+                    <strong>Submitted:</strong> {formatDate(request.created_at)}
+                  </p>
+                  <p>
+                    <strong>Updated:</strong> {formatDate(request.updated_at)}
+                  </p>
+                </div>
 
-              <div className="app-help-request-meta">
-                <p>
-                  <strong>Name:</strong> {request.name || "Not supplied"}
-                </p>
-                <p>
-                  <strong>Email:</strong> {request.email || "Not supplied"}
-                </p>
-                <p>
-                  <strong>Page / area:</strong>{" "}
-                  {request.page_context || "Not supplied"}
-                </p>
-                <p>
-                  <strong>Submitted:</strong> {formatDate(request.created_at)}
-                </p>
-                <p>
-                  <strong>Updated:</strong> {formatDate(request.updated_at)}
-                </p>
-              </div>
-
-              <div className="app-help-message-box">
-                <p className="dashboard-card-label">Message</p>
-                <p>{request.message}</p>
-              </div>
-
-              <form action={updateAppHelpRequest} className="app-help-update-form">
-                <input type="hidden" name="request_id" value={request.id} />
-
-                <label className="field-label">
-                  <span className="field-label-row">
-                    <span className="field-label-icon" aria-hidden="true">
-                      📌
+                <div className="app-help-card-actions">
+                  {contactHref ? (
+                    <a href={contactHref} className="secondary-button">
+                      <span aria-hidden="true">✉️</span>
+                      <span>Contact requester</span>
+                    </a>
+                  ) : (
+                    <span className="contact-unavailable">
+                      <span aria-hidden="true">✉️</span>
+                      <span>No email supplied</span>
                     </span>
-                    <span>Status</span>
-                  </span>
-                  <select name="status" defaultValue={request.status}>
-                    <option value="new">New</option>
-                    <option value="reviewing">Reviewing</option>
-                    <option value="resolved">Resolved</option>
-                    <option value="closed">Closed</option>
-                  </select>
-                </label>
+                  )}
 
-                <label className="field-label">
-                  <span className="field-label-row">
-                    <span className="field-label-icon" aria-hidden="true">
-                      📝
+                  <Link
+                    href={`/admin/app-help#request-${request.id}`}
+                    className="ghost-inline-button"
+                  >
+                    <span aria-hidden="true">🔗</span>
+                    <span>Direct link</span>
+                  </Link>
+                </div>
+
+                <div className="app-help-message-box">
+                  <p className="dashboard-card-label">Message</p>
+                  <p>{request.message}</p>
+                </div>
+
+                <form
+                  action={updateAppHelpRequest}
+                  className="app-help-update-form"
+                >
+                  <input type="hidden" name="request_id" value={request.id} />
+
+                  <label className="field-label">
+                    <span className="field-label-row">
+                      <span className="field-label-icon" aria-hidden="true">
+                        📌
+                      </span>
+                      <span>Status</span>
                     </span>
-                    <span>Internal note</span>
-                  </span>
-                  <textarea
-                    name="admin_note"
-                    rows={3}
-                    defaultValue={request.admin_note || ""}
-                    placeholder="Optional internal note. This is for owner/admin tracking."
-                  />
-                </label>
+                    <select name="status" defaultValue={request.status}>
+                      <option value="new">New</option>
+                      <option value="reviewing">Reviewing</option>
+                      <option value="resolved">Resolved</option>
+                      <option value="closed">Closed</option>
+                    </select>
+                  </label>
 
-                <button type="submit" className="primary-button">
-                  <span className="button-balanced-inner">
-                    <span aria-hidden="true">✅</span>
-                    <span>Save update</span>
-                  </span>
-                </button>
-              </form>
-            </article>
-          ))}
+                  <label className="field-label">
+                    <span className="field-label-row">
+                      <span className="field-label-icon" aria-hidden="true">
+                        📝
+                      </span>
+                      <span>Internal note</span>
+                    </span>
+                    <textarea
+                      name="admin_note"
+                      rows={3}
+                      defaultValue={request.admin_note || ""}
+                      placeholder="Optional internal note. This is for owner/admin tracking."
+                    />
+                  </label>
+
+                  <button type="submit" className="primary-button">
+                    <span className="button-balanced-inner">
+                      <span aria-hidden="true">✅</span>
+                      <span>Save update</span>
+                    </span>
+                  </button>
+                </form>
+              </article>
+            );
+          })}
         </section>
       </section>
 
@@ -823,6 +881,40 @@ export default async function AdminAppHelpPage({
           overflow-wrap: anywhere;
         }
 
+        .app-help-card-actions {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 10px;
+          align-items: center;
+        }
+
+        .app-help-card-actions .secondary-button,
+        .ghost-inline-button,
+        .contact-unavailable {
+          min-height: 42px;
+          border-radius: 999px;
+          padding: 10px 14px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          font-weight: 900;
+          text-decoration: none;
+          line-height: 1.1;
+        }
+
+        .ghost-inline-button {
+          color: #6c5b9c;
+          background: rgba(183, 167, 214, 0.1);
+          border: 1px solid rgba(183, 167, 214, 0.24);
+        }
+
+        .contact-unavailable {
+          color: #60706a;
+          background: rgba(248, 248, 252, 0.92);
+          border: 1px solid rgba(100, 100, 110, 0.14);
+        }
+
         .app-help-message-box {
           display: grid;
           gap: 8px;
@@ -923,6 +1015,13 @@ export default async function AdminAppHelpPage({
             grid-template-columns: 1fr;
           }
 
+          .app-help-card-actions {
+            display: grid;
+          }
+
+          .app-help-card-actions .secondary-button,
+          .ghost-inline-button,
+          .contact-unavailable,
           .app-help-update-form .primary-button {
             width: 100%;
           }
