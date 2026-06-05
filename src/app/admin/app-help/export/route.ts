@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -69,6 +69,70 @@ function formatCsvDate(value: string | null | undefined) {
   }).format(date);
 }
 
+function normaliseSearch(value: string) {
+  return value.trim().toLowerCase();
+}
+
+function requestMatchesSearch(request: SupportRequestRow, query: string) {
+  if (!query) return true;
+
+  const searchableText = [
+    request.user_type,
+    formatUserType(request.user_type),
+    request.name,
+    request.email,
+    request.category,
+    formatCategory(request.category),
+    request.message,
+    request.status,
+    formatStatus(request.status),
+    request.page_context,
+    request.admin_note,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  return searchableText.includes(query);
+}
+
+function getSafeStatusFilter(value: string | null) {
+  if (
+    value === "new" ||
+    value === "reviewing" ||
+    value === "resolved" ||
+    value === "closed"
+  ) {
+    return value;
+  }
+
+  return "";
+}
+
+function getSafeCategoryFilter(value: string | null) {
+  if (value === "safety_or_safeguarding") {
+    return value;
+  }
+
+  return "";
+}
+
+function filterRows(
+  rows: SupportRequestRow[],
+  filters: {
+    status: string;
+    category: string;
+    search: string;
+  },
+) {
+  return rows.filter((request) => {
+    if (filters.status && request.status !== filters.status) return false;
+    if (filters.category && request.category !== filters.category) return false;
+    if (!requestMatchesSearch(request, filters.search)) return false;
+    return true;
+  });
+}
+
 function buildCsv(rows: SupportRequestRow[]) {
   const headers = [
     "Request ID",
@@ -106,12 +170,32 @@ function buildCsv(rows: SupportRequestRow[]) {
   ].join("\n");
 }
 
-function buildFileName() {
+function buildFileName(filters: {
+  status: string;
+  category: string;
+  search: string;
+}) {
   const today = new Date().toISOString().slice(0, 10);
-  return `so-volunteering-app-help-requests-${today}.csv`;
+  const parts = ["so-volunteering-app-help-requests"];
+
+  if (filters.status) {
+    parts.push(filters.status);
+  }
+
+  if (filters.category === "safety_or_safeguarding") {
+    parts.push("safety");
+  }
+
+  if (filters.search) {
+    parts.push("search");
+  }
+
+  parts.push(today);
+
+  return `${parts.join("-")}.csv`;
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   const supabase = await createClient();
 
   const {
@@ -132,6 +216,12 @@ export async function GET() {
     return NextResponse.json({ error: "Not allowed" }, { status: 403 });
   }
 
+  const filters = {
+    status: getSafeStatusFilter(request.nextUrl.searchParams.get("status")),
+    category: getSafeCategoryFilter(request.nextUrl.searchParams.get("category")),
+    search: normaliseSearch(request.nextUrl.searchParams.get("q") ?? ""),
+  };
+
   const { data: requests, error } = await supabase
     .from("support_requests")
     .select(
@@ -147,8 +237,9 @@ export async function GET() {
   }
 
   const rows = (requests as SupportRequestRow[] | null) ?? [];
-  const csv = buildCsv(rows);
-  const fileName = buildFileName();
+  const filteredRows = filterRows(rows, filters);
+  const csv = buildCsv(filteredRows);
+  const fileName = buildFileName(filters);
 
   return new NextResponse(csv, {
     status: 200,
