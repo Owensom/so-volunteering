@@ -160,6 +160,11 @@ export default async function OwnerHomePage() {
               <span>Back to workspace</span>
             </Link>
 
+            <a href="/admin/app-help/export" className="secondary-button">
+              <span aria-hidden="true">⬇️</span>
+              <span>Export CSV</span>
+            </a>
+
             <Link href="/help" className="ghost-button">
               <span aria-hidden="true">🧭</span>
               <span>Open help page</span>
@@ -186,6 +191,11 @@ export default async function OwnerHomePage() {
                 <span aria-hidden="true">🆕</span>
                 <span>View new requests</span>
               </Link>
+
+              <a href="/admin/app-help/export" className="secondary-button">
+                <span aria-hidden="true">⬇️</span>
+                <span>Export CSV</span>
+              </a>
             </div>
           </div>
 
@@ -250,19 +260,21 @@ export default async function OwnerHomePage() {
             </span>
           </Link>
 
-          <div className="tool-card muted-tool" aria-disabled="true">
+          <a href="/admin/app-help/export" className="tool-card">
             <span className="tool-icon" aria-hidden="true">
-              🧭
+              ⬇️
             </span>
             <span className="tool-content">
-              <span className="tool-title">Owner dashboard</span>
+              <span className="tool-title">Export App Help CSV</span>
               <span className="tool-text">
-                Future home for platform-level checks, account review and
-                support workflow summaries.
+                Download app help request records for owner review and offline
+                tracking.
               </span>
             </span>
-            <span className="coming-soon">Later</span>
-          </div>
+            <span className="tool-arrow" aria-hidden="true">
+              →
+            </span>
+          </a>
 
           <div className="tool-card muted-tool" aria-disabled="true">
             <span className="tool-icon" aria-hidden="true">
@@ -540,7 +552,8 @@ const styles = `
 .secondary-button:hover,
 .ghost-button:hover,
 .stat-link:hover,
-.recent-request-card:hover {
+.recent-request-card:hover,
+.tool-card:hover {
   transform: translateY(-1px);
 }
 
@@ -634,6 +647,7 @@ const styles = `
   background: rgba(255, 255, 255, 0.86);
   border: 1px solid rgba(143, 178, 158, 0.22);
   box-shadow: 0 18px 54px rgba(38, 50, 56, 0.07);
+  transition: transform 160ms ease;
 }
 
 .primary-tool {
