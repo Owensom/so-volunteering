@@ -91,7 +91,7 @@ function getVolunteerProgress(volunteerProfile: VolunteerProfile | null) {
       nextStepHref: "/onboarding/volunteer",
       nextStepLabel: "Start setup",
       nextStepIcon: "🌱",
-      nextStepText: "Start with your goals and nearest town or city."
+      nextStepText: "Start with your goals and nearest town or city.",
     };
   }
 
@@ -117,7 +117,7 @@ function getVolunteerProgress(volunteerProfile: VolunteerProfile | null) {
     interestsComplete,
     skillsComplete,
     accessibilityComplete,
-    availabilityComplete
+    availabilityComplete,
   ];
 
   const completedSteps = steps.filter(Boolean).length;
@@ -132,7 +132,7 @@ function getVolunteerProgress(volunteerProfile: VolunteerProfile | null) {
       nextStepHref: "/onboarding/volunteer",
       nextStepLabel: "Continue goals",
       nextStepIcon: "🌱",
-      nextStepText: "Tell us what you would like to achieve."
+      nextStepText: "Tell us what you would like to achieve.",
     };
   }
 
@@ -144,7 +144,7 @@ function getVolunteerProgress(volunteerProfile: VolunteerProfile | null) {
       nextStepHref: "/onboarding/volunteer/interests",
       nextStepLabel: "Continue interests",
       nextStepIcon: "💚",
-      nextStepText: "Choose what you enjoy or might like to try."
+      nextStepText: "Choose what you enjoy or might like to try.",
     };
   }
 
@@ -156,7 +156,7 @@ function getVolunteerProgress(volunteerProfile: VolunteerProfile | null) {
       nextStepHref: "/onboarding/volunteer/skills",
       nextStepLabel: "Continue skills",
       nextStepIcon: "⭐",
-      nextStepText: "Choose skills you have or want to build."
+      nextStepText: "Choose skills you have or want to build.",
     };
   }
 
@@ -168,7 +168,7 @@ function getVolunteerProgress(volunteerProfile: VolunteerProfile | null) {
       nextStepHref: "/onboarding/volunteer/accessibility",
       nextStepLabel: "Continue support",
       nextStepIcon: "💛",
-      nextStepText: "Choose anything that helps you feel comfortable and safe."
+      nextStepText: "Choose anything that helps you feel comfortable and safe.",
     };
   }
 
@@ -180,7 +180,7 @@ function getVolunteerProgress(volunteerProfile: VolunteerProfile | null) {
       nextStepHref: "/onboarding/volunteer/availability",
       nextStepLabel: "Continue availability",
       nextStepIcon: "📅",
-      nextStepText: "Tell us when volunteering might work for you."
+      nextStepText: "Tell us when volunteering might work for you.",
     };
   }
 
@@ -192,7 +192,7 @@ function getVolunteerProgress(volunteerProfile: VolunteerProfile | null) {
     nextStepLabel: "Find opportunities",
     nextStepIcon: "🔎",
     nextStepText:
-      "Your pathway profile is ready. You can now browse published opportunities."
+      "Your pathway profile is ready. You can now browse published opportunities.",
   };
 }
 
@@ -228,7 +228,7 @@ export default async function DashboardPage() {
   const supabase = await createClient();
 
   const {
-    data: { user }
+    data: { user },
   } = await supabase.auth.getUser();
 
   if (!user) {
@@ -255,7 +255,7 @@ export default async function DashboardPage() {
   const { data: volunteerProfile } = await supabase
     .from("volunteer_profiles")
     .select(
-      "city,goals,interests,skills,support_needs,share_accessibility_needs,wants_wellbeing_support,accessibility_completed,availability_notes,preferred_contact_method,onboarding_completed"
+      "city,goals,interests,skills,support_needs,share_accessibility_needs,wants_wellbeing_support,accessibility_completed,availability_notes,preferred_contact_method,onboarding_completed",
     )
     .eq("user_id", user.id)
     .maybeSingle<VolunteerProfile>();
@@ -273,7 +273,7 @@ export default async function DashboardPage() {
 
   const interestRows = (interests as InterestSummary[] | null) ?? [];
   const activeInterestCount = interestRows.filter(
-    (interest) => interest.status !== "closed"
+    (interest) => interest.status !== "closed",
   ).length;
 
   const viewMode = normaliseViewMode(preferences?.view_mode);
@@ -294,16 +294,15 @@ export default async function DashboardPage() {
   const simpleView = viewMode === "simple";
   const detailedView = viewMode === "detailed";
 
-  const listenText =
-    simpleView
-      ? "You are on your SO Volunteering dashboard. This is your home page. First, check your progress. Then use the main button to continue. You can find roles, check your saved roles, view your profile, change your app settings, or get help using the app."
-      : "You are on your SO Volunteering dashboard. This is your home base. First, check the Profile progress card on the right to see how many setup steps are complete. Use the main button near the top to continue your next step, or to find opportunities if your setup is complete. Use the Roles I am interested in button to track roles where you clicked I’m interested. The cards below give quick links. View my profile opens your saved details. See my pathway shows all setup steps. Wellbeing and support lets you review what helps you feel comfortable. Find opportunities opens published volunteering roles. Roles I am interested in shows roles you have saved and their current status. Personalise my app lets you choose view mode, colour theme, text size, avatar and Listen preference. Help using the app is for getting help if you are stuck, something is not working, or you want to report a problem with SO Volunteering.";
+  const listenText = simpleView
+    ? "You are on your SO Volunteering dashboard. This is your home page. First, check your progress. Then use the main button to continue. You can open your Positive Pathway CV, find roles, check your saved roles, view your profile, change your app settings, or get help using the app."
+    : "You are on your SO Volunteering dashboard. This is your home base. First, check the Profile progress card on the right to see how many setup steps are complete. Use the main button near the top to continue your next step, or to find opportunities if your setup is complete. Open Positive Pathway CV shows your strengths-based volunteering CV. Use the Roles I am interested in button to track roles where you clicked I’m interested. The cards below give quick links. View my profile opens your saved details. See my pathway shows all setup steps and positive reviews. Wellbeing and support lets you review what helps you feel comfortable. Find opportunities opens published volunteering roles. Roles I am interested in shows roles you have saved and their current status. Personalise my app lets you choose view mode, colour theme, text size, avatar and Listen preference. Help using the app is for getting help if you are stuck, something is not working, or you want to report a problem with SO Volunteering.";
 
   const shellClassName = [
     "dashboard-bg",
     getThemeClass(colourTheme),
     getTextClass(textSize),
-    getViewClass(viewMode)
+    getViewClass(viewMode),
   ].join(" ");
 
   return (
@@ -363,7 +362,7 @@ export default async function DashboardPage() {
             <p className="dashboard-lead">
               {simpleView
                 ? "Choose what you want to do next."
-                : "Your volunteering journey is ready. Use this dashboard to continue your pathway, view your profile and browse opportunities."}
+                : "Your volunteering journey is ready. Use this dashboard to continue your pathway, open your Positive Pathway CV, view your profile and browse opportunities."}
             </p>
 
             <div className="dashboard-primary-actions">
@@ -374,6 +373,16 @@ export default async function DashboardPage() {
                 <span className="dashboard-button-inner">
                   <span aria-hidden="true">{progress.nextStepIcon}</span>
                   <span>{progress.nextStepLabel}</span>
+                </span>
+              </Link>
+
+              <Link
+                href="/pathway/cv"
+                className="secondary-button dashboard-main-action"
+              >
+                <span className="dashboard-button-inner">
+                  <span aria-hidden="true">📄</span>
+                  <span>Positive Pathway CV</span>
                 </span>
               </Link>
 
@@ -440,6 +449,27 @@ export default async function DashboardPage() {
         </section>
 
         <section className="dashboard-grid" aria-label="Dashboard actions">
+          <Link
+            href="/pathway/cv"
+            className="info-card dashboard-pathway-card positive-cv-card"
+          >
+            <div className="dashboard-card-icon" aria-hidden="true">
+              📄
+            </div>
+            <div className="dashboard-card-copy">
+              <div className="dashboard-card-main">
+                <p className="dashboard-card-label">Positive pathway</p>
+                <h2>Positive Pathway CV</h2>
+                <p>
+                  {simpleView
+                    ? "See your strengths and feedback."
+                    : "View your strengths-based volunteering CV, including goals, skills and positive feedback shared by organisations."}
+                </p>
+              </div>
+              <span className="dashboard-card-action-pill">Open CV</span>
+            </div>
+          </Link>
+
           <Link href="/profile" className="info-card dashboard-pathway-card">
             <div className="dashboard-card-icon" aria-hidden="true">
               👤
@@ -469,7 +499,7 @@ export default async function DashboardPage() {
                 <p>
                   {simpleView
                     ? "Check your setup steps."
-                    : "View all five setup steps and update any section of your pathway."}
+                    : "View all five setup steps, positive reviews and update any section of your pathway."}
                 </p>
               </div>
               <span className="dashboard-card-action-pill">Open pathway</span>
@@ -584,6 +614,12 @@ export default async function DashboardPage() {
         .dashboard-pathway-card {
           height: 100%;
           align-items: stretch;
+        }
+
+        .positive-cv-card {
+          border-color: rgba(143, 178, 158, 0.3);
+          background:
+            linear-gradient(135deg, rgba(244, 255, 249, 0.82), rgba(255, 255, 255, 0.94));
         }
 
         .dashboard-card-copy {
