@@ -33,6 +33,66 @@ type VolunteerPreferences = {
   listen_mode: string | null;
 };
 
+type SkillReview = {
+  id: string;
+  opportunity_title: string | null;
+  reliability: boolean;
+  teamwork: boolean;
+  communication: boolean;
+  confidence: boolean;
+  kindness: boolean;
+  problem_solving: boolean;
+  following_instructions: boolean;
+  initiative: boolean;
+  timekeeping: boolean;
+  practical_skills: boolean;
+  community_interaction: boolean;
+  positive_comment: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+type SkillBadge = {
+  key: keyof Pick<
+    SkillReview,
+    | "reliability"
+    | "teamwork"
+    | "communication"
+    | "confidence"
+    | "kindness"
+    | "problem_solving"
+    | "following_instructions"
+    | "initiative"
+    | "timekeeping"
+    | "practical_skills"
+    | "community_interaction"
+  >;
+  label: string;
+  icon: string;
+};
+
+const skillBadges: SkillBadge[] = [
+  { key: "reliability", label: "Reliable", icon: "🤝" },
+  { key: "teamwork", label: "Teamwork", icon: "👥" },
+  { key: "communication", label: "Communication", icon: "💬" },
+  { key: "confidence", label: "Confidence", icon: "🌱" },
+  { key: "kindness", label: "Kindness", icon: "💛" },
+  { key: "problem_solving", label: "Problem solving", icon: "🧩" },
+  {
+    key: "following_instructions",
+    label: "Following instructions",
+    icon: "✅",
+  },
+  { key: "initiative", label: "Initiative", icon: "✨" },
+  { key: "timekeeping", label: "Timekeeping", icon: "🕒" },
+  { key: "practical_skills", label: "Practical skills", icon: "🛠️" },
+  {
+    key: "community_interaction",
+    label: "Community interaction",
+    icon: "🌍",
+  },
+];
+
 function normaliseUserType(value: string | null | undefined) {
   return value?.trim().toLowerCase() === "organisation"
     ? "organisation"
@@ -105,6 +165,17 @@ function hasTextValue(value: string | null | undefined) {
   return typeof value === "string" && value.trim().length > 0;
 }
 
+function formatDate(value: string) {
+  return new Intl.DateTimeFormat("en-GB", {
+    dateStyle: "medium",
+    timeZone: "Europe/London",
+  }).format(new Date(value));
+}
+
+function getReviewSkills(review: SkillReview) {
+  return skillBadges.filter((skill) => review[skill.key] === true);
+}
+
 function getVolunteerProgress(volunteerProfile: VolunteerProfile | null) {
   if (!volunteerProfile) {
     return {
@@ -115,7 +186,7 @@ function getVolunteerProgress(volunteerProfile: VolunteerProfile | null) {
       interestsComplete: false,
       skillsComplete: false,
       accessibilityComplete: false,
-      availabilityComplete: false
+      availabilityComplete: false,
     };
   }
 
@@ -142,7 +213,7 @@ function getVolunteerProgress(volunteerProfile: VolunteerProfile | null) {
     interestsComplete,
     skillsComplete,
     accessibilityComplete,
-    availabilityComplete
+    availabilityComplete,
   ];
 
   const completedSteps = steps.filter(Boolean).length;
@@ -157,7 +228,7 @@ function getVolunteerProgress(volunteerProfile: VolunteerProfile | null) {
     interestsComplete,
     skillsComplete,
     accessibilityComplete,
-    availabilityComplete
+    availabilityComplete,
   };
 }
 
@@ -169,7 +240,7 @@ function PathwayStepCard({
   description,
   simpleDescription,
   href,
-  simpleView
+  simpleView,
 }: {
   complete: boolean;
   icon: string;
@@ -203,11 +274,53 @@ function PathwayStepCard({
   );
 }
 
+function PositiveReviewCard({ review }: { review: SkillReview }) {
+  const skills = getReviewSkills(review);
+
+  return (
+    <article className="info-card positive-review-card">
+      <div className="positive-review-header">
+        <div className="dashboard-card-icon" aria-hidden="true">
+          ⭐
+        </div>
+
+        <div className="positive-review-title">
+          <p className="dashboard-card-label">Positive skills review</p>
+          <h2>{review.opportunity_title || "Volunteering activity"}</h2>
+          <p>Shared on {formatDate(review.updated_at || review.created_at)}</p>
+        </div>
+      </div>
+
+      {skills.length > 0 ? (
+        <div className="positive-skill-badges" aria-label="Positive skills">
+          {skills.map((skill) => (
+            <span key={skill.key} className="positive-skill-badge">
+              <span aria-hidden="true">{skill.icon}</span>
+              <span>{skill.label}</span>
+            </span>
+          ))}
+        </div>
+      ) : (
+        <p className="positive-review-muted">
+          This review has been shared, but no skill badges were selected.
+        </p>
+      )}
+
+      {review.positive_comment ? (
+        <div className="positive-comment-box">
+          <p className="dashboard-card-label">Encouraging comment</p>
+          <p>{review.positive_comment}</p>
+        </div>
+      ) : null}
+    </article>
+  );
+}
+
 export default async function PathwayPage() {
   const supabase = await createClient();
 
   const {
-    data: { user }
+    data: { user },
   } = await supabase.auth.getUser();
 
   if (!user) {
@@ -234,7 +347,7 @@ export default async function PathwayPage() {
   const { data: volunteerProfile } = await supabase
     .from("volunteer_profiles")
     .select(
-      "city,goals,interests,skills,support_needs,share_accessibility_needs,wants_wellbeing_support,accessibility_completed,availability_notes,preferred_contact_method,onboarding_completed"
+      "city,goals,interests,skills,support_needs,share_accessibility_needs,wants_wellbeing_support,accessibility_completed,availability_notes,preferred_contact_method,onboarding_completed",
     )
     .eq("user_id", user.id)
     .maybeSingle<VolunteerProfile>();
@@ -244,6 +357,17 @@ export default async function PathwayPage() {
     .select("view_mode,colour_theme,text_size,avatar_icon,listen_mode")
     .eq("user_id", user.id)
     .maybeSingle<VolunteerPreferences>();
+
+  const { data: skillReviews } = await supabase
+    .from("volunteer_skill_reviews")
+    .select(
+      "id,opportunity_title,reliability,teamwork,communication,confidence,kindness,problem_solving,following_instructions,initiative,timekeeping,practical_skills,community_interaction,positive_comment,created_at,updated_at",
+    )
+    .eq("volunteer_user_id", user.id)
+    .eq("status", "shared")
+    .order("updated_at", { ascending: false });
+
+  const sharedReviews = (skillReviews as SkillReview[] | null) ?? [];
 
   const viewMode = normaliseViewMode(preferences?.view_mode);
   const colourTheme = normaliseColourTheme(preferences?.colour_theme);
@@ -257,15 +381,21 @@ export default async function PathwayPage() {
   const displayName = profile?.full_name?.trim() || "there";
   const progress = getVolunteerProgress(volunteerProfile);
 
+  const reviewCount = sharedReviews.length;
+  const reviewSkillCount = sharedReviews.reduce(
+    (total, review) => total + getReviewSkills(review).length,
+    0,
+  );
+
   const listenText = simpleView
-    ? "You are on your pathway page. This page shows five setup steps. Each card says complete or to do. Open a card to review or finish that step. Use Dashboard to go back."
-    : "You are on your SO Volunteering pathway page. It shows your five profile setup steps: goals, interests, skills, wellbeing and support, and availability. First, check the Progress card on the right to see how many steps are complete. Each card below says whether the step is complete or still to do. You can select any card to review or update that part of your profile. Use View my profile to see your full profile summary, or Back to dashboard to return home.";
+    ? `You are on your pathway page. This page shows five setup steps and your positive skills reviews. You have ${reviewCount} shared skills review${reviewCount === 1 ? "" : "s"}. Each card says complete or to do. Open a card to review or finish that step. Use Dashboard to go back.`
+    : `You are on your SO Volunteering pathway page. It shows your five profile setup steps: goals, interests, skills, wellbeing and support, and availability. It also shows positive skills reviews shared by organisations after volunteering activity. You currently have ${reviewCount} shared skills review${reviewCount === 1 ? "" : "s"} and ${reviewSkillCount} positive skill badge${reviewSkillCount === 1 ? "" : "s"}. First, check the Progress card on the right to see how many steps are complete. Each card below says whether the step is complete or still to do. You can select any card to review or update that part of your profile. Use View my profile to see your full profile summary, or Back to dashboard to return home.`;
 
   const shellClassName = [
     "dashboard-bg",
     getThemeClass(colourTheme),
     getTextClass(textSize),
-    getViewClass(viewMode)
+    getViewClass(viewMode),
   ].join(" ");
 
   return (
@@ -322,8 +452,8 @@ export default async function PathwayPage() {
 
             <p className="dashboard-lead">
               {simpleView
-                ? `Hi ${displayName}. Check your five setup steps.`
-                : `Hi ${displayName}. This page shows your volunteering pathway setup. You can review or update each step whenever you need to.`}
+                ? `Hi ${displayName}. Check your five setup steps and positive reviews.`
+                : `Hi ${displayName}. This page shows your volunteering pathway setup and positive skills evidence shared by organisations.`}
             </p>
 
             <div className="dashboard-primary-actions">
@@ -382,6 +512,10 @@ export default async function PathwayPage() {
               Account type: <strong>{userType}</strong>
             </p>
 
+            <p className="dashboard-progress-note">
+              Positive reviews: <strong>{reviewCount}</strong>
+            </p>
+
             {detailedView ? (
               <p className="dashboard-progress-note">
                 App view: <strong>{getViewLabel(viewMode)}</strong> · Theme:{" "}
@@ -390,6 +524,64 @@ export default async function PathwayPage() {
             ) : null}
           </aside>
         </section>
+
+        {sharedReviews.length > 0 ? (
+          <section
+            className="positive-reviews-panel"
+            aria-labelledby="positive-reviews-title"
+          >
+            <div className="positive-reviews-header">
+              <div>
+                <p className="dashboard-kicker">Positive evidence</p>
+                <h2 id="positive-reviews-title">
+                  Skills organisations have recognised
+                </h2>
+                <p>
+                  These shared reviews can help you see the strengths you are
+                  building through volunteering.
+                </p>
+              </div>
+
+              <div className="positive-review-summary" aria-label="Review summary">
+                <span>
+                  <strong>{reviewCount}</strong> review
+                  {reviewCount === 1 ? "" : "s"}
+                </span>
+                <span>
+                  <strong>{reviewSkillCount}</strong> skill badge
+                  {reviewSkillCount === 1 ? "" : "s"}
+                </span>
+              </div>
+            </div>
+
+            <div className="positive-review-grid">
+              {sharedReviews.map((review) => (
+                <PositiveReviewCard key={review.id} review={review} />
+              ))}
+            </div>
+          </section>
+        ) : (
+          <section
+            className="positive-reviews-panel empty-positive-reviews-panel"
+            aria-labelledby="positive-reviews-title"
+          >
+            <div className="positive-reviews-header">
+              <div>
+                <p className="dashboard-kicker">Positive evidence</p>
+                <h2 id="positive-reviews-title">Skills reviews will appear here</h2>
+                <p>
+                  After you volunteer, an organisation may share a positive
+                  skills review with you. It will appear here and help build
+                  your pathway.
+                </p>
+              </div>
+
+              <span className="empty-review-icon" aria-hidden="true">
+                ⭐
+              </span>
+            </div>
+          </section>
+        )}
 
         <section className="dashboard-grid" aria-label="Pathway steps">
           <PathwayStepCard
@@ -533,6 +725,150 @@ export default async function PathwayPage() {
           margin-top: auto !important;
         }
 
+        .positive-reviews-panel {
+          padding: clamp(20px, 4vw, 28px);
+          border: 1px solid rgba(143, 178, 158, 0.22);
+          border-radius: 30px;
+          background: rgba(255, 255, 255, 0.86);
+          box-shadow: 0 18px 56px rgba(38, 50, 56, 0.07);
+          display: grid;
+          gap: 18px;
+        }
+
+        .positive-reviews-header {
+          display: flex;
+          gap: 16px;
+          justify-content: space-between;
+          align-items: flex-start;
+          flex-wrap: wrap;
+        }
+
+        .positive-reviews-header h2 {
+          margin: 2px 0 8px;
+          color: #315f48;
+          font-size: clamp(1.35rem, 3vw, 1.8rem);
+          letter-spacing: -0.035em;
+        }
+
+        .positive-reviews-header p {
+          margin: 0;
+          max-width: 720px;
+          color: #60706a;
+          line-height: 1.55;
+        }
+
+        .positive-review-summary {
+          display: flex;
+          gap: 10px;
+          flex-wrap: wrap;
+        }
+
+        .positive-review-summary span {
+          min-height: 38px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 5px;
+          padding: 8px 12px;
+          border-radius: 999px;
+          background: rgba(244, 255, 249, 0.92);
+          border: 1px solid rgba(83, 111, 99, 0.16);
+          color: #536f63;
+          font-weight: 900;
+        }
+
+        .positive-review-grid {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 14px;
+        }
+
+        .positive-review-card {
+          display: grid;
+          gap: 16px;
+          border-radius: 24px;
+        }
+
+        .positive-review-header {
+          display: grid;
+          grid-template-columns: auto 1fr;
+          gap: 14px;
+          align-items: start;
+        }
+
+        .positive-review-title h2 {
+          margin: 0 0 6px;
+          color: #315f48;
+          overflow-wrap: anywhere;
+        }
+
+        .positive-review-title p {
+          margin: 0;
+          color: #60706a;
+          line-height: 1.4;
+        }
+
+        .positive-skill-badges {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+        }
+
+        .positive-skill-badge {
+          min-height: 38px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 7px;
+          padding: 8px 11px;
+          border-radius: 999px;
+          background:
+            linear-gradient(135deg, rgba(143, 178, 158, 0.14), rgba(183, 167, 214, 0.1)),
+            rgba(255, 255, 255, 0.9);
+          border: 1px solid rgba(143, 178, 158, 0.2);
+          color: #315f48;
+          font-weight: 900;
+          line-height: 1.15;
+        }
+
+        .positive-comment-box {
+          display: grid;
+          gap: 8px;
+          padding: 14px;
+          border: 1px solid rgba(108, 92, 160, 0.12);
+          border-radius: 20px;
+          background: rgba(255, 255, 255, 0.74);
+        }
+
+        .positive-comment-box p {
+          margin: 0;
+          white-space: pre-wrap;
+          overflow-wrap: anywhere;
+          line-height: 1.5;
+        }
+
+        .positive-review-muted {
+          margin: 0;
+          color: #60706a;
+          font-weight: 800;
+        }
+
+        .empty-positive-reviews-panel {
+          background:
+            linear-gradient(135deg, rgba(244, 255, 249, 0.78), rgba(255, 255, 255, 0.9));
+        }
+
+        .empty-review-icon {
+          width: 58px;
+          height: 58px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 20px;
+          background: rgba(143, 178, 158, 0.14);
+          font-size: 1.8rem;
+        }
+
         .preference-text-large {
           font-size: 1.06rem;
         }
@@ -571,7 +907,8 @@ export default async function PathwayPage() {
 
         .preference-theme-calm_green .dashboard-welcome-card,
         .preference-theme-calm_green .info-card,
-        .preference-theme-calm_green .dashboard-progress-card {
+        .preference-theme-calm_green .dashboard-progress-card,
+        .preference-theme-calm_green .positive-reviews-panel {
           border-color: rgba(83, 111, 99, 0.2);
         }
 
@@ -588,7 +925,8 @@ export default async function PathwayPage() {
 
         .preference-theme-soft_blue .dashboard-welcome-card,
         .preference-theme-soft_blue .info-card,
-        .preference-theme-soft_blue .dashboard-progress-card {
+        .preference-theme-soft_blue .dashboard-progress-card,
+        .preference-theme-soft_blue .positive-reviews-panel {
           border-color: rgba(74, 112, 160, 0.2);
         }
 
@@ -605,7 +943,8 @@ export default async function PathwayPage() {
 
         .preference-theme-warm_peach .dashboard-welcome-card,
         .preference-theme-warm_peach .info-card,
-        .preference-theme-warm_peach .dashboard-progress-card {
+        .preference-theme-warm_peach .dashboard-progress-card,
+        .preference-theme-warm_peach .positive-reviews-panel {
           border-color: rgba(190, 118, 76, 0.2);
         }
 
@@ -620,34 +959,49 @@ export default async function PathwayPage() {
 
         .preference-theme-high_contrast .dashboard-welcome-card,
         .preference-theme-high_contrast .info-card,
-        .preference-theme-high_contrast .dashboard-progress-card {
+        .preference-theme-high_contrast .dashboard-progress-card,
+        .preference-theme-high_contrast .positive-reviews-panel {
           border: 2px solid #1f2937;
           background: rgba(255, 255, 255, 0.98);
         }
 
         .preference-theme-high_contrast .dashboard-title,
         .preference-theme-high_contrast .dashboard-card-copy h2,
-        .preference-theme-high_contrast .dashboard-progress-card h2 {
+        .preference-theme-high_contrast .dashboard-progress-card h2,
+        .preference-theme-high_contrast .positive-reviews-header h2,
+        .preference-theme-high_contrast .positive-review-title h2 {
           color: #111827;
         }
 
         .preference-theme-high_contrast .dashboard-lead,
         .preference-theme-high_contrast .dashboard-card-copy p,
-        .preference-theme-high_contrast .dashboard-progress-note {
+        .preference-theme-high_contrast .dashboard-progress-note,
+        .preference-theme-high_contrast .positive-reviews-header p,
+        .preference-theme-high_contrast .positive-review-title p,
+        .preference-theme-high_contrast .positive-comment-box p {
           color: #1f2937;
         }
 
         .preference-theme-high_contrast .dashboard-card-icon,
-        .preference-theme-high_contrast .dashboard-progress-icon {
+        .preference-theme-high_contrast .dashboard-progress-icon,
+        .preference-theme-high_contrast .empty-review-icon {
           border: 2px solid #1f2937;
           background: #ffffff;
           color: #111827;
         }
 
-        .preference-theme-high_contrast .dashboard-card-action-pill {
+        .preference-theme-high_contrast .dashboard-card-action-pill,
+        .preference-theme-high_contrast .positive-skill-badge,
+        .preference-theme-high_contrast .positive-review-summary span {
           border: 2px solid #1f2937;
           background: #ffffff;
           color: #111827;
+        }
+
+        @media (max-width: 760px) {
+          .positive-review-grid {
+            grid-template-columns: 1fr;
+          }
         }
 
         @media (max-width: 640px) {
@@ -667,6 +1021,20 @@ export default async function PathwayPage() {
 
           .preference-text-large {
             font-size: 1.03rem;
+          }
+
+          .positive-reviews-panel {
+            border-radius: 26px;
+          }
+
+          .positive-review-header {
+            grid-template-columns: 1fr;
+          }
+
+          .positive-skill-badge,
+          .positive-review-summary span {
+            width: 100%;
+            justify-content: flex-start;
           }
         }
       `}</style>
