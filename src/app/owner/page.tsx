@@ -10,6 +10,16 @@ type SupportAdminRow = {
 
 type SupportRequestStatus = "new" | "reviewing" | "resolved" | "closed";
 
+type RecentSupportRequestRow = {
+  id: string;
+  user_type: string;
+  name: string | null;
+  email: string | null;
+  category: string;
+  status: string;
+  created_at: string;
+};
+
 async function getSupportRequestCount(
   supabase: Awaited<ReturnType<typeof createClient>>,
   status?: SupportRequestStatus,
@@ -29,6 +39,56 @@ async function getSupportRequestCount(
   }
 
   return count ?? 0;
+}
+
+function formatCategory(category: string) {
+  if (category === "stuck_using_app") return "Stuck using the app";
+  if (category === "something_not_working") return "Something is not working";
+  if (category === "account_or_profile") return "Account or profile help";
+  if (category === "opportunity_help") return "Opportunity help";
+  if (category === "report_problem") return "Report a problem";
+  if (category === "safety_or_safeguarding") {
+    return "Safety or safeguarding concern";
+  }
+
+  return category;
+}
+
+function formatStatus(status: string) {
+  if (status === "reviewing") return "Reviewing";
+  if (status === "resolved") return "Resolved";
+  if (status === "closed") return "Closed";
+  return "New";
+}
+
+function formatUserType(userType: string) {
+  if (userType === "organisation") return "Organisation";
+  if (userType === "volunteer") return "Volunteer";
+  return "Unknown";
+}
+
+function formatDate(value: string) {
+  return new Intl.DateTimeFormat("en-GB", {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: "Europe/London",
+  }).format(new Date(value));
+}
+
+function getRequestIcon(category: string) {
+  if (category === "safety_or_safeguarding") return "🛡️";
+  if (category === "something_not_working") return "🛠️";
+  if (category === "account_or_profile") return "👤";
+  if (category === "opportunity_help") return "📣";
+  if (category === "report_problem") return "⚠️";
+  return "🧭";
+}
+
+function getStatusClass(status: string) {
+  if (status === "resolved") return "request-status status-resolved";
+  if (status === "closed") return "request-status status-closed";
+  if (status === "reviewing") return "request-status status-reviewing";
+  return "request-status status-new";
 }
 
 export default async function OwnerHomePage() {
@@ -52,13 +112,26 @@ export default async function OwnerHomePage() {
     redirect("/dashboard");
   }
 
-  const [totalRequests, newRequests, reviewingRequests, resolvedRequests] =
-    await Promise.all([
-      getSupportRequestCount(supabase),
-      getSupportRequestCount(supabase, "new"),
-      getSupportRequestCount(supabase, "reviewing"),
-      getSupportRequestCount(supabase, "resolved"),
-    ]);
+  const [
+    totalRequests,
+    newRequests,
+    reviewingRequests,
+    resolvedRequests,
+    recentRequestsResult,
+  ] = await Promise.all([
+    getSupportRequestCount(supabase),
+    getSupportRequestCount(supabase, "new"),
+    getSupportRequestCount(supabase, "reviewing"),
+    getSupportRequestCount(supabase, "resolved"),
+    supabase
+      .from("support_requests")
+      .select("id,user_type,name,email,category,status,created_at")
+      .order("created_at", { ascending: false })
+      .limit(5),
+  ]);
+
+  const recentRequests =
+    (recentRequestsResult.data as RecentSupportRequestRow[] | null) ?? [];
 
   return (
     <main className="owner-page">
@@ -109,9 +182,9 @@ export default async function OwnerHomePage() {
                 <span>Open App Help Inbox</span>
               </Link>
 
-              <Link href="/organisation/dashboard" className="secondary-button">
-                <span aria-hidden="true">←</span>
-                <span>Back to workspace</span>
+              <Link href="/admin/app-help?status=new" className="secondary-button">
+                <span aria-hidden="true">🆕</span>
+                <span>View new requests</span>
               </Link>
             </div>
           </div>
@@ -131,25 +204,34 @@ export default async function OwnerHomePage() {
         </section>
 
         <div className="stats-grid" aria-label="App help summary">
-          <div className="stat-card">
+          <Link href="/admin/app-help" className="stat-card stat-link">
             <span>Total requests</span>
             <strong>{totalRequests ?? "—"}</strong>
-          </div>
+          </Link>
 
-          <div className="stat-card attention">
+          <Link
+            href="/admin/app-help?status=new"
+            className="stat-card stat-link attention"
+          >
             <span>New</span>
             <strong>{newRequests ?? "—"}</strong>
-          </div>
+          </Link>
 
-          <div className="stat-card">
+          <Link
+            href="/admin/app-help?status=reviewing"
+            className="stat-card stat-link"
+          >
             <span>Reviewing</span>
             <strong>{reviewingRequests ?? "—"}</strong>
-          </div>
+          </Link>
 
-          <div className="stat-card">
+          <Link
+            href="/admin/app-help?status=resolved"
+            className="stat-card stat-link"
+          >
             <span>Resolved</span>
             <strong>{resolvedRequests ?? "—"}</strong>
-          </div>
+          </Link>
         </div>
 
         <section className="owner-grid" aria-label="Owner tools">
@@ -195,6 +277,79 @@ export default async function OwnerHomePage() {
             </span>
             <span className="coming-soon">Later</span>
           </div>
+        </section>
+
+        <section className="recent-panel" aria-labelledby="recent-requests-title">
+          <div className="recent-panel-header">
+            <div>
+              <p className="eyebrow">Latest activity</p>
+              <h2 id="recent-requests-title">Recent App Help requests</h2>
+              <p>
+                Quick view of the latest requests submitted through Help using
+                the app.
+              </p>
+            </div>
+
+            <Link href="/admin/app-help" className="secondary-button">
+              <span>View full inbox</span>
+              <span aria-hidden="true">→</span>
+            </Link>
+          </div>
+
+          {recentRequestsResult.error ? (
+            <div className="owner-alert">
+              Recent requests could not be loaded. Open the full inbox to check
+              requests.
+            </div>
+          ) : null}
+
+          {!recentRequestsResult.error && recentRequests.length === 0 ? (
+            <article className="empty-recent-card">
+              <span aria-hidden="true">✅</span>
+              <div>
+                <h3>No app help requests yet</h3>
+                <p>
+                  When a volunteer or organisation submits Help using the app,
+                  the latest requests will appear here.
+                </p>
+              </div>
+            </article>
+          ) : null}
+
+          {recentRequests.length > 0 ? (
+            <div className="recent-list">
+              {recentRequests.map((request) => (
+                <Link
+                  key={request.id}
+                  href="/admin/app-help"
+                  className={
+                    request.category === "safety_or_safeguarding"
+                      ? "recent-request-card safety-recent-card"
+                      : "recent-request-card"
+                  }
+                >
+                  <span className="recent-icon" aria-hidden="true">
+                    {getRequestIcon(request.category)}
+                  </span>
+
+                  <span className="recent-copy">
+                    <span className="recent-title">
+                      {formatCategory(request.category)}
+                    </span>
+                    <span className="recent-meta">
+                      {formatUserType(request.user_type)} •{" "}
+                      {request.name || request.email || "No name supplied"} •{" "}
+                      {formatDate(request.created_at)}
+                    </span>
+                  </span>
+
+                  <span className={getStatusClass(request.status)}>
+                    {formatStatus(request.status)}
+                  </span>
+                </Link>
+              ))}
+            </div>
+          ) : null}
         </section>
 
         <section className="safety-panel">
@@ -245,7 +400,8 @@ const styles = `
 
 .owner-topbar,
 .owner-hero,
-.safety-panel {
+.safety-panel,
+.recent-panel {
   background: rgba(255, 255, 255, 0.88);
   border: 1px solid rgba(143, 178, 158, 0.24);
   box-shadow: 0 24px 70px rgba(38, 50, 56, 0.08);
@@ -326,7 +482,9 @@ const styles = `
 
 .owner-hero p,
 .safety-panel p,
-.owner-status-card p {
+.owner-status-card p,
+.recent-panel p,
+.empty-recent-card p {
   margin: 0;
   max-width: 680px;
   color: #60706a;
@@ -380,7 +538,9 @@ const styles = `
 
 .primary-button:hover,
 .secondary-button:hover,
-.ghost-button:hover {
+.ghost-button:hover,
+.stat-link:hover,
+.recent-request-card:hover {
   transform: translateY(-1px);
 }
 
@@ -431,6 +591,11 @@ const styles = `
   display: grid;
   align-content: space-between;
   gap: 16px;
+}
+
+.stat-link {
+  text-decoration: none;
+  transition: transform 160ms ease;
 }
 
 .stat-card span {
@@ -525,6 +690,151 @@ const styles = `
   font-weight: 950;
 }
 
+.recent-panel {
+  padding: clamp(22px, 4vw, 30px);
+  display: grid;
+  gap: 18px;
+}
+
+.recent-panel-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.recent-panel h2,
+.safety-panel h2 {
+  margin: 2px 0 8px;
+  color: #315f48;
+  font-size: 1.25rem;
+}
+
+.recent-list {
+  display: grid;
+  gap: 10px;
+}
+
+.recent-request-card,
+.empty-recent-card,
+.owner-alert {
+  border-radius: 22px;
+  border: 1px solid rgba(143, 178, 158, 0.18);
+  background: rgba(255, 255, 255, 0.76);
+  padding: 14px;
+}
+
+.recent-request-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  text-decoration: none;
+  transition: transform 160ms ease;
+}
+
+.safety-recent-card {
+  border-color: rgba(190, 90, 30, 0.34);
+  background: rgba(255, 248, 240, 0.92);
+}
+
+.recent-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 16px;
+  background: rgba(143, 178, 158, 0.14);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.35rem;
+}
+
+.recent-copy {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.recent-title {
+  color: #315f48;
+  font-weight: 950;
+  overflow-wrap: anywhere;
+}
+
+.recent-meta {
+  color: #60706a;
+  font-size: 0.9rem;
+  font-weight: 750;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.request-status {
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 8px 11px;
+  font-size: 0.82rem;
+  font-weight: 950;
+  white-space: nowrap;
+}
+
+.status-new {
+  border: 1px solid rgba(190, 118, 76, 0.26);
+  background: rgba(255, 248, 240, 0.96);
+  color: #8a4b16;
+}
+
+.status-reviewing {
+  border: 1px solid rgba(74, 112, 160, 0.24);
+  background: rgba(239, 247, 255, 0.96);
+  color: #315f8a;
+}
+
+.status-resolved {
+  border: 1px solid rgba(83, 111, 99, 0.24);
+  background: rgba(244, 255, 249, 0.96);
+  color: #536f63;
+}
+
+.status-closed {
+  border: 1px solid rgba(100, 100, 110, 0.18);
+  background: rgba(248, 248, 252, 0.96);
+  color: #5d6677;
+}
+
+.empty-recent-card {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 14px;
+  align-items: start;
+}
+
+.empty-recent-card > span {
+  width: 44px;
+  height: 44px;
+  border-radius: 16px;
+  background: rgba(143, 178, 158, 0.14);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.35rem;
+}
+
+.empty-recent-card h3 {
+  margin: 0 0 6px;
+  color: #315f48;
+}
+
+.owner-alert {
+  color: #8a4b16;
+  background: rgba(255, 248, 240, 0.92);
+  font-weight: 850;
+}
+
 .safety-panel {
   padding: clamp(22px, 4vw, 30px);
   display: flex;
@@ -532,12 +842,6 @@ const styles = `
   gap: 18px;
   align-items: center;
   flex-wrap: wrap;
-}
-
-.safety-panel h2 {
-  margin: 2px 0 8px;
-  color: #315f48;
-  font-size: 1.25rem;
 }
 
 .access-flow {
@@ -601,7 +905,8 @@ const styles = `
 
   .owner-topbar,
   .owner-hero,
-  .safety-panel {
+  .safety-panel,
+  .recent-panel {
     border-radius: 26px;
   }
 
@@ -614,7 +919,8 @@ const styles = `
   .owner-topbar-actions .secondary-button,
   .owner-topbar-actions .ghost-button,
   .owner-hero-actions .primary-button,
-  .owner-hero-actions .secondary-button {
+  .owner-hero-actions .secondary-button,
+  .recent-panel-header .secondary-button {
     width: 100%;
   }
 
@@ -642,6 +948,16 @@ const styles = `
 
   .tool-arrow,
   .coming-soon {
+    grid-column: 2;
+    justify-self: start;
+  }
+
+  .recent-request-card {
+    grid-template-columns: auto 1fr;
+    align-items: start;
+  }
+
+  .recent-request-card .request-status {
     grid-column: 2;
     justify-self: start;
   }
