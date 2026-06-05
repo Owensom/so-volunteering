@@ -1,62 +1,17 @@
 import Link from "next/link";
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { createServerClient, type CookieOptions } from "@supabase/ssr";
+import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
-type SupportRequestStatus = "new" | "in_progress" | "resolved" | "closed";
-
-type SupabaseCookieToSet = {
-  name: string;
-  value: string;
-  options: CookieOptions;
+type SupportAdminRow = {
+  user_id: string;
 };
 
-function getSupabaseUrl() {
-  const value = process.env.NEXT_PUBLIC_SUPABASE_URL;
-
-  if (!value) {
-    throw new Error("Missing NEXT_PUBLIC_SUPABASE_URL");
-  }
-
-  return value;
-}
-
-function getSupabaseAnonKey() {
-  const value = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!value) {
-    throw new Error("Missing NEXT_PUBLIC_SUPABASE_ANON_KEY");
-  }
-
-  return value;
-}
-
-async function createSupabaseServerClient() {
-  const cookieStore = await cookies();
-
-  return createServerClient(getSupabaseUrl(), getSupabaseAnonKey(), {
-    cookies: {
-      getAll() {
-        return cookieStore.getAll();
-      },
-      setAll(cookiesToSet: SupabaseCookieToSet[]) {
-        try {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            cookieStore.set(name, value, options);
-          });
-        } catch {
-          // Server Components cannot always write cookies.
-          // Auth middleware / route handlers will handle cookie refresh where needed.
-        }
-      },
-    },
-  });
-}
+type SupportRequestStatus = "new" | "reviewing" | "resolved" | "closed";
 
 async function getSupportRequestCount(
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  supabase: Awaited<ReturnType<typeof createClient>>,
   status?: SupportRequestStatus,
 ) {
   let query = supabase
@@ -77,58 +32,31 @@ async function getSupportRequestCount(
 }
 
 export default async function OwnerHomePage() {
-  const supabase = await createSupabaseServerClient();
+  const supabase = await createClient();
 
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/login?next=/owner");
+    redirect("/login");
   }
 
-  const { data: supportAdmin, error: supportAdminError } = await supabase
+  const { data: supportAdmin } = await supabase
     .from("support_admins")
-    .select("user_id, email")
+    .select("user_id")
     .eq("user_id", user.id)
-    .maybeSingle();
+    .maybeSingle<SupportAdminRow>();
 
-  const isSupportAdmin = Boolean(supportAdmin && !supportAdminError);
-
-  if (!isSupportAdmin) {
-    return (
-      <main className="owner-page">
-        <style>{styles}</style>
-
-        <section className="owner-shell">
-          <div className="owner-card restricted-card">
-            <div className="owner-icon">🔒</div>
-            <p className="eyebrow">Owner access</p>
-            <h1>Owner tools are restricted</h1>
-            <p>
-              This area is only for approved SO Volunteering owner or support
-              admin accounts.
-            </p>
-
-            <div className="action-row">
-              <Link href="/dashboard" className="secondary-button">
-                Back to dashboard
-              </Link>
-              <Link href="/help" className="ghost-button">
-                Get app help
-              </Link>
-            </div>
-          </div>
-        </section>
-      </main>
-    );
+  if (!supportAdmin) {
+    redirect("/dashboard");
   }
 
-  const [totalRequests, newRequests, inProgressRequests, resolvedRequests] =
+  const [totalRequests, newRequests, reviewingRequests, resolvedRequests] =
     await Promise.all([
       getSupportRequestCount(supabase),
       getSupportRequestCount(supabase, "new"),
-      getSupportRequestCount(supabase, "in_progress"),
+      getSupportRequestCount(supabase, "reviewing"),
       getSupportRequestCount(supabase, "resolved"),
     ]);
 
@@ -164,8 +92,8 @@ export default async function OwnerHomePage() {
           </div>
 
           <div className="stat-card">
-            <span>In progress</span>
-            <strong>{inProgressRequests ?? "—"}</strong>
+            <span>Reviewing</span>
+            <strong>{reviewingRequests ?? "—"}</strong>
           </div>
 
           <div className="stat-card">
@@ -251,7 +179,6 @@ const styles = `
 }
 
 .owner-hero,
-.owner-card,
 .safety-panel {
   background: rgba(255, 255, 255, 0.88);
   border: 1px solid rgba(143, 178, 158, 0.24);
@@ -268,8 +195,7 @@ const styles = `
   flex-wrap: wrap;
 }
 
-.owner-hero h1,
-.owner-card h1 {
+.owner-hero h1 {
   margin: 6px 0 10px;
   font-size: clamp(2rem, 5vw, 3.5rem);
   line-height: 0.98;
@@ -278,7 +204,6 @@ const styles = `
 }
 
 .owner-hero p,
-.owner-card p,
 .safety-panel p {
   margin: 0;
   max-width: 680px;
@@ -296,9 +221,7 @@ const styles = `
   font-size: 0.78rem !important;
 }
 
-.primary-button,
-.secondary-button,
-.ghost-button {
+.primary-button {
   min-height: 48px;
   border-radius: 999px;
   padding: 13px 18px;
@@ -309,29 +232,12 @@ const styles = `
   font-weight: 900;
   transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
   touch-action: manipulation;
-}
-
-.primary-button {
   background: linear-gradient(135deg, #8fb29e, #b7a7d6);
   color: #ffffff;
   box-shadow: 0 16px 34px rgba(143, 178, 158, 0.28);
 }
 
-.secondary-button {
-  background: #ffffff;
-  color: #315f48;
-  border: 1px solid rgba(143, 178, 158, 0.38);
-}
-
-.ghost-button {
-  background: rgba(183, 167, 214, 0.1);
-  color: #6c5b9c;
-  border: 1px solid rgba(183, 167, 214, 0.28);
-}
-
-.primary-button:hover,
-.secondary-button:hover,
-.ghost-button:hover {
+.primary-button:hover {
   transform: translateY(-1px);
 }
 
@@ -485,35 +391,6 @@ const styles = `
   color: #6c5b9c;
 }
 
-.restricted-card {
-  padding: clamp(26px, 6vw, 42px);
-  max-width: 760px;
-  margin: 10vh auto 0;
-  text-align: center;
-  display: grid;
-  justify-items: center;
-  gap: 10px;
-}
-
-.owner-icon {
-  width: 72px;
-  height: 72px;
-  border-radius: 24px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(183, 167, 214, 0.14);
-  font-size: 2rem;
-}
-
-.action-row {
-  display: flex;
-  justify-content: center;
-  gap: 12px;
-  flex-wrap: wrap;
-  margin-top: 12px;
-}
-
 @media (max-width: 860px) {
   .owner-hero {
     align-items: stretch;
@@ -539,7 +416,6 @@ const styles = `
   }
 
   .owner-hero,
-  .owner-card,
   .safety-panel {
     border-radius: 26px;
   }
@@ -571,10 +447,7 @@ const styles = `
     display: grid;
   }
 
-  .primary-button,
-  .secondary-button,
-  .ghost-button,
-  .action-row {
+  .primary-button {
     width: 100%;
   }
 }
