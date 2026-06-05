@@ -25,6 +25,13 @@ type SupportRequestRow = {
   updated_at: string;
 };
 
+type AppHelpSearchParams = {
+  error?: string;
+  message?: string;
+  status?: string;
+  category?: string;
+};
+
 function formatCategory(category: string) {
   if (category === "stuck_using_app") return "Stuck using the app";
   if (category === "something_not_working") return "Something is not working";
@@ -75,16 +82,36 @@ function getCategoryIcon(category: string) {
   return "🧭";
 }
 
+function getFilterClass(isActive: boolean) {
+  return isActive ? "app-help-filter active-filter" : "app-help-filter";
+}
+
 export default async function AdminAppHelpPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; message?: string }>;
+  searchParams: Promise<AppHelpSearchParams>;
 }) {
   const params = await searchParams;
+
   const errorMessage = params.error ? decodeURIComponent(params.error) : "";
   const successMessage = params.message
     ? decodeURIComponent(params.message)
     : "";
+
+  const activeStatus =
+    params.status === "new" ||
+    params.status === "reviewing" ||
+    params.status === "resolved" ||
+    params.status === "closed"
+      ? params.status
+      : "";
+
+  const activeCategory =
+    params.category === "safety_or_safeguarding"
+      ? "safety_or_safeguarding"
+      : "";
+
+  const hasActiveFilter = Boolean(activeStatus || activeCategory);
 
   const supabase = await createClient();
 
@@ -116,17 +143,26 @@ export default async function AdminAppHelpPage({
 
   const requestRows = (requests as SupportRequestRow[] | null) ?? [];
 
+  const filteredRows = requestRows.filter((request) => {
+    if (activeStatus && request.status !== activeStatus) return false;
+    if (activeCategory && request.category !== activeCategory) return false;
+    return true;
+  });
+
   const newCount = requestRows.filter((request) => request.status === "new")
     .length;
   const reviewingCount = requestRows.filter(
     (request) => request.status === "reviewing",
+  ).length;
+  const resolvedCount = requestRows.filter(
+    (request) => request.status === "resolved",
   ).length;
   const safetyCount = requestRows.filter(
     (request) => request.category === "safety_or_safeguarding",
   ).length;
 
   const listenText =
-    "You are on the owner app help inbox. This page shows help requests submitted through Help using the app. Use the Back to owner home button to return to the owner access page. Review new requests first. Safety or safeguarding concerns should be checked as soon as possible. Each card shows the user type, name, email, category, page area, message and status. You can update the status and add an internal note. This page is only for app help requests, not volunteer personal support needs.";
+    "You are on the owner app help inbox. This page shows help requests submitted through Help using the app. Use the Back to owner home button to return to the owner access page. Use the filter buttons to view all requests, new requests, reviewing requests, resolved requests, or safety requests. Review new requests first. Safety or safeguarding concerns should be checked as soon as possible. Each card shows the user type, name, email, category, page area, message and status. You can update the status and add an internal note. This page is only for app help requests, not volunteer personal support needs.";
 
   return (
     <main className="dashboard-bg app-help-admin-page">
@@ -215,6 +251,7 @@ export default async function AdminAppHelpPage({
             >
               <span>New: {newCount}</span>
               <span>Reviewing: {reviewingCount}</span>
+              <span>Resolved: {resolvedCount}</span>
               <span>Safety: {safetyCount}</span>
             </div>
           </div>
@@ -237,6 +274,52 @@ export default async function AdminAppHelpPage({
           </aside>
         </section>
 
+        <nav className="app-help-filters" aria-label="App help filters">
+          <Link href="/admin/app-help" className={getFilterClass(!hasActiveFilter)}>
+            <span aria-hidden="true">📋</span>
+            <span>All</span>
+            <strong>{requestRows.length}</strong>
+          </Link>
+
+          <Link
+            href="/admin/app-help?status=new"
+            className={getFilterClass(activeStatus === "new")}
+          >
+            <span aria-hidden="true">🆕</span>
+            <span>New</span>
+            <strong>{newCount}</strong>
+          </Link>
+
+          <Link
+            href="/admin/app-help?status=reviewing"
+            className={getFilterClass(activeStatus === "reviewing")}
+          >
+            <span aria-hidden="true">👀</span>
+            <span>Reviewing</span>
+            <strong>{reviewingCount}</strong>
+          </Link>
+
+          <Link
+            href="/admin/app-help?status=resolved"
+            className={getFilterClass(activeStatus === "resolved")}
+          >
+            <span aria-hidden="true">✅</span>
+            <span>Resolved</span>
+            <strong>{resolvedCount}</strong>
+          </Link>
+
+          <Link
+            href="/admin/app-help?category=safety_or_safeguarding"
+            className={getFilterClass(
+              activeCategory === "safety_or_safeguarding",
+            )}
+          >
+            <span aria-hidden="true">🛡️</span>
+            <span>Safety</span>
+            <strong>{safetyCount}</strong>
+          </Link>
+        </nav>
+
         {successMessage ? (
           <div className="alert alert-success">{successMessage}</div>
         ) : null}
@@ -248,23 +331,30 @@ export default async function AdminAppHelpPage({
         ) : null}
 
         <section className="app-help-request-list" aria-label="Help requests">
-          {requestRows.length === 0 ? (
+          {filteredRows.length === 0 ? (
             <article className="info-card app-help-empty-card">
               <div className="dashboard-card-icon" aria-hidden="true">
                 ✅
               </div>
               <div className="dashboard-card-copy">
-                <p className="dashboard-card-label">No requests</p>
-                <h2>No app help requests yet</h2>
+                <p className="dashboard-card-label">
+                  {hasActiveFilter ? "No matching requests" : "No requests"}
+                </p>
+                <h2>
+                  {hasActiveFilter
+                    ? "No app help requests match this filter"
+                    : "No app help requests yet"}
+                </h2>
                 <p>
-                  When a volunteer or organisation submits Help using the app,
-                  the request will appear here.
+                  {hasActiveFilter
+                    ? "Choose another filter to view more requests."
+                    : "When a volunteer or organisation submits Help using the app, the request will appear here."}
                 </p>
               </div>
             </article>
           ) : null}
 
-          {requestRows.map((request) => (
+          {filteredRows.map((request) => (
             <article
               key={request.id}
               className={
@@ -392,6 +482,50 @@ export default async function AdminAppHelpPage({
           line-height: 1.15;
         }
 
+        .app-help-filters {
+          display: grid;
+          grid-template-columns: repeat(5, minmax(0, 1fr));
+          gap: 12px;
+        }
+
+        .app-help-filter {
+          min-height: 58px;
+          padding: 12px 14px;
+          border-radius: 20px;
+          border: 1px solid rgba(83, 111, 99, 0.16);
+          background: rgba(255, 255, 255, 0.82);
+          color: #536f63;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          text-decoration: none;
+          font-weight: 950;
+          text-align: center;
+          box-shadow: 0 12px 34px rgba(33, 44, 38, 0.05);
+        }
+
+        .app-help-filter strong {
+          min-width: 28px;
+          min-height: 28px;
+          padding: 5px 8px;
+          border-radius: 999px;
+          background: rgba(244, 255, 249, 0.92);
+          color: #315f48;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 0.82rem;
+        }
+
+        .active-filter {
+          border-color: rgba(108, 92, 160, 0.32);
+          background:
+            linear-gradient(135deg, rgba(143, 178, 158, 0.18), rgba(183, 167, 214, 0.16)),
+            rgba(255, 255, 255, 0.94);
+          color: #315f48;
+        }
+
         .app-help-request-list {
           display: grid;
           gap: 18px;
@@ -514,6 +648,12 @@ export default async function AdminAppHelpPage({
           width: fit-content;
         }
 
+        @media (max-width: 900px) {
+          .app-help-filters {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+        }
+
         @media (max-width: 760px) {
           .app-help-admin-topbar {
             gap: 14px;
@@ -576,6 +716,16 @@ export default async function AdminAppHelpPage({
 
           .app-help-update-form .primary-button {
             width: 100%;
+          }
+        }
+
+        @media (max-width: 560px) {
+          .app-help-filters {
+            grid-template-columns: 1fr;
+          }
+
+          .app-help-filter {
+            justify-content: space-between;
           }
         }
       `}</style>
