@@ -132,6 +132,24 @@ function buildFilterHref(
   return queryString ? `/admin/app-help?${queryString}` : "/admin/app-help";
 }
 
+function buildExportHref(filters: {
+  status: string;
+  category: string;
+  search: string;
+}) {
+  const params = new URLSearchParams();
+
+  if (filters.status) params.set("status", filters.status);
+  if (filters.category) params.set("category", filters.category);
+  if (filters.search) params.set("q", filters.search);
+
+  const queryString = params.toString();
+
+  return queryString
+    ? `/admin/app-help/export?${queryString}`
+    : "/admin/app-help/export";
+}
+
 function buildContactHref(request: SupportRequestRow) {
   const rawEmail = request.email?.trim().replace(/[\r\n]/g, "") ?? "";
 
@@ -187,6 +205,12 @@ export default async function AdminAppHelpPage({
     params.category === "safety_or_safeguarding"
       ? "safety_or_safeguarding"
       : "";
+
+  const exportHref = buildExportHref({
+    status: activeStatus,
+    category: activeCategory,
+    search: searchQuery,
+  });
 
   const hasActiveFilter = Boolean(activeStatus || activeCategory);
   const hasActiveSearch = Boolean(searchQuery);
@@ -244,7 +268,7 @@ export default async function AdminAppHelpPage({
   ).length;
 
   const listenText =
-    "You are on the owner app help inbox. This page shows help requests submitted through Help using the app. Use the Back to owner home button to return to the owner access page. Use Export CSV to download the current app help request records. Use the filter buttons to view all requests, new requests, reviewing requests, resolved requests, closed requests, or safety requests. Use the search box to find requests by name, email, message, page area, status, category, organisation or volunteer. Each request card has a contact requester link if an email address was provided. Review new requests first. Safety or safeguarding concerns should be checked as soon as possible. You can update the status and add an internal note. This page is only for app help requests, not volunteer personal support needs.";
+    "You are on the owner app help inbox. This page shows help requests submitted through Help using the app. Use the Back to owner home button to return to the owner access page. Use Export CSV to download the currently selected app help request records. Use the filter buttons to view all requests, new requests, reviewing requests, resolved requests, closed requests, or safety requests. Use the search box to find requests by name, email, message, page area, status, category, organisation or volunteer. Each request card has a contact requester link if an email address was provided. Review new requests first. Safety or safeguarding concerns should be checked as soon as possible. You can update the status and add an internal note. This page is only for app help requests, not volunteer personal support needs.";
 
   return (
     <main className="dashboard-bg app-help-admin-page">
@@ -282,13 +306,10 @@ export default async function AdminAppHelpPage({
               </span>
             </Link>
 
-            <a
-              href="/admin/app-help/export"
-              className="secondary-button dashboard-signout-button"
-            >
+            <a href={exportHref} className="secondary-button dashboard-signout-button">
               <span className="dashboard-button-inner">
                 <span aria-hidden="true">⬇️</span>
-                <span>Export CSV</span>
+                <span>{hasAnyViewFilter ? "Export view" : "Export CSV"}</span>
               </span>
             </a>
 
@@ -329,10 +350,10 @@ export default async function AdminAppHelpPage({
                 </span>
               </Link>
 
-              <a href="/admin/app-help/export" className="secondary-button">
+              <a href={exportHref} className="secondary-button">
                 <span className="dashboard-button-inner">
                   <span aria-hidden="true">⬇️</span>
-                  <span>Export CSV</span>
+                  <span>{hasAnyViewFilter ? "Export current view" : "Export CSV"}</span>
                 </span>
               </a>
 
@@ -494,9 +515,15 @@ export default async function AdminAppHelpPage({
               {requestRows.length === 1 ? "" : "s"}.
             </span>
 
-            <Link href="/admin/app-help" className="secondary-button">
-              Reset view
-            </Link>
+            <div className="active-view-actions">
+              <a href={exportHref} className="secondary-button">
+                Export current view
+              </a>
+
+              <Link href="/admin/app-help" className="secondary-button">
+                Reset view
+              </Link>
+            </div>
           </div>
         ) : null}
 
@@ -812,6 +839,13 @@ export default async function AdminAppHelpPage({
           font-weight: 900;
         }
 
+        .active-view-actions {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 10px;
+          align-items: center;
+        }
+
         .app-help-request-list {
           display: grid;
           gap: 18px;
@@ -1046,13 +1080,16 @@ export default async function AdminAppHelpPage({
             grid-template-columns: 1fr;
           }
 
-          .app-help-card-actions {
+          .app-help-card-actions,
+          .active-view-actions {
             display: grid;
+            width: 100%;
           }
 
           .app-help-card-actions .secondary-button,
           .ghost-inline-button,
           .contact-unavailable,
+          .active-view-actions .secondary-button,
           .app-help-update-form .primary-button {
             width: 100%;
           }
@@ -1065,10 +1102,6 @@ export default async function AdminAppHelpPage({
 
           .app-help-filter {
             justify-content: space-between;
-          }
-
-          .active-view-panel .secondary-button {
-            width: 100%;
           }
         }
       `}</style>
