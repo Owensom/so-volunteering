@@ -388,8 +388,8 @@ export default async function PathwayPage() {
   );
 
   const listenText = simpleView
-    ? `You are on your pathway page. This page shows five setup steps and your positive skills reviews. You have ${reviewCount} shared skills review${reviewCount === 1 ? "" : "s"}. Each card says complete or to do. Open a card to review or finish that step. Use Dashboard to go back.`
-    : `You are on your SO Volunteering pathway page. It shows your five profile setup steps: goals, interests, skills, wellbeing and support, and availability. It also shows positive skills reviews shared by organisations after volunteering activity. You currently have ${reviewCount} shared skills review${reviewCount === 1 ? "" : "s"} and ${reviewSkillCount} positive skill badge${reviewSkillCount === 1 ? "" : "s"}. First, check the Progress card on the right to see how many steps are complete. Each card below says whether the step is complete or still to do. You can select any card to review or update that part of your profile. Use View my profile to see your full profile summary, or Back to dashboard to return home.`;
+    ? `You are on your pathway page. This page shows five setup steps, your positive skills reviews and a button to open your Positive Pathway CV. You have ${reviewCount} shared skills review${reviewCount === 1 ? "" : "s"}. Each card says complete or to do. Open a card to review or finish that step. Use Dashboard to go back.`
+    : `You are on your SO Volunteering pathway page. It shows your five profile setup steps: goals, interests, skills, wellbeing and support, and availability. It also shows positive skills reviews shared by organisations after volunteering activity. You can open your Positive Pathway CV from the main button. You currently have ${reviewCount} shared skills review${reviewCount === 1 ? "" : "s"} and ${reviewSkillCount} positive skill badge${reviewSkillCount === 1 ? "" : "s"}. First, check the Progress card on the right to see how many steps are complete. Each card below says whether the step is complete or still to do. You can select any card to review or update that part of your profile. Use View my profile to see your full profile summary, or Back to dashboard to return home.`;
 
   const shellClassName = [
     "dashboard-bg",
@@ -452,14 +452,24 @@ export default async function PathwayPage() {
 
             <p className="dashboard-lead">
               {simpleView
-                ? `Hi ${displayName}. Check your five setup steps and positive reviews.`
-                : `Hi ${displayName}. This page shows your volunteering pathway setup and positive skills evidence shared by organisations.`}
+                ? `Hi ${displayName}. Check your five setup steps, positive reviews and CV.`
+                : `Hi ${displayName}. This page shows your volunteering pathway setup, positive skills evidence and Positive Pathway CV.`}
             </p>
 
-            <div className="dashboard-primary-actions">
+            <div className="dashboard-primary-actions pathway-primary-actions">
+              <Link
+                href="/pathway/cv"
+                className="primary-button dashboard-main-action"
+              >
+                <span className="dashboard-button-inner">
+                  <span aria-hidden="true">📄</span>
+                  <span>Open Positive Pathway CV</span>
+                </span>
+              </Link>
+
               <Link
                 href="/profile"
-                className="primary-button dashboard-main-action"
+                className="secondary-button dashboard-main-action"
               >
                 <span className="dashboard-button-inner">
                   <span aria-hidden="true">👤</span>
@@ -559,6 +569,15 @@ export default async function PathwayPage() {
                 <PositiveReviewCard key={review.id} review={review} />
               ))}
             </div>
+
+            <div className="positive-reviews-actions">
+              <Link href="/pathway/cv" className="secondary-button">
+                <span className="dashboard-button-inner">
+                  <span aria-hidden="true">📄</span>
+                  <span>Open Positive Pathway CV</span>
+                </span>
+              </Link>
+            </div>
           </section>
         ) : (
           <section
@@ -579,6 +598,15 @@ export default async function PathwayPage() {
               <span className="empty-review-icon" aria-hidden="true">
                 ⭐
               </span>
+            </div>
+
+            <div className="positive-reviews-actions">
+              <Link href="/pathway/cv" className="secondary-button">
+                <span className="dashboard-button-inner">
+                  <span aria-hidden="true">📄</span>
+                  <span>Open Positive Pathway CV</span>
+                </span>
+              </Link>
             </div>
           </section>
         )}
@@ -667,6 +695,10 @@ export default async function PathwayPage() {
       <style>{`
         .dashboard-grid {
           align-items: stretch;
+        }
+
+        .pathway-primary-actions {
+          gap: 10px;
         }
 
         .dashboard-pathway-card {
@@ -853,6 +885,17 @@ export default async function PathwayPage() {
           font-weight: 800;
         }
 
+        .positive-reviews-actions {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 10px;
+          align-items: center;
+        }
+
+        .positive-reviews-actions .secondary-button {
+          width: fit-content;
+        }
+
         .empty-positive-reviews-panel {
           background:
             linear-gradient(135deg, rgba(244, 255, 249, 0.78), rgba(255, 255, 255, 0.9));
@@ -1001,6 +1044,12 @@ export default async function PathwayPage() {
         @media (max-width: 760px) {
           .positive-review-grid {
             grid-template-columns: 1fr;
+          }
+
+          .pathway-primary-actions .primary-button,
+          .pathway-primary-actions .secondary-button,
+          .positive-reviews-actions .secondary-button {
+            width: 100%;
           }
         }
 
