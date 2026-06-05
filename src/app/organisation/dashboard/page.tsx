@@ -224,7 +224,10 @@ export default async function OrganisationDashboardPage() {
               className="dashboard-title organisation-hero-title"
             >
               <span aria-hidden="true">🏢</span>
-              <span>Build inclusive opportunities</span>
+              <span className="organisation-desktop-title">
+                Build inclusive opportunities
+              </span>
+              <span className="organisation-mobile-title">Your workspace</span>
             </h1>
 
             <p className="dashboard-lead organisation-hero-lead">
@@ -357,6 +360,10 @@ export default async function OrganisationDashboardPage() {
           overflow-x: hidden;
         }
 
+        .organisation-mobile-title {
+          display: none;
+        }
+
         .organisation-card-grid {
           align-items: stretch;
         }
@@ -448,13 +455,21 @@ export default async function OrganisationDashboardPage() {
             letter-spacing: 0.2em;
           }
 
+          .organisation-desktop-title {
+            display: none;
+          }
+
+          .organisation-mobile-title {
+            display: inline;
+          }
+
           .organisation-hero-title {
             display: flex;
             gap: 10px;
             align-items: flex-start;
             max-width: 100%;
-            font-size: 2.2rem !important;
-            line-height: 1.03 !important;
+            font-size: 2.45rem !important;
+            line-height: 1.02 !important;
             letter-spacing: -0.045em !important;
             overflow-wrap: normal;
             word-break: normal;
@@ -468,8 +483,8 @@ export default async function OrganisationDashboardPage() {
 
           .organisation-hero-lead {
             max-width: 100%;
-            font-size: 1.05rem !important;
-            line-height: 1.5 !important;
+            font-size: 1.02rem !important;
+            line-height: 1.48 !important;
             letter-spacing: 0;
             overflow-wrap: normal;
             word-break: normal;
@@ -546,7 +561,7 @@ export default async function OrganisationDashboardPage() {
           }
 
           .organisation-hero-title {
-            font-size: 2rem !important;
+            font-size: 2.2rem !important;
             line-height: 1.04 !important;
           }
 
@@ -562,7 +577,7 @@ export default async function OrganisationDashboardPage() {
 
         @media (max-width: 360px) {
           .organisation-hero-title {
-            font-size: 1.82rem !important;
+            font-size: 2rem !important;
           }
 
           .organisation-hero-lead {
