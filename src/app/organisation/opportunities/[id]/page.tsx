@@ -56,62 +56,62 @@ const interestOptions: ChoiceOption[] = [
     value: "Helping people",
     label: "Helping people",
     icon: "🤝",
-    helpText: "Welcoming, supporting or helping community members."
+    helpText: "Welcoming, supporting or helping community members.",
   },
   {
     value: "Animals and nature",
     label: "Animals and nature",
     icon: "🌿",
-    helpText: "Gardens, green spaces, animals or outdoor roles."
+    helpText: "Gardens, green spaces, animals or outdoor roles.",
   },
   {
     value: "Events and activities",
     label: "Events and activities",
     icon: "🎪",
-    helpText: "Events, groups, clubs, fundraisers or activities."
+    helpText: "Events, groups, clubs, fundraisers or activities.",
   },
   {
     value: "Creative tasks",
     label: "Creative tasks",
     icon: "🎨",
-    helpText: "Music, art, design, photography, writing or making."
+    helpText: "Music, art, design, photography, writing or making.",
   },
   {
     value: "Practical tasks",
     label: "Practical tasks",
     icon: "🧰",
-    helpText: "Set up, sort items, pack things or hands-on help."
+    helpText: "Set up, sort items, pack things or hands-on help.",
   },
   {
     value: "Digital or admin",
     label: "Digital or admin",
     icon: "💻",
-    helpText: "Simple forms, emails, organising or computer tasks."
+    helpText: "Simple forms, emails, organising or computer tasks.",
   },
   {
     value: "Food and hospitality",
     label: "Food and hospitality",
     icon: "☕",
-    helpText: "Refreshments, café support, kitchen help or hosting."
+    helpText: "Refreshments, café support, kitchen help or hosting.",
   },
   {
     value: "Sport and wellbeing",
     label: "Sport and wellbeing",
     icon: "⚽",
-    helpText: "Active roles, walking groups or wellbeing activities."
+    helpText: "Active roles, walking groups or wellbeing activities.",
   },
   {
     value: "Shops and donations",
     label: "Shops and donations",
     icon: "🛍️",
-    helpText: "Shop support, stock sorting, donations or customers."
+    helpText: "Shop support, stock sorting, donations or customers.",
   },
   {
     value: "Open to ideas",
     label: "Open to ideas",
     icon: "🌈",
-    helpText: "Good for volunteers exploring what suits them."
-  }
+    helpText: "Good for volunteers exploring what suits them.",
+  },
 ];
 
 const skillOptions: ChoiceOption[] = [
@@ -119,62 +119,62 @@ const skillOptions: ChoiceOption[] = [
     value: "Being friendly and welcoming",
     label: "Friendly and welcoming",
     icon: "😊",
-    helpText: "Helping people feel comfortable and included."
+    helpText: "Helping people feel comfortable and included.",
   },
   {
     value: "Listening to people",
     label: "Listening",
     icon: "👂",
-    helpText: "Giving people time, patience and attention."
+    helpText: "Giving people time, patience and attention.",
   },
   {
     value: "Following instructions",
     label: "Following instructions",
     icon: "✅",
-    helpText: "Working through clear steps safely and carefully."
+    helpText: "Working through clear steps safely and carefully.",
   },
   {
     value: "Teamwork",
     label: "Teamwork",
     icon: "👥",
-    helpText: "Working with others towards a shared goal."
+    helpText: "Working with others towards a shared goal.",
   },
   {
     value: "Organising things",
     label: "Organising things",
     icon: "🗂️",
-    helpText: "Sorting, planning, arranging or keeping tasks on track."
+    helpText: "Sorting, planning, arranging or keeping tasks on track.",
   },
   {
     value: "Using a phone or computer",
     label: "Phone or computer",
     icon: "📱",
-    helpText: "Using messages, forms or simple digital tools."
+    helpText: "Using messages, forms or simple digital tools.",
   },
   {
     value: "Practical hands-on help",
     label: "Hands-on help",
     icon: "🛠️",
-    helpText: "Moving, carrying, preparing, tidying or setting up."
+    helpText: "Moving, carrying, preparing, tidying or setting up.",
   },
   {
     value: "Problem solving",
     label: "Problem solving",
     icon: "🧩",
-    helpText: "Finding practical ways to help when things change."
+    helpText: "Finding practical ways to help when things change.",
   },
   {
     value: "Staying calm",
     label: "Staying calm",
     icon: "🌤️",
-    helpText: "Taking things one step at a time."
+    helpText: "Taking things one step at a time.",
   },
   {
     value: "No experience needed",
     label: "No experience needed",
     icon: "🌱",
-    helpText: "A gentle role where people can learn as they go."
-  }
+    helpText: "A gentle role where people can learn as they go.",
+  },
 ];
 
 const supportOptions: ChoiceOption[] = [
@@ -182,44 +182,44 @@ const supportOptions: ChoiceOption[] = [
     value: "Clear written instructions",
     label: "Clear instructions",
     icon: "📝",
-    helpText: "Volunteers know what to expect before starting."
+    helpText: "Volunteers know what to expect before starting.",
   },
   {
     value: "Named contact person",
     label: "Named contact",
     icon: "👋",
-    helpText: "A clear person volunteers can ask for help."
+    helpText: "A clear person volunteers can ask for help.",
   },
   {
     value: "Shorter starter shifts",
     label: "Shorter shifts",
     icon: "🌱",
-    helpText: "People can start gently and build confidence."
+    helpText: "People can start gently and build confidence.",
   },
   {
     value: "Flexible timings where possible",
     label: "Flexible timings",
     icon: "🕒",
-    helpText: "Times can be adjusted where the role allows."
+    helpText: "Times can be adjusted where the role allows.",
   },
   {
     value: "Quiet space or calmer option",
     label: "Quiet option",
     icon: "🌙",
-    helpText: "A quieter space or lower-pressure task where possible."
+    helpText: "A quieter space or lower-pressure task where possible.",
   },
   {
     value: "Check-ins and encouragement",
     label: "Check-ins",
     icon: "💛",
-    helpText: "Regular supportive check-ins from the organisation."
-  }
+    helpText: "Regular supportive check-ins from the organisation.",
+  },
 ];
 
 function ChoiceGrid({
   name,
   options,
-  savedValues
+  savedValues,
 }: {
   name: string;
   options: ChoiceOption[];
@@ -252,7 +252,7 @@ function ChoiceGrid({
 
 export default async function EditOpportunityPage({
   params,
-  searchParams
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
   searchParams: Promise<{ error?: string }>;
@@ -267,7 +267,7 @@ export default async function EditOpportunityPage({
   const supabase = await createClient();
 
   const {
-    data: { user }
+    data: { user },
   } = await supabase.auth.getUser();
 
   if (!user) {
@@ -300,7 +300,7 @@ export default async function EditOpportunityPage({
   const { data: opportunity } = await supabase
     .from("opportunities")
     .select(
-      "id,title,summary,location_type,location,time_commitment,interests,skills,support_offered,contact_name,contact_email,safety_notes,status"
+      "id,title,summary,location_type,location,time_commitment,interests,skills,support_offered,contact_name,contact_email,safety_notes,status",
     )
     .eq("id", opportunityId)
     .eq("organisation_user_id", user.id)
@@ -313,18 +313,28 @@ export default async function EditOpportunityPage({
   const profileCompleted = organisationProfile?.profile_completed === true;
 
   const listenText =
-    "This is the edit opportunity page. You can update the title, description, location, time commitment, interests, skills, support, contact details, safety notes and status. Save changes returns you to the opportunities list.";
+    "This is the edit opportunity page. You can update the title, description, location, time commitment, interests, skills, support, contact details, safety notes and status. Use Skills reviews to add positive skills feedback for volunteers who registered interest in this role. Save changes returns you to the opportunities list.";
 
   return (
-    <main className="onboarding-shell">
+    <main className="onboarding-shell opportunity-edit-page">
       <section className="onboarding-panel">
         <div className="onboarding-top-row">
           <div>
             <p className="brand-eyebrow">Opportunity editor</p>
           </div>
 
-          <div className="dashboard-topbar-actions">
+          <div className="dashboard-topbar-actions opportunity-editor-actions">
             <InclusiveAudioButton text={listenText} />
+
+            <Link
+              href={`/organisation/opportunities/${opportunity.id}/reviews`}
+              className="secondary-button dashboard-signout-button"
+            >
+              <span className="dashboard-button-inner">
+                <span aria-hidden="true">⭐</span>
+                <span>Skills reviews</span>
+              </span>
+            </Link>
 
             <Link
               href="/organisation/opportunities"
@@ -351,6 +361,28 @@ export default async function EditOpportunityPage({
                   Review the role before volunteers see it. Keep the language
                   clear, supportive and practical.
                 </p>
+
+                <div className="opportunity-editor-hero-actions">
+                  <Link
+                    href={`/organisation/opportunities/${opportunity.id}/reviews`}
+                    className="primary-button"
+                  >
+                    <span className="button-balanced-inner">
+                      <span aria-hidden="true">⭐</span>
+                      <span>Skills reviews</span>
+                    </span>
+                  </Link>
+
+                  <Link
+                    href="/organisation/opportunities"
+                    className="secondary-button"
+                  >
+                    <span className="button-balanced-inner">
+                      <span aria-hidden="true">📣</span>
+                      <span>All roles</span>
+                    </span>
+                  </Link>
+                </div>
               </div>
             </div>
           </div>
@@ -607,6 +639,53 @@ export default async function EditOpportunityPage({
           </button>
         </form>
       </section>
+
+      <style>{`
+        .opportunity-edit-page,
+        .opportunity-edit-page * {
+          box-sizing: border-box;
+        }
+
+        .opportunity-editor-actions {
+          gap: 10px;
+        }
+
+        .opportunity-editor-hero-actions {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 10px;
+          margin-top: 18px;
+        }
+
+        .opportunity-editor-hero-actions .primary-button,
+        .opportunity-editor-hero-actions .secondary-button {
+          min-width: 190px;
+        }
+
+        @media (max-width: 760px) {
+          .opportunity-editor-actions {
+            width: 100%;
+            justify-content: stretch;
+          }
+
+          .opportunity-editor-actions > *,
+          .opportunity-editor-actions a,
+          .opportunity-editor-actions button {
+            width: 100%;
+          }
+
+          .opportunity-editor-hero-actions {
+            display: grid;
+            width: 100%;
+          }
+
+          .opportunity-editor-hero-actions .primary-button,
+          .opportunity-editor-hero-actions .secondary-button {
+            width: 100%;
+            min-width: 0;
+          }
+        }
+      `}</style>
     </main>
   );
 }
