@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { InclusiveAudioButton } from "@/components/InclusiveSupport";
+import { PrintButton } from "@/components/PrintButton";
 
 export const dynamic = "force-dynamic";
 
@@ -162,25 +163,6 @@ function SummaryPill({
         <strong>{value}</strong> {label}
       </span>
     </span>
-  );
-}
-
-function PrintButton({ label = "Print / Save as PDF" }: { label?: string }) {
-  return (
-    <button
-      type="button"
-      className="secondary-button print-button"
-      onClick={() => {
-        if (typeof window !== "undefined") {
-          window.print();
-        }
-      }}
-    >
-      <span className="dashboard-button-inner">
-        <span aria-hidden="true">🖨️</span>
-        <span>{label}</span>
-      </span>
-    </button>
   );
 }
 
@@ -506,7 +488,10 @@ export default async function PositivePathwayCvPage() {
           </CvSection>
         </section>
 
-        <section className="positive-cv-footer-actions no-print" aria-label="CV actions">
+        <section
+          className="positive-cv-footer-actions no-print"
+          aria-label="CV actions"
+        >
           <PrintButton />
 
           <Link href="/pathway" className="primary-button">
