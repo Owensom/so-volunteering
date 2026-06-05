@@ -237,12 +237,14 @@ export default async function AdminAppHelpPage({
   const resolvedCount = requestRows.filter(
     (request) => request.status === "resolved",
   ).length;
+  const closedCount = requestRows.filter((request) => request.status === "closed")
+    .length;
   const safetyCount = requestRows.filter(
     (request) => request.category === "safety_or_safeguarding",
   ).length;
 
   const listenText =
-    "You are on the owner app help inbox. This page shows help requests submitted through Help using the app. Use the Back to owner home button to return to the owner access page. Use the filter buttons to view all requests, new requests, reviewing requests, resolved requests, or safety requests. Use the search box to find requests by name, email, message, page area, status, category, organisation or volunteer. Each request card has a contact requester link if an email address was provided. Review new requests first. Safety or safeguarding concerns should be checked as soon as possible. You can update the status and add an internal note. This page is only for app help requests, not volunteer personal support needs.";
+    "You are on the owner app help inbox. This page shows help requests submitted through Help using the app. Use the Back to owner home button to return to the owner access page. Use the filter buttons to view all requests, new requests, reviewing requests, resolved requests, closed requests, or safety requests. Use the search box to find requests by name, email, message, page area, status, category, organisation or volunteer. Each request card has a contact requester link if an email address was provided. Review new requests first. Safety or safeguarding concerns should be checked as soon as possible. You can update the status and add an internal note. This page is only for app help requests, not volunteer personal support needs.";
 
   return (
     <main className="dashboard-bg app-help-admin-page">
@@ -332,6 +334,7 @@ export default async function AdminAppHelpPage({
               <span>New: {newCount}</span>
               <span>Reviewing: {reviewingCount}</span>
               <span>Resolved: {resolvedCount}</span>
+              <span>Closed: {closedCount}</span>
               <span>Safety: {safetyCount}</span>
             </div>
           </div>
@@ -441,6 +444,15 @@ export default async function AdminAppHelpPage({
             <span aria-hidden="true">✅</span>
             <span>Resolved</span>
             <strong>{resolvedCount}</strong>
+          </Link>
+
+          <Link
+            href={buildFilterHref({ status: "closed" }, searchQuery)}
+            className={getFilterClass(activeStatus === "closed")}
+          >
+            <span aria-hidden="true">📦</span>
+            <span>Closed</span>
+            <strong>{closedCount}</strong>
           </Link>
 
           <Link
@@ -724,7 +736,7 @@ export default async function AdminAppHelpPage({
 
         .app-help-filters {
           display: grid;
-          grid-template-columns: repeat(5, minmax(0, 1fr));
+          grid-template-columns: repeat(6, minmax(0, 1fr));
           gap: 12px;
         }
 
@@ -940,11 +952,13 @@ export default async function AdminAppHelpPage({
           width: fit-content;
         }
 
-        @media (max-width: 900px) {
+        @media (max-width: 980px) {
           .app-help-filters {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
+            grid-template-columns: repeat(3, minmax(0, 1fr));
           }
+        }
 
+        @media (max-width: 900px) {
           .search-input-row {
             grid-template-columns: 1fr;
           }
