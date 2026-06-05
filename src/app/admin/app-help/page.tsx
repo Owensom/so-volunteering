@@ -114,7 +114,8 @@ export default async function AdminAppHelpPage({
 
   const requestRows = (requests as SupportRequestRow[] | null) ?? [];
 
-  const newCount = requestRows.filter((request) => request.status === "new").length;
+  const newCount = requestRows.filter((request) => request.status === "new")
+    .length;
   const reviewingCount = requestRows.filter(
     (request) => request.status === "reviewing"
   ).length;
@@ -123,7 +124,7 @@ export default async function AdminAppHelpPage({
   ).length;
 
   const listenText =
-    "You are on the admin app help inbox. This page shows help requests submitted through Help using the app. Review new requests first. Safety or safeguarding concerns should be checked as soon as possible. Each card shows the user type, name, email, category, page area, message and status. You can update the status and add an internal note. This page is only for app help requests, not volunteer personal support needs.";
+    "You are on the admin app help inbox. This page shows help requests submitted through Help using the app. Use the Back to workspace button to return to your organisation dashboard. Review new requests first. Safety or safeguarding concerns should be checked as soon as possible. Each card shows the user type, name, email, category, page area, message and status. You can update the status and add an internal note. This page is only for app help requests, not volunteer personal support needs.";
 
   return (
     <main className="dashboard-bg app-help-admin-page">
@@ -132,7 +133,7 @@ export default async function AdminAppHelpPage({
           <Link
             href="/organisation/dashboard"
             className="dashboard-brand"
-            aria-label="Back to dashboard"
+            aria-label="Back to organisation dashboard"
           >
             <img
               src="/brand/so-volunteering-logo-mark.png"
@@ -150,6 +151,16 @@ export default async function AdminAppHelpPage({
 
           <div className="dashboard-topbar-actions app-help-admin-topbar-actions">
             <InclusiveAudioButton text={listenText} />
+
+            <Link
+              href="/organisation/dashboard"
+              className="secondary-button dashboard-signout-button"
+            >
+              <span className="dashboard-button-inner">
+                <span aria-hidden="true">←</span>
+                <span>Back to workspace</span>
+              </span>
+            </Link>
 
             <Link
               href="/help"
@@ -179,6 +190,22 @@ export default async function AdminAppHelpPage({
               View help requests from volunteers and organisations. Keep this
               separate from volunteer wellbeing and support preferences.
             </p>
+
+            <div className="dashboard-primary-actions app-help-admin-actions">
+              <Link href="/organisation/dashboard" className="primary-button">
+                <span className="dashboard-button-inner">
+                  <span aria-hidden="true">←</span>
+                  <span>Back to workspace</span>
+                </span>
+              </Link>
+
+              <Link href="/help" className="secondary-button">
+                <span className="dashboard-button-inner">
+                  <span aria-hidden="true">🧭</span>
+                  <span>Open help page</span>
+                </span>
+              </Link>
+            </div>
 
             <div className="app-help-admin-stats" aria-label="Help request summary">
               <span>New: {newCount}</span>
@@ -333,6 +360,11 @@ export default async function AdminAppHelpPage({
         .app-help-admin-page,
         .app-help-admin-page * {
           box-sizing: border-box;
+        }
+
+        .app-help-admin-actions {
+          gap: 12px;
+          margin-top: 6px;
         }
 
         .app-help-admin-stats {
@@ -505,6 +537,15 @@ export default async function AdminAppHelpPage({
           .app-help-admin-hero .dashboard-lead {
             font-size: 1.02rem !important;
             line-height: 1.48 !important;
+          }
+
+          .app-help-admin-actions {
+            width: 100%;
+          }
+
+          .app-help-admin-actions .primary-button,
+          .app-help-admin-actions .secondary-button {
+            width: 100%;
           }
 
           .app-help-admin-note {
