@@ -286,7 +286,7 @@ export default async function OwnerHomePage() {
               <h2 id="recent-requests-title">Recent App Help requests</h2>
               <p>
                 Quick view of the latest requests submitted through Help using
-                the app.
+                the app. Select a request to open it in the full inbox.
               </p>
             </div>
 
@@ -321,7 +321,7 @@ export default async function OwnerHomePage() {
               {recentRequests.map((request) => (
                 <Link
                   key={request.id}
-                  href="/admin/app-help"
+                  href={`/admin/app-help#request-${request.id}`}
                   className={
                     request.category === "safety_or_safeguarding"
                       ? "recent-request-card safety-recent-card"
