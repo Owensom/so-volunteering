@@ -296,8 +296,8 @@ export default async function DashboardPage() {
 
   const listenText =
     simpleView
-      ? "You are on your SO Volunteering dashboard. This is your home page. First, check your progress. Then use the main button to continue. You can also find roles, check your saved roles, view your profile, or change your app settings."
-      : "You are on your SO Volunteering dashboard. This is your home base. First, check the Profile progress card on the right to see how many setup steps are complete. Use the main button near the top to continue your next step, or to find opportunities if your setup is complete. Use the Roles I am interested in button to track roles where you clicked I’m interested. The cards below give quick links. View my profile opens your saved details. See my pathway shows all setup steps. Wellbeing and support lets you review what helps you feel comfortable. Find opportunities opens published volunteering roles. Roles I am interested in shows roles you have saved and their current status. Personalise my app lets you choose view mode, colour theme, text size, avatar and Listen preference.";
+      ? "You are on your SO Volunteering dashboard. This is your home page. First, check your progress. Then use the main button to continue. You can find roles, check your saved roles, view your profile, change your app settings, or get help using the app."
+      : "You are on your SO Volunteering dashboard. This is your home base. First, check the Profile progress card on the right to see how many setup steps are complete. Use the main button near the top to continue your next step, or to find opportunities if your setup is complete. Use the Roles I am interested in button to track roles where you clicked I’m interested. The cards below give quick links. View my profile opens your saved details. See my pathway shows all setup steps. Wellbeing and support lets you review what helps you feel comfortable. Find opportunities opens published volunteering roles. Roles I am interested in shows roles you have saved and their current status. Personalise my app lets you choose view mode, colour theme, text size, avatar and Listen preference. Help using the app is for getting help if you are stuck, something is not working, or you want to report a problem with SO Volunteering.";
 
   const shellClassName = [
     "dashboard-bg",
@@ -384,6 +384,13 @@ export default async function DashboardPage() {
                 <span className="dashboard-button-inner">
                   <span aria-hidden="true">📬</span>
                   <span>Roles I am interested in</span>
+                </span>
+              </Link>
+
+              <Link href="/help" className="secondary-button dashboard-main-action">
+                <span className="dashboard-button-inner">
+                  <span aria-hidden="true">🧭</span>
+                  <span>Help using the app</span>
                 </span>
               </Link>
             </div>
@@ -546,6 +553,24 @@ export default async function DashboardPage() {
                 </p>
               </div>
               <span className="dashboard-card-action-pill">Open settings</span>
+            </div>
+          </Link>
+
+          <Link href="/help" className="info-card dashboard-pathway-card">
+            <div className="dashboard-card-icon" aria-hidden="true">
+              🧭
+            </div>
+            <div className="dashboard-card-copy">
+              <div className="dashboard-card-main">
+                <p className="dashboard-card-label">App help</p>
+                <h2>Help using the app</h2>
+                <p>
+                  {simpleView
+                    ? "Get help if you are stuck."
+                    : "Get help if you are stuck, something is not working, or you want to report a problem with SO Volunteering."}
+                </p>
+              </div>
+              <span className="dashboard-card-action-pill">Open help page</span>
             </div>
           </Link>
         </section>
