@@ -30,6 +30,7 @@ type AppHelpSearchParams = {
   message?: string;
   status?: string;
   category?: string;
+  q?: string;
 };
 
 function formatCategory(category: string) {
@@ -86,6 +87,51 @@ function getFilterClass(isActive: boolean) {
   return isActive ? "app-help-filter active-filter" : "app-help-filter";
 }
 
+function normaliseSearch(value: string) {
+  return value.trim().toLowerCase();
+}
+
+function requestMatchesSearch(request: SupportRequestRow, query: string) {
+  if (!query) return true;
+
+  const searchableText = [
+    request.user_type,
+    formatUserType(request.user_type),
+    request.name,
+    request.email,
+    request.category,
+    formatCategory(request.category),
+    request.message,
+    request.status,
+    formatStatus(request.status),
+    request.page_context,
+    request.admin_note,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  return searchableText.includes(query);
+}
+
+function buildFilterHref(
+  base: {
+    status?: string;
+    category?: string;
+  },
+  searchQuery: string,
+) {
+  const params = new URLSearchParams();
+
+  if (base.status) params.set("status", base.status);
+  if (base.category) params.set("category", base.category);
+  if (searchQuery) params.set("q", searchQuery);
+
+  const queryString = params.toString();
+
+  return queryString ? `/admin/app-help?${queryString}` : "/admin/app-help";
+}
+
 export default async function AdminAppHelpPage({
   searchParams,
 }: {
@@ -97,6 +143,8 @@ export default async function AdminAppHelpPage({
   const successMessage = params.message
     ? decodeURIComponent(params.message)
     : "";
+
+  const searchQuery = normaliseSearch(params.q ?? "");
 
   const activeStatus =
     params.status === "new" ||
@@ -112,6 +160,8 @@ export default async function AdminAppHelpPage({
       : "";
 
   const hasActiveFilter = Boolean(activeStatus || activeCategory);
+  const hasActiveSearch = Boolean(searchQuery);
+  const hasAnyViewFilter = Boolean(hasActiveFilter || hasActiveSearch);
 
   const supabase = await createClient();
 
@@ -146,6 +196,7 @@ export default async function AdminAppHelpPage({
   const filteredRows = requestRows.filter((request) => {
     if (activeStatus && request.status !== activeStatus) return false;
     if (activeCategory && request.category !== activeCategory) return false;
+    if (!requestMatchesSearch(request, searchQuery)) return false;
     return true;
   });
 
@@ -162,7 +213,7 @@ export default async function AdminAppHelpPage({
   ).length;
 
   const listenText =
-    "You are on the owner app help inbox. This page shows help requests submitted through Help using the app. Use the Back to owner home button to return to the owner access page. Use the filter buttons to view all requests, new requests, reviewing requests, resolved requests, or safety requests. Review new requests first. Safety or safeguarding concerns should be checked as soon as possible. Each card shows the user type, name, email, category, page area, message and status. You can update the status and add an internal note. This page is only for app help requests, not volunteer personal support needs.";
+    "You are on the owner app help inbox. This page shows help requests submitted through Help using the app. Use the Back to owner home button to return to the owner access page. Use the filter buttons to view all requests, new requests, reviewing requests, resolved requests, or safety requests. Use the search box to find requests by name, email, message, page area, status, category, organisation or volunteer. Review new requests first. Safety or safeguarding concerns should be checked as soon as possible. Each card shows the user type, name, email, category, page area, message and status. You can update the status and add an internal note. This page is only for app help requests, not volunteer personal support needs.";
 
   return (
     <main className="dashboard-bg app-help-admin-page">
@@ -274,15 +325,70 @@ export default async function AdminAppHelpPage({
           </aside>
         </section>
 
+        <section className="app-help-search-panel" aria-label="Search app help">
+          <form action="/admin/app-help" className="app-help-search-form">
+            {activeStatus ? (
+              <input type="hidden" name="status" value={activeStatus} />
+            ) : null}
+
+            {activeCategory ? (
+              <input type="hidden" name="category" value={activeCategory} />
+            ) : null}
+
+            <label htmlFor="app-help-search">
+              <span className="search-label-row">
+                <span aria-hidden="true">🔎</span>
+                <span>Search help requests</span>
+              </span>
+            </label>
+
+            <div className="search-input-row">
+              <input
+                id="app-help-search"
+                name="q"
+                type="search"
+                defaultValue={params.q ?? ""}
+                placeholder="Search name, email, message, status or page area"
+              />
+
+              <button type="submit" className="primary-button">
+                Search
+              </button>
+
+              {hasActiveSearch ? (
+                <Link
+                  href={buildFilterHref(
+                    { status: activeStatus, category: activeCategory },
+                    "",
+                  )}
+                  className="secondary-button clear-search-button"
+                >
+                  Clear
+                </Link>
+              ) : null}
+            </div>
+          </form>
+
+          {hasActiveSearch ? (
+            <p className="search-result-note">
+              Showing {filteredRows.length} result
+              {filteredRows.length === 1 ? "" : "s"} for “{params.q}”.
+            </p>
+          ) : null}
+        </section>
+
         <nav className="app-help-filters" aria-label="App help filters">
-          <Link href="/admin/app-help" className={getFilterClass(!hasActiveFilter)}>
+          <Link
+            href={buildFilterHref({}, searchQuery)}
+            className={getFilterClass(!hasActiveFilter)}
+          >
             <span aria-hidden="true">📋</span>
             <span>All</span>
             <strong>{requestRows.length}</strong>
           </Link>
 
           <Link
-            href="/admin/app-help?status=new"
+            href={buildFilterHref({ status: "new" }, searchQuery)}
             className={getFilterClass(activeStatus === "new")}
           >
             <span aria-hidden="true">🆕</span>
@@ -291,7 +397,7 @@ export default async function AdminAppHelpPage({
           </Link>
 
           <Link
-            href="/admin/app-help?status=reviewing"
+            href={buildFilterHref({ status: "reviewing" }, searchQuery)}
             className={getFilterClass(activeStatus === "reviewing")}
           >
             <span aria-hidden="true">👀</span>
@@ -300,7 +406,7 @@ export default async function AdminAppHelpPage({
           </Link>
 
           <Link
-            href="/admin/app-help?status=resolved"
+            href={buildFilterHref({ status: "resolved" }, searchQuery)}
             className={getFilterClass(activeStatus === "resolved")}
           >
             <span aria-hidden="true">✅</span>
@@ -309,7 +415,10 @@ export default async function AdminAppHelpPage({
           </Link>
 
           <Link
-            href="/admin/app-help?category=safety_or_safeguarding"
+            href={buildFilterHref(
+              { category: "safety_or_safeguarding" },
+              searchQuery,
+            )}
             className={getFilterClass(
               activeCategory === "safety_or_safeguarding",
             )}
@@ -319,6 +428,19 @@ export default async function AdminAppHelpPage({
             <strong>{safetyCount}</strong>
           </Link>
         </nav>
+
+        {hasAnyViewFilter ? (
+          <div className="active-view-panel">
+            <span>
+              Showing {filteredRows.length} of {requestRows.length} request
+              {requestRows.length === 1 ? "" : "s"}.
+            </span>
+
+            <Link href="/admin/app-help" className="secondary-button">
+              Reset view
+            </Link>
+          </div>
+        ) : null}
 
         {successMessage ? (
           <div className="alert alert-success">{successMessage}</div>
@@ -338,16 +460,16 @@ export default async function AdminAppHelpPage({
               </div>
               <div className="dashboard-card-copy">
                 <p className="dashboard-card-label">
-                  {hasActiveFilter ? "No matching requests" : "No requests"}
+                  {hasAnyViewFilter ? "No matching requests" : "No requests"}
                 </p>
                 <h2>
-                  {hasActiveFilter
-                    ? "No app help requests match this filter"
+                  {hasAnyViewFilter
+                    ? "No app help requests match this view"
                     : "No app help requests yet"}
                 </h2>
                 <p>
-                  {hasActiveFilter
-                    ? "Choose another filter to view more requests."
+                  {hasAnyViewFilter
+                    ? "Clear the search or choose another filter to view more requests."
                     : "When a volunteer or organisation submits Help using the app, the request will appear here."}
                 </p>
               </div>
@@ -357,6 +479,7 @@ export default async function AdminAppHelpPage({
           {filteredRows.map((request) => (
             <article
               key={request.id}
+              id={`request-${request.id}`}
               className={
                 request.category === "safety_or_safeguarding"
                   ? "info-card app-help-request-card safety-request-card"
@@ -482,6 +605,65 @@ export default async function AdminAppHelpPage({
           line-height: 1.15;
         }
 
+        .app-help-search-panel {
+          padding: 18px;
+          border: 1px solid rgba(83, 111, 99, 0.16);
+          border-radius: 24px;
+          background: rgba(255, 255, 255, 0.86);
+          box-shadow: 0 12px 34px rgba(33, 44, 38, 0.05);
+        }
+
+        .app-help-search-form {
+          display: grid;
+          gap: 10px;
+        }
+
+        .app-help-search-form label {
+          color: #315f48;
+          font-weight: 950;
+        }
+
+        .search-label-row {
+          display: inline-flex;
+          gap: 8px;
+          align-items: center;
+        }
+
+        .search-input-row {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) auto auto;
+          gap: 10px;
+          align-items: center;
+        }
+
+        .search-input-row input {
+          width: 100%;
+          min-height: 50px;
+          border: 1px solid rgba(83, 111, 99, 0.2);
+          border-radius: 18px;
+          background: #ffffff;
+          color: #263238;
+          padding: 12px 14px;
+          font: inherit;
+          font-weight: 750;
+        }
+
+        .search-input-row input:focus {
+          outline: 3px solid rgba(183, 167, 214, 0.32);
+          border-color: rgba(108, 92, 160, 0.42);
+        }
+
+        .clear-search-button {
+          min-width: 96px;
+        }
+
+        .search-result-note {
+          margin: 10px 0 0;
+          color: #60706a;
+          font-weight: 850;
+          overflow-wrap: anywhere;
+        }
+
         .app-help-filters {
           display: grid;
           grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -526,6 +708,23 @@ export default async function AdminAppHelpPage({
           color: #315f48;
         }
 
+        .active-view-panel {
+          padding: 14px 16px;
+          border: 1px solid rgba(108, 92, 160, 0.16);
+          border-radius: 22px;
+          background: rgba(248, 245, 255, 0.72);
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          flex-wrap: wrap;
+        }
+
+        .active-view-panel span {
+          color: #536f63;
+          font-weight: 900;
+        }
+
         .app-help-request-list {
           display: grid;
           gap: 18px;
@@ -542,6 +741,7 @@ export default async function AdminAppHelpPage({
           display: grid;
           gap: 18px;
           border-radius: 28px;
+          scroll-margin-top: 18px;
         }
 
         .safety-request-card {
@@ -652,6 +852,15 @@ export default async function AdminAppHelpPage({
           .app-help-filters {
             grid-template-columns: repeat(2, minmax(0, 1fr));
           }
+
+          .search-input-row {
+            grid-template-columns: 1fr;
+          }
+
+          .search-input-row .primary-button,
+          .search-input-row .secondary-button {
+            width: 100%;
+          }
         }
 
         @media (max-width: 760px) {
@@ -726,6 +935,10 @@ export default async function AdminAppHelpPage({
 
           .app-help-filter {
             justify-content: space-between;
+          }
+
+          .active-view-panel .secondary-button {
+            width: 100%;
           }
         }
       `}</style>
