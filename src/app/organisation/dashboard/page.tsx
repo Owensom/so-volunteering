@@ -26,14 +26,6 @@ type InterestSummary = {
   status: string;
 };
 
-type SupportAdminRow = {
-  user_id: string;
-};
-
-type SupportRequestSummary = {
-  status: string;
-};
-
 type OrganisationCardProps = {
   href?: string;
   icon: string;
@@ -42,7 +34,6 @@ type OrganisationCardProps = {
   description: string;
   action: string;
   muted?: boolean;
-  highlight?: boolean;
 };
 
 function normaliseUserType(value: string | null | undefined) {
@@ -58,8 +49,7 @@ function OrganisationCard({
   title,
   description,
   action,
-  muted = false,
-  highlight = false
+  muted = false
 }: OrganisationCardProps) {
   const content = (
     <>
@@ -84,19 +74,22 @@ function OrganisationCard({
     </>
   );
 
-  const className = highlight
-    ? "info-card dashboard-pathway-card organisation-card organisation-owner-card"
-    : "info-card dashboard-pathway-card organisation-card";
-
   if (href) {
     return (
-      <Link href={href} className={className}>
+      <Link
+        href={href}
+        className="info-card dashboard-pathway-card organisation-card"
+      >
         {content}
       </Link>
     );
   }
 
-  return <article className={className}>{content}</article>;
+  return (
+    <article className="info-card dashboard-pathway-card organisation-card">
+      {content}
+    </article>
+  );
 }
 
 export default async function OrganisationDashboardPage() {
@@ -143,26 +136,6 @@ export default async function OrganisationDashboardPage() {
     .select("status")
     .eq("organisation_user_id", user.id);
 
-  const { data: supportAdmin } = await supabase
-    .from("support_admins")
-    .select("user_id")
-    .eq("user_id", user.id)
-    .maybeSingle<SupportAdminRow>();
-
-  const isSupportAdmin = Boolean(supportAdmin);
-
-  const { data: supportRequests } = isSupportAdmin
-    ? await supabase
-        .from("support_requests")
-        .select("status")
-        .in("status", ["new", "reviewing"])
-    : { data: null };
-
-  const supportRequestRows =
-    (supportRequests as SupportRequestSummary[] | null) ?? [];
-
-  const activeSupportRequestCount = supportRequestRows.length;
-
   const opportunityRows = (opportunities as OpportunitySummary[] | null) ?? [];
   const interestRows = (interests as InterestSummary[] | null) ?? [];
 
@@ -194,9 +167,8 @@ export default async function OrganisationDashboardPage() {
 
   const profileCompleted = organisationProfile?.profile_completed === true;
 
-  const listenText = isSupportAdmin
-    ? "You are on the organisation dashboard. This is your workspace for creating volunteering roles and reviewing volunteer interest. You also have owner access to the app help inbox. Use App help inbox to review help requests submitted through Help using the app. Keep this separate from volunteer wellbeing and support preferences."
-    : "You are on the organisation dashboard. This is your workspace for creating volunteering roles and reviewing volunteer interest. First, check the Workspace status card. It shows whether your organisation profile is complete, how many roles are published, how many are drafts, and how many new volunteer interests need review. Use the Create role button to make a new volunteering role. Use the View interest button to open the interest inbox. The cards below give quick links. Organisation profile lets you review your organisation details. Create a role opens the role setup form. Opportunity list shows draft, published and closed roles. Interest inbox shows volunteers who have clicked I’m interested. Help using the app is for getting help if you are stuck, something is not working, or you want to report a problem with SO Volunteering. Volunteer matches is a later feature.";
+  const listenText =
+    "You are on the organisation dashboard. This is your workspace for creating volunteering roles and reviewing volunteer interest. First, check the Workspace status card. It shows whether your organisation profile is complete, how many roles are published, how many are drafts, and how many new volunteer interests need review. Use the Create role button to make a new volunteering role. Use the View interest button to open the interest inbox. The cards below give quick links. Organisation profile lets you review your organisation details. Create a role opens the role setup form. Opportunity list shows draft, published and closed roles. Interest inbox shows volunteers who have clicked I’m interested. Help using the app is for getting help if you are stuck, something is not working, or you want to report a problem with SO Volunteering. Volunteer matches is a later feature.";
 
   return (
     <main className="dashboard-bg organisation-dashboard-page">
@@ -291,18 +263,6 @@ export default async function OrganisationDashboardPage() {
                   <span>Help using the app</span>
                 </span>
               </Link>
-
-              {isSupportAdmin ? (
-                <Link
-                  href="/admin/app-help"
-                  className="secondary-button dashboard-main-action owner-inbox-action"
-                >
-                  <span className="dashboard-button-inner">
-                    <span aria-hidden="true">🛡️</span>
-                    <span>App help inbox</span>
-                  </span>
-                </Link>
-              ) : null}
             </div>
           </div>
 
@@ -343,42 +303,8 @@ export default async function OrganisationDashboardPage() {
             <p className="dashboard-progress-note organisation-status-note">
               New interest: <strong>{newInterestCount}</strong>
             </p>
-
-            {isSupportAdmin ? (
-              <p className="dashboard-progress-note organisation-status-note">
-                Open app help: <strong>{activeSupportRequestCount}</strong>
-              </p>
-            ) : null}
           </aside>
         </section>
-
-        {isSupportAdmin ? (
-          <section
-            className="owner-tools-strip"
-            aria-label="Owner tools"
-          >
-            <div>
-              <p className="dashboard-kicker">Owner tools</p>
-              <h2>App help inbox</h2>
-              <p>
-                Review help requests submitted through Help using the app. Keep
-                these separate from volunteer wellbeing and support preferences.
-              </p>
-            </div>
-
-            <Link href="/admin/app-help" className="primary-button">
-              <span className="dashboard-button-inner">
-                <span aria-hidden="true">🛡️</span>
-                <span>
-                  Open inbox
-                  {activeSupportRequestCount > 0
-                    ? ` (${activeSupportRequestCount})`
-                    : ""}
-                </span>
-              </span>
-            </Link>
-          </section>
-        ) : null}
 
         <section
           className="dashboard-grid organisation-card-grid"
@@ -429,22 +355,6 @@ export default async function OrganisationDashboardPage() {
             action="Open help page"
           />
 
-          {isSupportAdmin ? (
-            <OrganisationCard
-              href="/admin/app-help"
-              icon="🛡️"
-              label="Owner tools"
-              title="App help inbox"
-              description={
-                activeSupportRequestCount > 0
-                  ? `${activeSupportRequestCount} open help request${activeSupportRequestCount === 1 ? "" : "s"} need review.`
-                  : "Review and update app help requests submitted by volunteers and organisations."
-              }
-              action="Open inbox"
-              highlight
-            />
-          ) : null}
-
           <OrganisationCard
             icon="🤝"
             label="Matching"
@@ -478,16 +388,6 @@ export default async function OrganisationDashboardPage() {
           min-height: 224px;
           height: 100%;
           align-items: stretch;
-        }
-
-        .organisation-owner-card {
-          border-color: rgba(83, 111, 99, 0.28);
-          background:
-            radial-gradient(circle at top left, rgba(244, 255, 249, 0.96), transparent 46%),
-            rgba(255, 255, 255, 0.92);
-          box-shadow:
-            0 18px 42px rgba(33, 56, 48, 0.1),
-            0 0 0 4px rgba(83, 111, 99, 0.06);
         }
 
         .organisation-card-copy {
@@ -532,43 +432,6 @@ export default async function OrganisationDashboardPage() {
         .organisation-status-note {
           overflow-wrap: anywhere;
           word-break: break-word;
-        }
-
-        .owner-inbox-action {
-          border-color: rgba(83, 111, 99, 0.28);
-          background: rgba(244, 255, 249, 0.94);
-        }
-
-        .owner-tools-strip {
-          display: flex;
-          gap: 18px;
-          align-items: center;
-          justify-content: space-between;
-          padding: 20px 22px;
-          border: 1px solid rgba(83, 111, 99, 0.18);
-          border-radius: 28px;
-          background:
-            radial-gradient(circle at top left, rgba(244, 255, 249, 0.96), transparent 42%),
-            rgba(255, 255, 255, 0.86);
-          box-shadow: 0 18px 42px rgba(33, 56, 48, 0.08);
-        }
-
-        .owner-tools-strip h2 {
-          margin: 0;
-          color: #536f63;
-          font-size: 1.35rem;
-          line-height: 1.15;
-        }
-
-        .owner-tools-strip p {
-          margin: 6px 0 0;
-          color: #5d6677;
-          font-weight: 700;
-          line-height: 1.45;
-        }
-
-        .owner-tools-strip .primary-button {
-          flex: 0 0 auto;
         }
 
         @media (max-width: 760px) {
@@ -680,16 +543,6 @@ export default async function OrganisationDashboardPage() {
 
           .organisation-status-note {
             margin-top: 9px;
-          }
-
-          .owner-tools-strip {
-            display: grid;
-            gap: 16px;
-            padding: 18px;
-          }
-
-          .owner-tools-strip .primary-button {
-            width: 100%;
           }
 
           .organisation-card {
