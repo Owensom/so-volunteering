@@ -46,7 +46,7 @@ function normaliseReviewStatus(value: string) {
   return "shared";
 }
 
-function redirectWithError(opportunityId: string, message: string) {
+function redirectWithError(opportunityId: string, message: string): never {
   redirect(
     `/organisation/opportunities/${opportunityId}/reviews?error=${encodeURIComponent(
       message,
@@ -100,6 +100,8 @@ export async function saveVolunteerSkillReview(formData: FormData) {
     redirectWithError(opportunityId, "Opportunity not found.");
   }
 
+  const opportunityRow = opportunity;
+
   const { data: interest } = await supabase
     .from("opportunity_interests")
     .select(
@@ -114,6 +116,8 @@ export async function saveVolunteerSkillReview(formData: FormData) {
     redirectWithError(opportunityId, "Volunteer interest not found.");
   }
 
+  const interestRow = interest;
+
   const status = normaliseReviewStatus(getText(formData, "status"));
 
   const positiveComment = getText(formData, "positive_comment");
@@ -124,14 +128,14 @@ export async function saveVolunteerSkillReview(formData: FormData) {
 
   const { error } = await supabase.from("volunteer_skill_reviews").upsert(
     {
-      opportunity_interest_id: interest.id,
-      opportunity_id: opportunity.id,
+      opportunity_interest_id: interestRow.id,
+      opportunity_id: opportunityRow.id,
       organisation_user_id: user.id,
-      volunteer_user_id: interest.volunteer_user_id,
+      volunteer_user_id: interestRow.volunteer_user_id,
 
-      volunteer_name: interest.volunteer_name,
-      volunteer_email: interest.volunteer_email,
-      opportunity_title: opportunity.title,
+      volunteer_name: interestRow.volunteer_name,
+      volunteer_email: interestRow.volunteer_email,
+      opportunity_title: opportunityRow.title,
 
       reliability: getBoolean(formData, "reliability"),
       teamwork: getBoolean(formData, "teamwork"),
