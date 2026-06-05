@@ -168,7 +168,7 @@ export default async function OrganisationDashboardPage() {
   const profileCompleted = organisationProfile?.profile_completed === true;
 
   const listenText =
-    "You are on the organisation dashboard. This is your workspace for creating volunteering roles and reviewing volunteer interest. First, check the Workspace status card. It shows whether your organisation profile is complete, how many roles are published, how many are drafts, and how many new volunteer interests need review. Use the Create role button to make a new volunteering role. Use the View interest button to open the interest inbox. The cards below give quick links. Organisation profile lets you review your organisation details. Create a role opens the role setup form. Opportunity list shows draft, published and closed roles. Interest inbox shows volunteers who have clicked I’m interested. Volunteer matches is a later feature.";
+    "You are on the organisation dashboard. This is your workspace for creating volunteering roles and reviewing volunteer interest. First, check the Workspace status card. It shows whether your organisation profile is complete, how many roles are published, how many are drafts, and how many new volunteer interests need review. Use the Create role button to make a new volunteering role. Use the View interest button to open the interest inbox. The cards below give quick links. Organisation profile lets you review your organisation details. Create a role opens the role setup form. Opportunity list shows draft, published and closed roles. Interest inbox shows volunteers who have clicked I’m interested. Help using the app is for getting help if you are stuck, something is not working, or you want to report a problem with SO Volunteering. Volunteer matches is a later feature.";
 
   return (
     <main className="dashboard-bg organisation-dashboard-page">
@@ -256,6 +256,13 @@ export default async function OrganisationDashboardPage() {
                   <span>View interest</span>
                 </span>
               </Link>
+
+              <Link href="/help" className="secondary-button dashboard-main-action">
+                <span className="dashboard-button-inner">
+                  <span aria-hidden="true">🧭</span>
+                  <span>Help using the app</span>
+                </span>
+              </Link>
             </div>
           </div>
 
@@ -337,6 +344,15 @@ export default async function OrganisationDashboardPage() {
             title="Interest inbox"
             description="See volunteers who have expressed interest in your published roles."
             action="View interest"
+          />
+
+          <OrganisationCard
+            href="/help"
+            icon="🧭"
+            label="App help"
+            title="Help using the app"
+            description="Get help if you are stuck, something is not working, or you want to report a problem with SO Volunteering."
+            action="Open help page"
           />
 
           <OrganisationCard
