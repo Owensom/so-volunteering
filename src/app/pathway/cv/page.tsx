@@ -109,7 +109,10 @@ function getReviewSkills(review: SkillReview) {
 }
 
 function getAllRecognisedSkills(reviews: SkillReview[]) {
-  const recognisedSkills = new Map<string, { label: string; icon: string; count: number }>();
+  const recognisedSkills = new Map<
+    string,
+    { label: string; icon: string; count: number }
+  >();
 
   reviews.forEach((review) => {
     getReviewSkills(review).forEach((skill) => {
@@ -159,6 +162,25 @@ function SummaryPill({
         <strong>{value}</strong> {label}
       </span>
     </span>
+  );
+}
+
+function PrintButton({ label = "Print / Save as PDF" }: { label?: string }) {
+  return (
+    <button
+      type="button"
+      className="secondary-button print-button"
+      onClick={() => {
+        if (typeof window !== "undefined") {
+          window.print();
+        }
+      }}
+    >
+      <span className="dashboard-button-inner">
+        <span aria-hidden="true">🖨️</span>
+        <span>{label}</span>
+      </span>
+    </button>
   );
 }
 
@@ -233,13 +255,12 @@ export default async function PositivePathwayCvPage() {
   const displayName = profile?.full_name?.trim() || "Volunteer";
   const contactEmail = profile?.email || user.email || "Not added yet";
 
-  const listenText =
-    `This is your Positive Pathway CV. It brings together your goals, interests, skills, availability and positive skills reviews shared by organisations. You currently have ${reviews.length} shared review${reviews.length === 1 ? "" : "s"} and ${recognisedSkills.length} recognised skill area${recognisedSkills.length === 1 ? "" : "s"}. This page is read only for now. You can use your pathway to update your details.`;
+  const listenText = `This is your Positive Pathway CV. It brings together your goals, interests, skills, availability and positive skills reviews shared by organisations. You currently have ${reviews.length} shared review${reviews.length === 1 ? "" : "s"} and ${recognisedSkills.length} recognised skill area${recognisedSkills.length === 1 ? "" : "s"}. This page is read only for now. Use Print or Save as PDF to open your browser print options. You can use your pathway to update your details.`;
 
   return (
     <main className="dashboard-bg positive-cv-page">
       <section className="dashboard-shell">
-        <header className="dashboard-topbar positive-cv-topbar">
+        <header className="dashboard-topbar positive-cv-topbar no-print">
           <Link
             href="/pathway"
             className="dashboard-brand"
@@ -261,6 +282,8 @@ export default async function PositivePathwayCvPage() {
 
           <div className="dashboard-topbar-actions positive-cv-actions">
             <InclusiveAudioButton text={listenText} />
+
+            <PrintButton />
 
             <Link
               href="/pathway"
@@ -320,6 +343,10 @@ export default async function PositivePathwayCvPage() {
                 value={recognisedSkills.length}
               />
             </div>
+
+            <div className="positive-cv-hero-actions no-print">
+              <PrintButton />
+            </div>
           </div>
 
           <aside className="dashboard-progress-card">
@@ -328,10 +355,10 @@ export default async function PositivePathwayCvPage() {
                 📄
               </span>
               <div>
-                <h2>Read-only preview</h2>
+                <h2>CV preview</h2>
                 <p>
-                  This is the first version of the Positive Pathway CV. Export
-                  and sharing can come later.
+                  Use Print / Save as PDF to save or share this page from your
+                  browser.
                 </p>
               </div>
             </div>
@@ -435,8 +462,14 @@ export default async function PositivePathwayCvPage() {
                     <article key={review.id} className="feedback-card">
                       <div className="feedback-card-header">
                         <div>
-                          <h3>{review.opportunity_title || "Volunteering activity"}</h3>
-                          <p>Shared on {formatDate(review.updated_at || review.created_at)}</p>
+                          <h3>
+                            {review.opportunity_title ||
+                              "Volunteering activity"}
+                          </h3>
+                          <p>
+                            Shared on{" "}
+                            {formatDate(review.updated_at || review.created_at)}
+                          </p>
                         </div>
                       </div>
 
@@ -473,7 +506,9 @@ export default async function PositivePathwayCvPage() {
           </CvSection>
         </section>
 
-        <section className="positive-cv-footer-actions" aria-label="CV actions">
+        <section className="positive-cv-footer-actions no-print" aria-label="CV actions">
+          <PrintButton />
+
           <Link href="/pathway" className="primary-button">
             <span className="dashboard-button-inner">
               <span aria-hidden="true">🌱</span>
@@ -500,6 +535,12 @@ export default async function PositivePathwayCvPage() {
           gap: 10px;
         }
 
+        .print-button {
+          border: 1px solid rgba(83, 111, 99, 0.28);
+          cursor: pointer;
+          font: inherit;
+        }
+
         .positive-cv-summary-pills {
           display: flex;
           flex-wrap: wrap;
@@ -519,6 +560,13 @@ export default async function PositivePathwayCvPage() {
           background: rgba(244, 255, 249, 0.9);
           color: #536f63;
           font-weight: 900;
+        }
+
+        .positive-cv-hero-actions {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 10px;
+          margin-top: 16px;
         }
 
         .positive-cv-document {
@@ -724,9 +772,138 @@ export default async function PositivePathwayCvPage() {
           }
 
           .summary-pill,
+          .positive-cv-hero-actions .secondary-button,
           .positive-cv-footer-actions .primary-button,
           .positive-cv-footer-actions .secondary-button {
             width: 100%;
+          }
+        }
+
+        @media print {
+          @page {
+            size: A4;
+            margin: 14mm;
+          }
+
+          html,
+          body {
+            background: #ffffff !important;
+          }
+
+          .dashboard-bg,
+          .positive-cv-page {
+            background: #ffffff !important;
+            padding: 0 !important;
+          }
+
+          .dashboard-shell {
+            max-width: none !important;
+            width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            display: block !important;
+          }
+
+          .no-print,
+          .dashboard-topbar,
+          .positive-cv-footer-actions {
+            display: none !important;
+          }
+
+          .dashboard-welcome-card,
+          .dashboard-progress-card,
+          .positive-cv-document,
+          .cv-section,
+          .feedback-card,
+          .recognised-skill-card,
+          .summary-pill {
+            box-shadow: none !important;
+          }
+
+          .dashboard-welcome-card,
+          .positive-cv-document {
+            border: 0 !important;
+            border-radius: 0 !important;
+            background: #ffffff !important;
+            padding: 0 !important;
+          }
+
+          .positive-cv-hero {
+            display: block !important;
+            margin-bottom: 14px !important;
+          }
+
+          .dashboard-title {
+            color: #111827 !important;
+            font-size: 28pt !important;
+            line-height: 1.08 !important;
+            letter-spacing: -0.02em !important;
+            margin: 0 0 8px !important;
+          }
+
+          .dashboard-kicker,
+          .dashboard-lead,
+          .summary-pill,
+          .cv-detail-grid p,
+          .cv-body-text,
+          .cv-note-box p,
+          .feedback-card p,
+          .feedback-comment {
+            color: #111827 !important;
+          }
+
+          .positive-cv-summary-pills {
+            margin-top: 10px !important;
+          }
+
+          .summary-pill {
+            border: 1px solid #d1d5db !important;
+            background: #ffffff !important;
+          }
+
+          .dashboard-progress-card {
+            margin-top: 12px !important;
+            border: 1px solid #d1d5db !important;
+            border-radius: 10px !important;
+            background: #ffffff !important;
+            padding: 12px !important;
+          }
+
+          .cv-section {
+            break-inside: avoid;
+            page-break-inside: avoid;
+            border: 1px solid #d1d5db !important;
+            border-radius: 10px !important;
+            background: #ffffff !important;
+            padding: 12px !important;
+            margin-bottom: 10px !important;
+          }
+
+          .cv-section-heading > span {
+            background: #ffffff !important;
+            border: 1px solid #d1d5db !important;
+          }
+
+          .cv-section-heading h2 {
+            color: #111827 !important;
+          }
+
+          .recognised-skill-card,
+          .feedback-card,
+          .feedback-skill-row span,
+          .cv-note-box,
+          .feedback-comment {
+            border: 1px solid #d1d5db !important;
+            background: #ffffff !important;
+          }
+
+          .recognised-skill-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+          }
+
+          a {
+            color: inherit !important;
+            text-decoration: none !important;
           }
         }
       `}</style>
