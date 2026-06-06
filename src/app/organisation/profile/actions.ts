@@ -27,11 +27,25 @@ function cleanWebsite(value: string) {
   return `https://${trimmed}`;
 }
 
+function cleanLogoUrl(value: string) {
+  const trimmed = value.trim();
+
+  if (!trimmed) {
+    return "";
+  }
+
+  if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+    return trimmed;
+  }
+
+  return "";
+}
+
 export async function saveOrganisationProfile(formData: FormData) {
   const supabase = await createClient();
 
   const {
-    data: { user }
+    data: { user },
   } = await supabase.auth.getUser();
 
   if (!user) {
@@ -56,17 +70,18 @@ export async function saveOrganisationProfile(formData: FormData) {
   }
 
   const organisationName = String(
-    formData.get("organisation_name") || ""
+    formData.get("organisation_name") || "",
   ).trim();
 
   const contactEmail = String(formData.get("contact_email") || "").trim();
 
   const phone = String(formData.get("phone") || "").trim();
   const website = cleanWebsite(String(formData.get("website") || ""));
+  const logoUrl = cleanLogoUrl(String(formData.get("logo_url") || ""));
   const location = String(formData.get("location") || "").trim();
   const purpose = String(formData.get("purpose") || "").trim();
   const safeguardingNotes = String(
-    formData.get("safeguarding_notes") || ""
+    formData.get("safeguarding_notes") || "",
   ).trim();
 
   const volunteerTypes = formData.getAll("volunteer_types").map(String);
@@ -75,32 +90,42 @@ export async function saveOrganisationProfile(formData: FormData) {
   if (!organisationName) {
     redirect(
       `/organisation/profile?error=${encodeURIComponent(
-        "Please add your organisation name."
-      )}`
+        "Please add your organisation name.",
+      )}`,
     );
   }
 
   if (!contactEmail) {
     redirect(
       `/organisation/profile?error=${encodeURIComponent(
-        "Please add a contact email."
-      )}`
+        "Please add a contact email.",
+      )}`,
     );
   }
 
   if (!location) {
     redirect(
       `/organisation/profile?error=${encodeURIComponent(
-        "Please add your town, city or area."
-      )}`
+        "Please add your town, city or area.",
+      )}`,
     );
   }
 
   if (!purpose) {
     redirect(
       `/organisation/profile?error=${encodeURIComponent(
-        "Please add a short description of what your organisation does."
-      )}`
+        "Please add a short description of what your organisation does.",
+      )}`,
+    );
+  }
+
+  const rawLogoUrl = String(formData.get("logo_url") || "").trim();
+
+  if (rawLogoUrl && !logoUrl) {
+    redirect(
+      `/organisation/profile?error=${encodeURIComponent(
+        "Please use a full logo URL starting with https:// or leave it blank.",
+      )}`,
     );
   }
 
@@ -110,33 +135,30 @@ export async function saveOrganisationProfile(formData: FormData) {
       location &&
       purpose &&
       volunteerTypes.length > 0 &&
-      supportOffered.length > 0
+      supportOffered.length > 0,
   );
 
-  const { error } = await supabase
-    .from("organisation_profiles")
-    .upsert(
-      {
-        user_id: user.id,
-        organisation_name: organisationName,
-        contact_email: contactEmail,
-        phone: phone || null,
-        website: website || null,
-        location,
-        purpose,
-        volunteer_types: volunteerTypes,
-        support_offered: supportOffered,
-        safeguarding_notes: safeguardingNotes || null,
-        profile_completed: profileCompleted,
-        updated_at: new Date().toISOString()
-      },
-      { onConflict: "user_id" }
-    );
+  const { error } = await supabase.from("organisation_profiles").upsert(
+    {
+      user_id: user.id,
+      organisation_name: organisationName,
+      contact_email: contactEmail,
+      phone: phone || null,
+      website: website || null,
+      logo_url: logoUrl || null,
+      location,
+      purpose,
+      volunteer_types: volunteerTypes,
+      support_offered: supportOffered,
+      safeguarding_notes: safeguardingNotes || null,
+      profile_completed: profileCompleted,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "user_id" },
+  );
 
   if (error) {
-    redirect(
-      `/organisation/profile?error=${encodeURIComponent(error.message)}`
-    );
+    redirect(`/organisation/profile?error=${encodeURIComponent(error.message)}`);
   }
 
   redirect("/organisation/dashboard");
