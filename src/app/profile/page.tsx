@@ -63,7 +63,8 @@ function normaliseColourTheme(value: string | null | undefined) {
     value === "calm_green" ||
     value === "soft_blue" ||
     value === "warm_peach" ||
-    value === "high_contrast"
+    value === "high_contrast" ||
+    value === "neon_arcade"
   ) {
     return value;
   }
@@ -108,6 +109,7 @@ function getThemeLabel(colourTheme: string) {
   if (colourTheme === "soft_blue") return "Soft blue";
   if (colourTheme === "warm_peach") return "Warm peach";
   if (colourTheme === "high_contrast") return "High contrast";
+  if (colourTheme === "neon_arcade") return "Neon arcade";
   return "SO default";
 }
 
@@ -902,6 +904,67 @@ export default async function ProfilePage() {
           border: 2px solid #1f2937;
           background: #ffffff;
           color: #111827;
+        }
+
+        .preference-theme-neon_arcade {
+          background:
+            radial-gradient(circle at top left, rgba(34, 211, 238, 0.28), transparent 34%),
+            radial-gradient(circle at top right, rgba(217, 70, 239, 0.24), transparent 30%),
+            linear-gradient(135deg, #101827 0%, #15132c 46%, #071827 100%);
+        }
+
+        .preference-theme-neon_arcade .dashboard-welcome-card,
+        .preference-theme-neon_arcade .dashboard-progress-card,
+        .preference-theme-neon_arcade .info-card,
+        .preference-theme-neon_arcade .education-summary-entry {
+          border-color: rgba(34, 211, 238, 0.42);
+          background: rgba(15, 23, 42, 0.86);
+          box-shadow:
+            0 24px 70px rgba(0, 0, 0, 0.28),
+            0 0 0 1px rgba(217, 70, 239, 0.12);
+        }
+
+        .preference-theme-neon_arcade .dashboard-title,
+        .preference-theme-neon_arcade .dashboard-card-copy h2,
+        .preference-theme-neon_arcade .dashboard-progress-card h2,
+        .preference-theme-neon_arcade .dashboard-progress-note strong,
+        .preference-theme-neon_arcade .education-summary-entry strong,
+        .preference-theme-neon_arcade .profile-section-body strong {
+          color: #e0f2fe;
+        }
+
+        .preference-theme-neon_arcade .dashboard-kicker,
+        .preference-theme-neon_arcade .dashboard-lead,
+        .preference-theme-neon_arcade .dashboard-card-label,
+        .preference-theme-neon_arcade .profile-section-body,
+        .preference-theme-neon_arcade .profile-section-body p,
+        .preference-theme-neon_arcade .dashboard-progress-note,
+        .preference-theme-neon_arcade .education-summary-entry span,
+        .preference-theme-neon_arcade .dashboard-muted-action {
+          color: #dbeafe;
+        }
+
+        .preference-theme-neon_arcade .dashboard-card-icon,
+        .preference-theme-neon_arcade .dashboard-progress-icon {
+          border: 1px solid rgba(34, 211, 238, 0.42);
+          background: rgba(34, 211, 238, 0.12);
+          color: #a7f3d0;
+          box-shadow: inset 0 0 0 1px rgba(217, 70, 239, 0.14);
+        }
+
+        .preference-theme-neon_arcade .profile-summary-chip,
+        .preference-theme-neon_arcade .dashboard-card-action-pill {
+          border-color: rgba(34, 211, 238, 0.42);
+          background: rgba(34, 211, 238, 0.12);
+          color: #a7f3d0;
+          box-shadow:
+            0 10px 24px rgba(0, 0, 0, 0.24),
+            inset 0 0 0 1px rgba(217, 70, 239, 0.14);
+        }
+
+        .preference-theme-neon_arcade .dashboard-card-action-pill:hover {
+          border-color: rgba(167, 243, 208, 0.76);
+          background: rgba(34, 211, 238, 0.18);
         }
 
         @media (max-width: 640px) {
