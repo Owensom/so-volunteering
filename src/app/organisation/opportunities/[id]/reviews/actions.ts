@@ -172,14 +172,13 @@ export async function updateOpportunityInterestStatus(formData: FormData) {
     .from("opportunity_interests")
     .update({
       status: nextStatus,
-      updated_at: new Date().toISOString(),
     })
     .eq("id", opportunityInterestId)
     .eq("opportunity_id", opportunityId)
     .eq("organisation_user_id", user.id);
 
   if (error) {
-    redirectWithError(opportunityId, "Could not update volunteer status.");
+    redirectWithError(opportunityId, error.message || "Could not update volunteer status.");
   }
 
   revalidatePath(`/organisation/opportunities/${opportunityId}/reviews`);
@@ -260,7 +259,7 @@ export async function saveVolunteerSkillReview(formData: FormData) {
   );
 
   if (error) {
-    redirectWithError(opportunityId, "Could not save the skills review.");
+    redirectWithError(opportunityId, error.message || "Could not save the skills review.");
   }
 
   revalidatePath(`/organisation/opportunities/${opportunityId}/reviews`);
