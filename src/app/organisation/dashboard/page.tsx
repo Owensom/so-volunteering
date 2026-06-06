@@ -40,6 +40,13 @@ type OrganisationCardProps = {
   muted?: boolean;
 };
 
+type StatCardProps = {
+  icon: string;
+  label: string;
+  value: number;
+  helper: string;
+};
+
 function normaliseUserType(value: string | null | undefined) {
   return value?.trim().toLowerCase() === "organisation"
     ? "organisation"
@@ -109,6 +116,22 @@ function OrganisationCard({
   return (
     <article className="info-card dashboard-pathway-card organisation-card">
       {content}
+    </article>
+  );
+}
+
+function StatCard({ icon, label, value, helper }: StatCardProps) {
+  return (
+    <article className="organisation-stat-card">
+      <span className="organisation-stat-icon" aria-hidden="true">
+        {icon}
+      </span>
+
+      <div>
+        <p>{label}</p>
+        <strong>{value}</strong>
+        <small>{helper}</small>
+      </div>
     </article>
   );
 }
@@ -217,9 +240,11 @@ export default async function OrganisationDashboardPage() {
     "";
 
   const profileCompleted = organisationProfile?.profile_completed === true;
+  const totalRoleCount = opportunityRows.length;
+  const totalInterestCount = interestRows.length;
 
   const listenText =
-    "You are on the organisation dashboard. This is your workspace for creating volunteering roles, reviewing volunteer interest, accepting or contacting volunteers, and adding positive skills evidence. First, check the Workspace status card. It shows whether your organisation profile is complete, how many roles are published or in draft, how many volunteer interests are new, contacted, accepted or closed, and how many shared skills reviews have been saved. Use Create role to make a new inclusive volunteering role. Use Interest inbox to review volunteers who clicked I’m interested. Use Opportunity list to edit roles and open volunteers and reviews for each role. Help using the app is for getting support if you are stuck, something is not working, or you want to report a problem with SO Volunteering.";
+    "You are on the organisation dashboard. This is your workspace for creating volunteering roles, reviewing volunteer interest, accepting or contacting volunteers, and adding positive skills evidence. First, check the compact Workspace status card. Below that, the summary cards show role, interest and skills review counts. Use Create role to make a new inclusive volunteering role. Use Interest inbox to review volunteers who clicked I’m interested. Use Opportunity list to edit roles and open volunteers and reviews for each role. Help using the app is for getting support if you are stuck, something is not working, or you want to report a problem with SO Volunteering.";
 
   return (
     <main className="dashboard-bg organisation-dashboard-page">
@@ -329,7 +354,7 @@ export default async function OrganisationDashboardPage() {
 
           <aside
             className="dashboard-progress-card organisation-status-card"
-            aria-label="Organisation profile status"
+            aria-label="Organisation workspace status"
           >
             <div className="dashboard-progress-header organisation-status-header">
               <span className="dashboard-progress-icon" aria-hidden="true">
@@ -355,42 +380,70 @@ export default async function OrganisationDashboardPage() {
               </p>
             )}
 
-            <div className="organisation-status-divider" />
-
-            <p className="dashboard-progress-note organisation-status-note">
-              Published roles: <strong>{publishedCount}</strong>
-            </p>
-            <p className="dashboard-progress-note organisation-status-note">
-              Draft roles: <strong>{draftCount}</strong>
-            </p>
-            <p className="dashboard-progress-note organisation-status-note">
-              Closed roles: <strong>{closedRoleCount}</strong>
-            </p>
-
-            <div className="organisation-status-divider" />
-
-            <p className="dashboard-progress-note organisation-status-note">
-              New interest: <strong>{newInterestCount}</strong>
-            </p>
-            <p className="dashboard-progress-note organisation-status-note">
-              Contacted: <strong>{contactedInterestCount}</strong>
-            </p>
-            <p className="dashboard-progress-note organisation-status-note">
-              Accepted: <strong>{acceptedInterestCount}</strong>
-            </p>
-            <p className="dashboard-progress-note organisation-status-note">
-              Closed interest: <strong>{closedInterestCount}</strong>
-            </p>
-
-            <div className="organisation-status-divider" />
-
-            <p className="dashboard-progress-note organisation-status-note">
-              Shared skills reviews: <strong>{sharedReviewCount}</strong>
-            </p>
-            <p className="dashboard-progress-note organisation-status-note">
-              Draft skills reviews: <strong>{draftReviewCount}</strong>
-            </p>
+            <div className="organisation-compact-status-list">
+              <p className="dashboard-progress-note organisation-status-note">
+                Roles: <strong>{totalRoleCount}</strong>
+              </p>
+              <p className="dashboard-progress-note organisation-status-note">
+                Interest: <strong>{totalInterestCount}</strong>
+              </p>
+              <p className="dashboard-progress-note organisation-status-note">
+                Accepted: <strong>{acceptedInterestCount}</strong>
+              </p>
+              <p className="dashboard-progress-note organisation-status-note">
+                Shared reviews: <strong>{sharedReviewCount}</strong>
+              </p>
+            </div>
           </aside>
+        </section>
+
+        <section
+          className="organisation-stat-grid"
+          aria-label="Organisation workspace summary"
+        >
+          <StatCard
+            icon="📣"
+            label="Published roles"
+            value={publishedCount}
+            helper={`${draftCount} draft · ${closedRoleCount} closed`}
+          />
+
+          <StatCard
+            icon="🌱"
+            label="New interest"
+            value={newInterestCount}
+            helper="Waiting for review"
+          />
+
+          <StatCard
+            icon="💬"
+            label="Contacted"
+            value={contactedInterestCount}
+            helper="Conversation started"
+          />
+
+          <StatCard
+            icon="✅"
+            label="Accepted"
+            value={acceptedInterestCount}
+            helper="Ready to move forward"
+          />
+
+          <StatCard
+            icon="🌙"
+            label="Closed interest"
+            value={closedInterestCount}
+            helper="No further action"
+          />
+
+          <StatCard
+            icon="⭐"
+            label="Skills reviews"
+            value={sharedReviewCount}
+            helper={`${draftReviewCount} draft review${
+              draftReviewCount === 1 ? "" : "s"
+            }`}
+          />
         </section>
 
         <section
@@ -565,16 +618,78 @@ export default async function OrganisationDashboardPage() {
           min-width: 0;
         }
 
+        .organisation-status-card {
+          align-self: start;
+        }
+
         .organisation-status-note {
           overflow-wrap: anywhere;
           word-break: break-word;
         }
 
-        .organisation-status-divider {
-          width: 100%;
-          height: 1px;
-          margin: 10px 0;
-          background: rgba(83, 111, 99, 0.12);
+        .organisation-compact-status-list {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 8px 12px;
+          margin-top: 12px;
+        }
+
+        .organisation-compact-status-list .organisation-status-note {
+          margin: 0;
+        }
+
+        .organisation-stat-grid {
+          display: grid;
+          grid-template-columns: repeat(6, minmax(0, 1fr));
+          gap: 12px;
+        }
+
+        .organisation-stat-card {
+          display: grid;
+          grid-template-columns: auto 1fr;
+          gap: 12px;
+          align-items: start;
+          min-height: 118px;
+          padding: 14px;
+          border: 1px solid rgba(143, 178, 158, 0.2);
+          border-radius: 22px;
+          background: rgba(255, 255, 255, 0.84);
+          box-shadow: 0 14px 36px rgba(33, 56, 48, 0.06);
+        }
+
+        .organisation-stat-icon {
+          display: inline-flex;
+          width: 42px;
+          height: 42px;
+          align-items: center;
+          justify-content: center;
+          border-radius: 15px;
+          background: rgba(143, 178, 158, 0.13);
+          font-size: 1.25rem;
+        }
+
+        .organisation-stat-card p {
+          margin: 0 0 5px;
+          color: #60706a;
+          font-size: 0.82rem;
+          font-weight: 900;
+          line-height: 1.15;
+        }
+
+        .organisation-stat-card strong {
+          display: block;
+          color: #315f48;
+          font-size: 1.85rem;
+          line-height: 1;
+        }
+
+        .organisation-stat-card small {
+          display: block;
+          margin-top: 8px;
+          color: #60706a;
+          font-size: 0.78rem;
+          font-weight: 750;
+          line-height: 1.25;
         }
 
         .organisation-workflow-panel {
@@ -662,6 +777,12 @@ export default async function OrganisationDashboardPage() {
           font-size: 0.9rem;
           font-weight: 700;
           line-height: 1.4;
+        }
+
+        @media (max-width: 1180px) {
+          .organisation-stat-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+          }
         }
 
         @media (max-width: 980px) {
@@ -781,6 +902,18 @@ export default async function OrganisationDashboardPage() {
             margin-top: 9px;
           }
 
+          .organisation-compact-status-list {
+            grid-template-columns: 1fr;
+          }
+
+          .organisation-stat-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+
+          .organisation-stat-card {
+            min-height: 112px;
+          }
+
           .organisation-card {
             min-height: 0;
             padding: 20px;
@@ -815,6 +948,7 @@ export default async function OrganisationDashboardPage() {
         }
 
         @media (max-width: 560px) {
+          .organisation-stat-grid,
           .organisation-workflow-steps {
             grid-template-columns: 1fr;
           }
