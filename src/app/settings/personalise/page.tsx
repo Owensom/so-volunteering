@@ -32,25 +32,75 @@ function normaliseUserType(value: string | null | undefined) {
     : "volunteer";
 }
 
+function normaliseViewMode(value: string | null | undefined) {
+  if (value === "simple" || value === "detailed") return value;
+  return "standard";
+}
+
+function normaliseColourTheme(value: string | null | undefined) {
+  if (
+    value === "calm_green" ||
+    value === "soft_blue" ||
+    value === "warm_peach" ||
+    value === "high_contrast" ||
+    value === "neon_arcade"
+  ) {
+    return value;
+  }
+
+  return "default";
+}
+
+function normaliseTextSize(value: string | null | undefined) {
+  return value === "large" ? "large" : "standard";
+}
+
+function normaliseAvatarIcon(value: string | null | undefined) {
+  return value && value.trim() ? value : "🌱";
+}
+
+function normaliseListenMode(value: string | null | undefined) {
+  return value === "context" ? "context" : "always";
+}
+
+function getThemeClass(colourTheme: string) {
+  return `preference-theme-${colourTheme}`;
+}
+
+function getTextClass(textSize: string) {
+  return textSize === "large"
+    ? "preference-text-large"
+    : "preference-text-standard";
+}
+
+function getViewClass(viewMode: string) {
+  return `preference-view-${viewMode}`;
+}
+
+function formatPreferenceValue(value: string) {
+  if (value === "neon_arcade") return "Neon arcade";
+  return value.replaceAll("_", " ");
+}
+
 const viewChoices: Choice[] = [
   {
     value: "simple",
     icon: "🌤️",
     title: "Simple view",
-    description: "Fewer words, larger actions and calmer pages."
+    description: "Fewer words, larger actions and calmer pages.",
   },
   {
     value: "standard",
     icon: "🌱",
     title: "Standard view",
-    description: "The current balanced layout with helpful detail."
+    description: "The current balanced layout with helpful detail.",
   },
   {
     value: "detailed",
     icon: "📚",
     title: "Detailed view",
-    description: "More information, prompts and tracking detail."
-  }
+    description: "More information, prompts and tracking detail.",
+  },
 ];
 
 const colourChoices: Choice[] = [
@@ -58,32 +108,38 @@ const colourChoices: Choice[] = [
     value: "default",
     icon: "🌈",
     title: "SO default",
-    description: "The current SO Volunteering colours."
+    description: "The current SO Volunteering colours.",
   },
   {
     value: "calm_green",
     icon: "🌿",
     title: "Calm green",
-    description: "A softer green-led visual style."
+    description: "A softer green-led visual style.",
   },
   {
     value: "soft_blue",
     icon: "💧",
     title: "Soft blue",
-    description: "A cooler, calm blue-led style."
+    description: "A cooler, calm blue-led style.",
   },
   {
     value: "warm_peach",
     icon: "🍑",
     title: "Warm peach",
-    description: "A warmer, gentle colour style."
+    description: "A warmer, gentle colour style.",
   },
   {
     value: "high_contrast",
     icon: "⚫",
     title: "High contrast",
-    description: "Stronger contrast for easier reading."
-  }
+    description: "Stronger contrast for easier reading.",
+  },
+  {
+    value: "neon_arcade",
+    icon: "🎮",
+    title: "Neon arcade",
+    description: "A brighter gamer-style theme with strong colours.",
+  },
 ];
 
 const textChoices: Choice[] = [
@@ -91,14 +147,14 @@ const textChoices: Choice[] = [
     value: "standard",
     icon: "A",
     title: "Standard text",
-    description: "Use the normal text size."
+    description: "Use the normal text size.",
   },
   {
     value: "large",
     icon: "A+",
     title: "Larger text",
-    description: "Make text slightly larger where possible."
-  }
+    description: "Make text slightly larger where possible.",
+  },
 ];
 
 const listenChoices: Choice[] = [
@@ -106,22 +162,38 @@ const listenChoices: Choice[] = [
     value: "always",
     icon: "🔊",
     title: "Always show Listen",
-    description: "Keep Listen buttons visible on key pages."
+    description: "Keep Listen buttons visible on key pages.",
   },
   {
     value: "context",
     icon: "🎧",
     title: "Show when most useful",
-    description: "Use Listen support mainly on guidance-heavy pages."
-  }
+    description: "Use Listen support mainly on guidance-heavy pages.",
+  },
 ];
 
-const avatarChoices = ["🌱", "🌈", "⭐", "🎨", "💻", "🧰", "☕", "🐾", "🎵", "🤝", "📚", "⚽"];
+const avatarChoices = [
+  "🌱",
+  "🌈",
+  "⭐",
+  "🎨",
+  "💻",
+  "🧰",
+  "☕",
+  "🐾",
+  "🎵",
+  "🤝",
+  "📚",
+  "⚽",
+  "🎮",
+  "🕹️",
+  "🚀",
+];
 
 function PreferenceChoiceGroup({
   name,
   choices,
-  selectedValue
+  selectedValue,
 }: {
   name: string;
   choices: Choice[];
@@ -130,7 +202,12 @@ function PreferenceChoiceGroup({
   return (
     <div className="personalise-choice-grid">
       {choices.map((choice) => (
-        <label key={choice.value} className="personalise-choice-card">
+        <label
+          key={choice.value}
+          className={`personalise-choice-card ${
+            choice.value === "neon_arcade" ? "neon-choice-card" : ""
+          }`}
+        >
           <input
             type="radio"
             name={name}
@@ -174,7 +251,7 @@ function AvatarChoiceGroup({ selectedValue }: { selectedValue: string }) {
 }
 
 export default async function PersonalisePage({
-  searchParams
+  searchParams,
 }: {
   searchParams: Promise<{ error?: string; message?: string }>;
 }) {
@@ -185,7 +262,7 @@ export default async function PersonalisePage({
   const supabase = await createClient();
 
   const {
-    data: { user }
+    data: { user },
   } = await supabase.auth.getUser();
 
   if (!user) {
@@ -222,17 +299,27 @@ export default async function PersonalisePage({
       : "") ||
     "there";
 
-  const viewMode = preferences?.view_mode || "standard";
-  const colourTheme = preferences?.colour_theme || "default";
-  const textSize = preferences?.text_size || "standard";
-  const avatarIcon = preferences?.avatar_icon || "🌱";
-  const listenMode = preferences?.listen_mode || "always";
+  const viewMode = normaliseViewMode(preferences?.view_mode);
+  const colourTheme = normaliseColourTheme(preferences?.colour_theme);
+  const textSize = normaliseTextSize(preferences?.text_size);
+  const avatarIcon = normaliseAvatarIcon(preferences?.avatar_icon);
+  const listenMode = normaliseListenMode(preferences?.listen_mode);
 
   const listenText =
-    "You are on the Personalise my app page. This page lets you choose how SO Volunteering feels for you. First choose Simple, Standard or Detailed view. Simple view will later show fewer words and larger actions. Standard view keeps the current layout. Detailed view will later show more information. Next choose a safe colour theme, text size, avatar icon and Listen button preference. Press Save my preferences when you are ready. These choices are stored now and will be applied across the app in the next step.";
+    colourTheme === "neon_arcade"
+      ? "You are on the Personalise my app page. Neon arcade is a brighter gamer-style colour option. It keeps clear text, large buttons and no flashing movement. Choose your view mode, colour theme, text size, avatar and Listen setting, then save."
+      : "You are on the Personalise my app page. This page lets you choose how SO Volunteering feels for you. First choose Simple, Standard or Detailed view. Simple view shows fewer words and larger actions. Standard view keeps the balanced layout. Detailed view shows more information. Next choose a colour theme, text size, avatar icon and Listen button preference. Press Save my preferences when you are ready.";
+
+  const shellClassName = [
+    "dashboard-bg",
+    "personalise-page",
+    getThemeClass(colourTheme),
+    getTextClass(textSize),
+    getViewClass(viewMode),
+  ].join(" ");
 
   return (
-    <main className="dashboard-bg">
+    <main className={shellClassName}>
       <section className="dashboard-shell">
         <header className="dashboard-topbar">
           <Link
@@ -283,8 +370,8 @@ export default async function PersonalisePage({
 
             <p className="dashboard-lead">
               Hi {displayName}. Choose how you would like SO Volunteering to
-              feel. These settings are designed to support different confidence,
-              reading and comfort needs.
+              feel. Most users may prefer calm themes, but brighter choices are
+              available too.
             </p>
 
             <div className="dashboard-primary-actions">
@@ -318,19 +405,19 @@ export default async function PersonalisePage({
               <div>
                 <h2>Current choices</h2>
                 <p>
-                  View: <strong>{viewMode}</strong>
+                  View: <strong>{formatPreferenceValue(viewMode)}</strong>
                 </p>
               </div>
             </div>
 
             <p className="dashboard-progress-note">
-              Theme: <strong>{colourTheme.replaceAll("_", " ")}</strong>
+              Theme: <strong>{formatPreferenceValue(colourTheme)}</strong>
             </p>
             <p className="dashboard-progress-note">
-              Text: <strong>{textSize}</strong>
+              Text: <strong>{formatPreferenceValue(textSize)}</strong>
             </p>
             <p className="dashboard-progress-note">
-              Listen: <strong>{listenMode}</strong>
+              Listen: <strong>{formatPreferenceValue(listenMode)}</strong>
             </p>
           </aside>
         </section>
@@ -357,8 +444,8 @@ export default async function PersonalisePage({
                 <p className="dashboard-card-label">Display mode</p>
                 <h2>How much detail would you like?</h2>
                 <p>
-                  You can change this later. Standard view keeps the current app
-                  layout while we safely roll this out.
+                  You can change this later. Simple reduces wording. Detailed
+                  gives more guidance.
                 </p>
               </div>
             </div>
@@ -377,10 +464,10 @@ export default async function PersonalisePage({
               </span>
               <div>
                 <p className="dashboard-card-label">Colour comfort</p>
-                <h2>Choose a safe colour theme</h2>
+                <h2>Choose a colour theme</h2>
                 <p>
-                  These are preset themes so the app stays readable and
-                  accessible.
+                  Calm themes stay soft. Neon arcade gives a brighter gamer feel
+                  without flashing or moving effects.
                 </p>
               </div>
             </div>
@@ -423,8 +510,7 @@ export default async function PersonalisePage({
                 <p className="dashboard-card-label">Avatar</p>
                 <h2>Choose a profile icon</h2>
                 <p>
-                  Start with a safe avatar icon. Profile image uploads can come
-                  later with privacy checks.
+                  Choose an icon that feels like you. You can change it later.
                 </p>
               </div>
             </div>
@@ -464,6 +550,11 @@ export default async function PersonalisePage({
       </section>
 
       <style>{`
+        .personalise-page,
+        .personalise-page * {
+          box-sizing: border-box;
+        }
+
         .personalise-form {
           display: grid;
           gap: 22px;
@@ -592,6 +683,160 @@ export default async function PersonalisePage({
 
         .personalise-save-button {
           justify-self: start;
+        }
+
+        .neon-choice-card {
+          background:
+            radial-gradient(circle at top left, rgba(34, 211, 238, 0.2), transparent 55%),
+            linear-gradient(135deg, rgba(15, 23, 42, 0.92), rgba(49, 46, 129, 0.88));
+          border-color: rgba(34, 211, 238, 0.35);
+        }
+
+        .neon-choice-card .personalise-choice-title {
+          color: #e0f2fe;
+        }
+
+        .neon-choice-card .personalise-choice-description {
+          color: #dbeafe;
+        }
+
+        .neon-choice-card .personalise-choice-icon {
+          background: rgba(34, 211, 238, 0.14);
+          color: #a7f3d0;
+          box-shadow: inset 0 0 0 1px rgba(34, 211, 238, 0.3);
+        }
+
+        .preference-text-large {
+          font-size: 1.06rem;
+        }
+
+        .preference-text-large .dashboard-lead,
+        .preference-text-large .personalise-section-heading p,
+        .preference-text-large .personalise-choice-description,
+        .preference-text-large .dashboard-progress-note {
+          font-size: 1.04em;
+        }
+
+        .preference-view-simple .personalise-choice-grid {
+          gap: 16px;
+        }
+
+        .preference-view-simple .personalise-choice-card {
+          min-height: 126px;
+        }
+
+        .preference-view-simple .personalise-choice-description {
+          display: none;
+        }
+
+        .preference-view-simple .personalise-choice-icon {
+          width: 62px;
+          height: 62px;
+          font-size: 1.7rem;
+        }
+
+        .preference-theme-calm_green {
+          background:
+            radial-gradient(circle at top left, rgba(200, 243, 221, 0.58), transparent 34%),
+            linear-gradient(135deg, #f3fff8 0%, #f7fbf5 46%, #fffaf2 100%);
+        }
+
+        .preference-theme-soft_blue {
+          background:
+            radial-gradient(circle at top left, rgba(197, 226, 255, 0.62), transparent 34%),
+            linear-gradient(135deg, #f3f9ff 0%, #f8fbff 48%, #fffaf2 100%);
+        }
+
+        .preference-theme-warm_peach {
+          background:
+            radial-gradient(circle at top left, rgba(255, 210, 184, 0.58), transparent 34%),
+            linear-gradient(135deg, #fff8f1 0%, #fffaf6 48%, #f7fff8 100%);
+        }
+
+        .preference-theme-high_contrast {
+          background: #f8fafc;
+        }
+
+        .preference-theme-high_contrast .dashboard-welcome-card,
+        .preference-theme-high_contrast .info-card,
+        .preference-theme-high_contrast .dashboard-progress-card,
+        .preference-theme-high_contrast .personalise-choice-card,
+        .preference-theme-high_contrast .avatar-choice-card {
+          border: 2px solid #1f2937;
+          background: rgba(255, 255, 255, 0.98);
+        }
+
+        .preference-theme-high_contrast .dashboard-title,
+        .preference-theme-high_contrast .personalise-section-heading h2,
+        .preference-theme-high_contrast .personalise-choice-title {
+          color: #111827;
+        }
+
+        .preference-theme-high_contrast .dashboard-lead,
+        .preference-theme-high_contrast .dashboard-progress-note,
+        .preference-theme-high_contrast .personalise-section-heading p,
+        .preference-theme-high_contrast .personalise-choice-description {
+          color: #1f2937;
+        }
+
+        .preference-theme-high_contrast .dashboard-card-icon,
+        .preference-theme-high_contrast .dashboard-progress-icon,
+        .preference-theme-high_contrast .personalise-choice-icon {
+          border: 2px solid #1f2937;
+          background: #ffffff;
+          color: #111827;
+        }
+
+        .preference-theme-neon_arcade {
+          background:
+            radial-gradient(circle at top left, rgba(34, 211, 238, 0.28), transparent 34%),
+            radial-gradient(circle at top right, rgba(217, 70, 239, 0.24), transparent 30%),
+            linear-gradient(135deg, #101827 0%, #15132c 46%, #071827 100%);
+        }
+
+        .preference-theme-neon_arcade .dashboard-welcome-card,
+        .preference-theme-neon_arcade .dashboard-progress-card,
+        .preference-theme-neon_arcade .info-card,
+        .preference-theme-neon_arcade .personalise-choice-card,
+        .preference-theme-neon_arcade .avatar-choice-card {
+          border-color: rgba(34, 211, 238, 0.42);
+          background: rgba(15, 23, 42, 0.86);
+          box-shadow:
+            0 24px 70px rgba(0, 0, 0, 0.28),
+            0 0 0 1px rgba(217, 70, 239, 0.12);
+        }
+
+        .preference-theme-neon_arcade .dashboard-title,
+        .preference-theme-neon_arcade .personalise-section-heading h2,
+        .preference-theme-neon_arcade .personalise-choice-title,
+        .preference-theme-neon_arcade .dashboard-progress-card h2,
+        .preference-theme-neon_arcade .dashboard-progress-note strong {
+          color: #e0f2fe;
+        }
+
+        .preference-theme-neon_arcade .dashboard-kicker,
+        .preference-theme-neon_arcade .dashboard-lead,
+        .preference-theme-neon_arcade .dashboard-progress-note,
+        .preference-theme-neon_arcade .personalise-section-heading p,
+        .preference-theme-neon_arcade .personalise-choice-description {
+          color: #dbeafe;
+        }
+
+        .preference-theme-neon_arcade .dashboard-card-icon,
+        .preference-theme-neon_arcade .dashboard-progress-icon,
+        .preference-theme-neon_arcade .personalise-choice-icon {
+          border-color: rgba(34, 211, 238, 0.42);
+          background: rgba(34, 211, 238, 0.12);
+          color: #a7f3d0;
+        }
+
+        .preference-theme-neon_arcade .personalise-choice-card:has(input:checked),
+        .preference-theme-neon_arcade .avatar-choice-card:has(input:checked) {
+          border-color: rgba(167, 243, 208, 0.76);
+          background: rgba(30, 41, 59, 0.96);
+          box-shadow:
+            0 20px 54px rgba(0, 0, 0, 0.34),
+            0 0 0 4px rgba(34, 211, 238, 0.16);
         }
 
         @media (max-width: 900px) {
