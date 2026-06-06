@@ -38,6 +38,13 @@ type Opportunity = {
   summary: string;
   location_type: string;
   location: string | null;
+  location_town_city: string | null;
+  location_area: string | null;
+  location_venue: string | null;
+  location_postcode: string | null;
+  travel_notes: string | null;
+  accessibility_notes: string | null;
+  hide_exact_location: boolean | null;
   time_commitment: string | null;
   interests: string[] | null;
   skills: string[] | null;
@@ -170,6 +177,67 @@ function getInterestHelpText(status: string | null | undefined) {
   return "Your interest has been sent to the organisation.";
 }
 
+function hasText(value: string | null | undefined) {
+  return Boolean(value && value.trim().length > 0);
+}
+
+function formatSafeLocation(opportunity: Opportunity) {
+  if (opportunity.location_type === "remote") {
+    return "Remote / online";
+  }
+
+  const safeParts = [
+    opportunity.location_town_city,
+    opportunity.location_area,
+  ].filter((value): value is string => Boolean(value && value.trim()));
+
+  if (safeParts.length > 0) {
+    return safeParts.join(" · ");
+  }
+
+  if (opportunity.location?.trim()) {
+    return opportunity.location.trim();
+  }
+
+  if (opportunity.location_type === "hybrid") {
+    return "Hybrid location to be confirmed";
+  }
+
+  return "Location to be confirmed";
+}
+
+function getVenueDisplay(opportunity: Opportunity) {
+  if (opportunity.location_type === "remote") {
+    return "No venue needed for remote roles.";
+  }
+
+  if (opportunity.hide_exact_location === true) {
+    return "Exact venue shared after the organisation contacts or accepts you.";
+  }
+
+  if (opportunity.location_venue?.trim()) {
+    return opportunity.location_venue.trim();
+  }
+
+  return "Venue not listed yet.";
+}
+
+function getPostcodeDisplay(opportunity: Opportunity) {
+  if (opportunity.location_type === "remote") {
+    return "";
+  }
+
+  if (opportunity.hide_exact_location === true) {
+    return "Postcode shared later if needed.";
+  }
+
+  if (opportunity.location_postcode?.trim()) {
+    return opportunity.location_postcode.trim();
+  }
+
+  return "";
+}
+
 function ChipList({
   values,
   emptyText,
@@ -287,7 +355,7 @@ export default async function OpportunityDetailPage({
   const { data: opportunity } = await supabase
     .from("opportunities")
     .select(
-      "id,title,summary,location_type,location,time_commitment,interests,skills,support_offered,contact_name,contact_email,safety_notes,status",
+      "id,title,summary,location_type,location,location_town_city,location_area,location_venue,location_postcode,travel_notes,accessibility_notes,hide_exact_location,time_commitment,interests,skills,support_offered,contact_name,contact_email,safety_notes,status",
     )
     .eq("id", opportunityId)
     .eq("status", "published")
@@ -319,9 +387,11 @@ export default async function OpportunityDetailPage({
   const matchIcon = getOpportunityMatchCardIcon(match.tone);
   const visibleReasons = simpleView ? match.reasons.slice(0, 2) : match.reasons;
 
+  const postcodeDisplay = getPostcodeDisplay(opportunity);
+
   const listenText = simpleView
-    ? "You are on an opportunity details page. Read the role. The match card explains why it may suit you. If it feels right, go to the Interest section and press I’m interested. If you have already expressed interest, you can remove it."
-    : "You are on an opportunity details page. First, read the role title and short description at the top. The Why this may suit you card explains the match using your interests, skills, volunteering preference and support information. This match is only a guide and you can still explore any role that feels right. The cards below explain where the role happens, the time commitment, interests, helpful skills, support available, safety notes and contact details. If the role feels right for you, go to the Interest section and press I’m interested.";
+    ? "You are on an opportunity details page. Read the role. The location card shows safe location information. The match card explains why it may suit you. If it feels right, go to the Interest section and press I’m interested."
+    : "You are on an opportunity details page. First, read the role title and short description at the top. The location section shows safe location information, travel notes and accessibility notes where the organisation has provided them. Exact venue or postcode details may be hidden until the organisation has contacted or accepted a volunteer. The Why this may suit you card explains the match using your interests, skills, volunteering preference and support information. If the role feels right for you, go to the Interest section and press I’m interested.";
 
   const shellClassName = [
     "dashboard-bg",
@@ -502,11 +572,22 @@ export default async function OpportunityDetailPage({
               <strong>{formatLocationType(opportunity.location_type)}</strong>
             </p>
             <p>
-              Area:{" "}
-              <strong>
-                {opportunity.location || "No specific location listed"}
-              </strong>
+              Area: <strong>{formatSafeLocation(opportunity)}</strong>
             </p>
+            <p>
+              Venue: <strong>{getVenueDisplay(opportunity)}</strong>
+            </p>
+            {postcodeDisplay ? (
+              <p>
+                Postcode: <strong>{postcodeDisplay}</strong>
+              </p>
+            ) : null}
+            {opportunity.hide_exact_location === true ? (
+              <p className="safe-location-note">
+                🔒 Exact location details are protected until the organisation
+                contacts or accepts a volunteer.
+              </p>
+            ) : null}
           </DetailCard>
 
           <DetailCard icon="🕒" label="Time" title="Time commitment">
@@ -516,6 +597,26 @@ export default async function OpportunityDetailPage({
               </strong>
             </p>
           </DetailCard>
+
+          {!simpleView && (hasText(opportunity.travel_notes) || hasText(opportunity.accessibility_notes)) ? (
+            <DetailCard
+              icon="🚌"
+              label="Travel and access"
+              title="Planning your first visit"
+            >
+              {opportunity.travel_notes ? (
+                <p>
+                  <strong>Travel:</strong> {opportunity.travel_notes}
+                </p>
+              ) : null}
+              {opportunity.accessibility_notes ? (
+                <p>
+                  <strong>Accessibility:</strong>{" "}
+                  {opportunity.accessibility_notes}
+                </p>
+              ) : null}
+            </DetailCard>
+          ) : null}
 
           <DetailCard icon="💚" label="Interests" title="This role may suit">
             <ChipList
@@ -843,6 +944,19 @@ export default async function OpportunityDetailPage({
           margin: 0;
         }
 
+        .safe-location-note {
+          display: inline-flex;
+          width: fit-content;
+          max-width: 100%;
+          padding: 10px 12px;
+          border: 1px solid rgba(83, 111, 99, 0.16);
+          border-radius: 16px;
+          background: rgba(244, 255, 249, 0.82);
+          color: #536f63;
+          font-weight: 850;
+          line-height: 1.35;
+        }
+
         .opportunity-chip-list {
           display: flex;
           flex-wrap: wrap;
@@ -1010,7 +1124,8 @@ export default async function OpportunityDetailPage({
         .preference-theme-high_contrast .opportunity-chip,
         .preference-theme-high_contrast .supporting-statement-box,
         .preference-theme-high_contrast .match-detail-card,
-        .preference-theme-high_contrast .match-reason-list span {
+        .preference-theme-high_contrast .match-reason-list span,
+        .preference-theme-high_contrast .safe-location-note {
           border: 2px solid #1f2937;
           background: rgba(255, 255, 255, 0.98);
         }
@@ -1029,7 +1144,8 @@ export default async function OpportunityDetailPage({
         .preference-theme-high_contrast .opportunity-chip,
         .preference-theme-high_contrast .match-detail-heading p,
         .preference-theme-high_contrast .match-helper-note,
-        .preference-theme-high_contrast .match-reason-list span {
+        .preference-theme-high_contrast .match-reason-list span,
+        .preference-theme-high_contrast .safe-location-note {
           color: #1f2937;
         }
 
@@ -1091,7 +1207,8 @@ export default async function OpportunityDetailPage({
 
         .preference-theme-neon_arcade .opportunity-chip,
         .preference-theme-neon_arcade .text-link,
-        .preference-theme-neon_arcade .match-reason-list span {
+        .preference-theme-neon_arcade .match-reason-list span,
+        .preference-theme-neon_arcade .safe-location-note {
           border-color: rgba(34, 211, 238, 0.42);
           background: rgba(34, 211, 238, 0.12);
           color: #a7f3d0;
@@ -1135,7 +1252,8 @@ export default async function OpportunityDetailPage({
             gap: 8px;
           }
 
-          .opportunity-chip {
+          .opportunity-chip,
+          .safe-location-note {
             width: 100%;
             justify-content: center;
             border-radius: 18px;
