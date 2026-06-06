@@ -37,6 +37,13 @@ type Opportunity = {
   summary: string;
   location_type: string;
   location: string | null;
+  location_town_city: string | null;
+  location_area: string | null;
+  location_venue: string | null;
+  location_postcode: string | null;
+  travel_notes: string | null;
+  accessibility_notes: string | null;
+  hide_exact_location: boolean | null;
   time_commitment: string | null;
   interests: string[] | null;
   skills: string[] | null;
@@ -116,6 +123,47 @@ function formatLocationType(value: string | null | undefined) {
   if (value === "remote") return "Remote";
   if (value === "hybrid") return "Hybrid";
   return "In-person";
+}
+
+function formatPublicLocation(opportunity: Opportunity) {
+  if (opportunity.location_type === "remote") {
+    return "Remote / online";
+  }
+
+  const safeParts = [
+    opportunity.location_town_city,
+    opportunity.location_area,
+  ].filter((value): value is string => Boolean(value && value.trim()));
+
+  if (safeParts.length > 0) {
+    return safeParts.join(" · ");
+  }
+
+  if (opportunity.location?.trim()) {
+    return opportunity.location.trim();
+  }
+
+  if (opportunity.location_type === "hybrid") {
+    return "Hybrid location to be confirmed";
+  }
+
+  return "Location to be confirmed";
+}
+
+function formatLocationPrivacyNote(opportunity: Opportunity) {
+  if (opportunity.location_type === "remote") {
+    return "";
+  }
+
+  if (opportunity.hide_exact_location === true) {
+    return "Exact venue shared later";
+  }
+
+  if (opportunity.location_venue?.trim()) {
+    return "Venue listed on details page";
+  }
+
+  return "";
 }
 
 function OpportunityMatchPanel({
@@ -203,7 +251,7 @@ export default async function OpportunitiesPage() {
   const { data: opportunities } = await supabase
     .from("opportunities")
     .select(
-      "id,title,summary,location_type,location,time_commitment,interests,skills,support_offered,contact_name,status,created_at",
+      "id,title,summary,location_type,location,location_town_city,location_area,location_venue,location_postcode,travel_notes,accessibility_notes,hide_exact_location,time_commitment,interests,skills,support_offered,contact_name,status,created_at",
     )
     .eq("status", "published")
     .order("created_at", { ascending: false });
@@ -220,8 +268,8 @@ export default async function OpportunitiesPage() {
   const detailedView = viewMode === "detailed";
 
   const listenText = simpleView
-    ? "You are on the Find opportunities page. This page shows volunteering roles. Read each card. The match label helps you see if a role may suit you. Choose Read more when a role sounds right. Use Dashboard to go back."
-    : "You are on the Find opportunities page. This page shows published volunteering roles. Each card now includes a gentle match summary based on your interests, skills, volunteering preference and support information. The match is only a guide. You can still explore any role that feels right. Select Read more to open the full opportunity details page. Use View my profile to check your saved interests and skills. Use See my pathway to go back to your setup progress.";
+    ? "You are on the Find opportunities page. This page shows volunteering roles. Each card shows a safe location summary and a match label. Choose Read more when a role sounds right. Use Dashboard to go back."
+    : "You are on the Find opportunities page. This page shows published volunteering roles. Each card includes a safe location summary, time commitment and gentle match information based on your profile. Exact venues or postcodes may be hidden until the organisation has contacted or accepted a volunteer. Select Read more to open the full opportunity details page.";
 
   const shellClassName = [
     "dashboard-bg",
@@ -328,7 +376,7 @@ export default async function OpportunitiesPage() {
             <p className="dashboard-progress-note">
               {simpleView
                 ? "Open a role to read more."
-                : "Match labels use your profile details to explain why a role may suit you."}
+                : "Location summaries are shown safely. Exact venue details may be shared later by the organisation."}
             </p>
 
             {detailedView ? (
@@ -365,43 +413,55 @@ export default async function OpportunitiesPage() {
           </section>
         ) : (
           <section className="dashboard-grid" aria-label="Published opportunities">
-            {rows.map((opportunity) => (
-              <Link
-                key={opportunity.id}
-                href={`/opportunities/${opportunity.id}`}
-                className="info-card dashboard-pathway-card opportunities-card"
-              >
-                <div className="dashboard-card-icon" aria-hidden="true">
-                  📣
-                </div>
+            {rows.map((opportunity) => {
+              const privacyNote = formatLocationPrivacyNote(opportunity);
 
-                <div className="dashboard-card-copy">
-                  <div className="dashboard-card-main">
-                    <p className="dashboard-card-label">
-                      {formatLocationType(opportunity.location_type)}
-                    </p>
-
-                    <h2>{opportunity.title}</h2>
-
-                    <p>{opportunity.summary}</p>
-
-                    <OpportunityMatchPanel
-                      volunteerProfile={volunteerProfile}
-                      opportunity={opportunity}
-                      simpleView={simpleView}
-                    />
-
-                    <p className="dashboard-muted-action">
-                      {opportunity.location ? `${opportunity.location} · ` : ""}
-                      {opportunity.time_commitment ||
-                        "Time commitment not listed"}
-                    </p>
+              return (
+                <Link
+                  key={opportunity.id}
+                  href={`/opportunities/${opportunity.id}`}
+                  className="info-card dashboard-pathway-card opportunities-card"
+                >
+                  <div className="dashboard-card-icon" aria-hidden="true">
+                    📣
                   </div>
 
-                  <span className="dashboard-card-action-pill">Read more</span>
-                </div>
-              </Link>
-            ))}
+                  <div className="dashboard-card-copy">
+                    <div className="dashboard-card-main">
+                      <p className="dashboard-card-label">
+                        {formatLocationType(opportunity.location_type)}
+                      </p>
+
+                      <h2>{opportunity.title}</h2>
+
+                      <p>{opportunity.summary}</p>
+
+                      <div className="safe-location-strip">
+                        <span aria-hidden="true">📍</span>
+                        <span>{formatPublicLocation(opportunity)}</span>
+                      </div>
+
+                      {privacyNote ? (
+                        <p className="location-privacy-note">{privacyNote}</p>
+                      ) : null}
+
+                      <OpportunityMatchPanel
+                        volunteerProfile={volunteerProfile}
+                        opportunity={opportunity}
+                        simpleView={simpleView}
+                      />
+
+                      <p className="dashboard-muted-action">
+                        {opportunity.time_commitment ||
+                          "Time commitment not listed"}
+                      </p>
+                    </div>
+
+                    <span className="dashboard-card-action-pill">Read more</span>
+                  </div>
+                </Link>
+              );
+            })}
           </section>
         )}
       </section>
@@ -442,6 +502,29 @@ export default async function OpportunitiesPage() {
         .opportunities-page .dashboard-card-main p {
           margin: 0;
           overflow-wrap: anywhere;
+        }
+
+        .safe-location-strip {
+          display: grid;
+          grid-template-columns: auto 1fr;
+          gap: 8px;
+          align-items: center;
+          width: fit-content;
+          max-width: 100%;
+          padding: 9px 12px;
+          border: 1px solid rgba(83, 111, 99, 0.16);
+          border-radius: 999px;
+          background: rgba(244, 255, 249, 0.86);
+          color: #315f48;
+          font-size: 0.9rem;
+          font-weight: 900;
+          line-height: 1.2;
+        }
+
+        .location-privacy-note {
+          color: #60706a;
+          font-size: 0.86rem;
+          font-weight: 850;
         }
 
         .opportunity-match-panel {
@@ -649,7 +732,8 @@ export default async function OpportunitiesPage() {
         .preference-theme-high_contrast .info-card,
         .preference-theme-high_contrast .dashboard-progress-card,
         .preference-theme-high_contrast .opportunity-match-panel,
-        .preference-theme-high_contrast .opportunity-match-reasons span {
+        .preference-theme-high_contrast .opportunity-match-reasons span,
+        .preference-theme-high_contrast .safe-location-strip {
           border: 2px solid #1f2937;
           background: rgba(255, 255, 255, 0.98);
         }
@@ -666,7 +750,9 @@ export default async function OpportunitiesPage() {
         .preference-theme-high_contrast .dashboard-progress-note,
         .preference-theme-high_contrast .dashboard-muted-action,
         .preference-theme-high_contrast .opportunity-match-header p,
-        .preference-theme-high_contrast .opportunity-match-reasons span {
+        .preference-theme-high_contrast .opportunity-match-reasons span,
+        .preference-theme-high_contrast .safe-location-strip,
+        .preference-theme-high_contrast .location-privacy-note {
           color: #1f2937;
         }
 
@@ -716,7 +802,8 @@ export default async function OpportunitiesPage() {
         .preference-theme-neon_arcade .dashboard-card-copy p,
         .preference-theme-neon_arcade .dashboard-progress-note,
         .preference-theme-neon_arcade .dashboard-muted-action,
-        .preference-theme-neon_arcade .opportunity-match-header p {
+        .preference-theme-neon_arcade .opportunity-match-header p,
+        .preference-theme-neon_arcade .location-privacy-note {
           color: #dbeafe;
         }
 
@@ -730,7 +817,8 @@ export default async function OpportunitiesPage() {
         }
 
         .preference-theme-neon_arcade .opportunity-match-reasons span,
-        .preference-theme-neon_arcade .dashboard-card-action-pill {
+        .preference-theme-neon_arcade .dashboard-card-action-pill,
+        .preference-theme-neon_arcade .safe-location-strip {
           border-color: rgba(34, 211, 238, 0.42);
           background: rgba(34, 211, 238, 0.12);
           color: #a7f3d0;
@@ -758,7 +846,8 @@ export default async function OpportunitiesPage() {
             gap: 14px;
           }
 
-          .opportunities-page .dashboard-card-action-pill {
+          .opportunities-page .dashboard-card-action-pill,
+          .safe-location-strip {
             width: 100%;
           }
 
