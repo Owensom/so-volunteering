@@ -117,6 +117,46 @@ async function requireVolunteerUser() {
   return { supabase, user, profile };
 }
 
+function buildInterestSnapshot({
+  volunteerProfile,
+  profile,
+  volunteerName,
+  userEmail,
+}: {
+  volunteerProfile: VolunteerProfile | null;
+  profile: Profile | null;
+  volunteerName: string;
+  userEmail: string | null | undefined;
+}) {
+  const shareSupportNeeds =
+    volunteerProfile?.share_accessibility_needs === true;
+
+  const preferredContactMethod = normalisePreferredContactMethod(
+    volunteerProfile?.preferred_contact_method,
+  );
+
+  const volunteerPhone =
+    preferredContactMethod === "phone" || preferredContactMethod === "sms"
+      ? volunteerProfile?.phone_number?.trim() || null
+      : null;
+
+  return {
+    volunteer_name: volunteerName,
+    volunteer_email: profile?.email || userEmail || null,
+    volunteer_city: volunteerProfile?.city || null,
+    volunteer_goals: volunteerProfile?.goals || [],
+    volunteer_interests: volunteerProfile?.interests || [],
+    volunteer_skills: volunteerProfile?.skills || [],
+    volunteer_support_shared: shareSupportNeeds,
+    volunteer_support_needs: shareSupportNeeds
+      ? volunteerProfile?.support_needs || null
+      : null,
+    volunteer_preferred_contact_method: preferredContactMethod,
+    volunteer_phone: volunteerPhone,
+    updated_at: new Date().toISOString(),
+  };
+}
+
 export async function expressInterest(formData: FormData) {
   const { supabase, user, profile } = await requireVolunteerUser();
 
@@ -138,21 +178,6 @@ export async function expressInterest(formData: FormData) {
     redirect("/opportunities");
   }
 
-  const { data: existingInterest } = await supabase
-    .from("opportunity_interests")
-    .select("id")
-    .eq("opportunity_id", opportunity.id)
-    .eq("volunteer_user_id", user.id)
-    .maybeSingle<{ id: string }>();
-
-  if (existingInterest) {
-    redirect(
-      `/opportunities/${opportunity.id}?message=${encodeURIComponent(
-        "You have already expressed interest in this role.",
-      )}`,
-    );
-  }
-
   const { data: volunteerProfile } = await supabase
     .from("volunteer_profiles")
     .select(
@@ -161,43 +186,56 @@ export async function expressInterest(formData: FormData) {
     .eq("user_id", user.id)
     .maybeSingle<VolunteerProfile>();
 
-  const shareSupportNeeds =
-    volunteerProfile?.share_accessibility_needs === true;
-
-  const preferredContactMethod = normalisePreferredContactMethod(
-    volunteerProfile?.preferred_contact_method,
-  );
-
   const volunteerName = getVolunteerDisplayName({
     profile,
     metadataName: user.user_metadata?.full_name,
     email: user.email,
   });
 
-  const volunteerPhone =
-    preferredContactMethod === "phone" || preferredContactMethod === "sms"
-      ? volunteerProfile?.phone_number?.trim() || null
-      : null;
+  const snapshot = buildInterestSnapshot({
+    volunteerProfile: volunteerProfile ?? null,
+    profile,
+    volunteerName,
+    userEmail: user.email,
+  });
+
+  const { data: existingInterest } = await supabase
+    .from("opportunity_interests")
+    .select("id")
+    .eq("opportunity_id", opportunity.id)
+    .eq("volunteer_user_id", user.id)
+    .maybeSingle<{ id: string }>();
+
+  if (existingInterest) {
+    const { error: updateError } = await supabase
+      .from("opportunity_interests")
+      .update(snapshot)
+      .eq("id", existingInterest.id)
+      .eq("volunteer_user_id", user.id)
+      .eq("opportunity_id", opportunity.id);
+
+    if (updateError) {
+      redirect(
+        `/opportunities/${opportunity.id}?error=${encodeURIComponent(
+          updateError.message,
+        )}`,
+      );
+    }
+
+    redirect(
+      `/opportunities/${opportunity.id}?message=${encodeURIComponent(
+        "You have already expressed interest in this role. Your latest contact options have been updated.",
+      )}`,
+    );
+  }
 
   const { error } = await supabase.from("opportunity_interests").insert({
     opportunity_id: opportunity.id,
     organisation_user_id: opportunity.organisation_user_id,
     volunteer_user_id: user.id,
-    volunteer_name: volunteerName,
-    volunteer_email: profile?.email || user.email || null,
-    volunteer_city: volunteerProfile?.city || null,
-    volunteer_goals: volunteerProfile?.goals || [],
-    volunteer_interests: volunteerProfile?.interests || [],
-    volunteer_skills: volunteerProfile?.skills || [],
-    volunteer_support_shared: shareSupportNeeds,
-    volunteer_support_needs: shareSupportNeeds
-      ? volunteerProfile?.support_needs || null
-      : null,
-    volunteer_preferred_contact_method: preferredContactMethod,
-    volunteer_phone: volunteerPhone,
+    ...snapshot,
     message: message || null,
     status: "new",
-    updated_at: new Date().toISOString(),
   });
 
   if (error) {
