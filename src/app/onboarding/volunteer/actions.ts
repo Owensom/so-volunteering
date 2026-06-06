@@ -3,19 +3,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
-function normalisePreferredContactMethod(value: string | null | undefined) {
-  if (
-    value === "email" ||
-    value === "phone" ||
-    value === "sms" ||
-    value === "not_sure"
-  ) {
-    return value;
-  }
-
-  return "email";
-}
-
 function normaliseVolunteeringPreference(value: string | null | undefined) {
   if (value === "in_person" || value === "remote" || value === "both") {
     return value;
@@ -40,10 +27,29 @@ export async function saveVolunteerOnboarding(formData: FormData) {
   const volunteeringPreference = normaliseVolunteeringPreference(
     String(formData.get("volunteering_preference") || "both"),
   );
-  const preferredContactMethod = normalisePreferredContactMethod(
-    String(formData.get("preferred_contact_method") || "email"),
-  );
-  const phone = String(formData.get("phone") || "").trim();
+
+  const draftPayload: {
+    user_id: string;
+    goals: string[];
+    volunteering_preference: string;
+    onboarding_completed: boolean;
+    updated_at: string;
+    city?: string;
+  } = {
+    user_id: user.id,
+    goals,
+    volunteering_preference: volunteeringPreference,
+    onboarding_completed: false,
+    updated_at: new Date().toISOString(),
+  };
+
+  if (city) {
+    draftPayload.city = city;
+  }
+
+  await supabase.from("volunteer_profiles").upsert(draftPayload, {
+    onConflict: "user_id",
+  });
 
   if (!city) {
     redirect(
@@ -61,22 +67,12 @@ export async function saveVolunteerOnboarding(formData: FormData) {
     );
   }
 
-  if (phone.length > 40) {
-    redirect(
-      `/onboarding/volunteer?error=${encodeURIComponent(
-        "Please check the phone or text number. It looks too long.",
-      )}`,
-    );
-  }
-
   const { error } = await supabase.from("volunteer_profiles").upsert(
     {
       user_id: user.id,
       city,
       goals,
       volunteering_preference: volunteeringPreference,
-      preferred_contact_method: preferredContactMethod,
-      phone,
       onboarding_completed: false,
       updated_at: new Date().toISOString(),
     },
