@@ -42,9 +42,7 @@ function normaliseList(values: string[] | null | undefined) {
     return [];
   }
 
-  return values
-    .map((value) => value.trim())
-    .filter(Boolean);
+  return values.map((value) => value.trim()).filter(Boolean);
 }
 
 function getSharedValues(
@@ -60,7 +58,9 @@ function getSharedValues(
 
   const volunteerSet = new Set(volunteerList.map(normaliseText));
 
-  return opportunityList.filter((value) => volunteerSet.has(normaliseText(value)));
+  return opportunityList.filter((value) =>
+    volunteerSet.has(normaliseText(value)),
+  );
 }
 
 function normaliseVolunteeringPreference(value: string | null | undefined) {
@@ -109,7 +109,9 @@ function getLocationPreferenceMatch(
   return false;
 }
 
-function hasProfileData(volunteerProfile: VolunteerMatchProfile | null | undefined) {
+function hasProfileData(
+  volunteerProfile: VolunteerMatchProfile | null | undefined,
+) {
   if (!volunteerProfile) {
     return false;
   }
@@ -118,10 +120,26 @@ function hasProfileData(volunteerProfile: VolunteerMatchProfile | null | undefin
     normaliseList(volunteerProfile.goals).length > 0 ||
     normaliseList(volunteerProfile.interests).length > 0 ||
     normaliseList(volunteerProfile.skills).length > 0 ||
-    Boolean(normaliseVolunteeringPreference(volunteerProfile.volunteering_preference)) ||
+    Boolean(
+      normaliseVolunteeringPreference(
+        volunteerProfile.volunteering_preference,
+      ),
+    ) ||
     Boolean(volunteerProfile.support_needs?.trim()) ||
     Boolean(volunteerProfile.availability_notes?.trim())
   );
+}
+
+function hasSupportNeed(
+  volunteerProfile: VolunteerMatchProfile | null | undefined,
+) {
+  return Boolean(volunteerProfile?.support_needs?.trim());
+}
+
+function hasAvailabilityNotes(
+  volunteerProfile: VolunteerMatchProfile | null | undefined,
+) {
+  return Boolean(volunteerProfile?.availability_notes?.trim());
 }
 
 function getTone(score: number): OpportunityMatchTone {
@@ -166,12 +184,16 @@ function buildReasons({
   supportAvailable,
   locationPreferenceMatch,
   hasVolunteerProfileData,
+  volunteerHasSupportNeed,
+  volunteerHasAvailabilityNotes,
 }: {
   interestMatches: string[];
   skillMatches: string[];
   supportAvailable: boolean;
   locationPreferenceMatch: boolean;
   hasVolunteerProfileData: boolean;
+  volunteerHasSupportNeed: boolean;
+  volunteerHasAvailabilityNotes: boolean;
 }) {
   const reasons: string[] = [];
 
@@ -185,16 +207,24 @@ function buildReasons({
 
   if (skillMatches.length > 0) {
     reasons.push(
-      `${skillMatches.length} skill match${skillMatches.length === 1 ? "" : "es"}`,
+      `${skillMatches.length} skill match${
+        skillMatches.length === 1 ? "" : "es"
+      }`,
     );
   }
 
   if (locationPreferenceMatch) {
-    reasons.push("Matches your volunteering preference");
+    reasons.push("Matches volunteering preference");
   }
 
-  if (supportAvailable) {
+  if (supportAvailable && volunteerHasSupportNeed) {
     reasons.push("Support is listed for this role");
+  } else if (supportAvailable) {
+    reasons.push("Role includes support information");
+  }
+
+  if (volunteerHasAvailabilityNotes) {
+    reasons.push("Availability information is on the profile");
   }
 
   if (!reasons.length && hasVolunteerProfileData) {
@@ -202,7 +232,7 @@ function buildReasons({
   }
 
   if (!reasons.length) {
-    reasons.push("Build your profile to improve matching");
+    reasons.push("Build the profile to improve matching");
   }
 
   return reasons;
@@ -214,19 +244,19 @@ function buildSummary(
   hasVolunteerProfileData: boolean,
 ) {
   if (!hasVolunteerProfileData) {
-    return "Add your interests, skills and preferences to improve your role matches.";
+    return "Add interests, skills and preferences to improve role matches.";
   }
 
   if (tone === "strong") {
-    return "This role looks like a strong fit based on your profile.";
+    return "This role looks like a strong fit based on the profile.";
   }
 
   if (tone === "good") {
-    return "This role has some useful links to your profile.";
+    return "This role has some useful links to the profile.";
   }
 
   if (reasons.includes("This may still be worth exploring")) {
-    return "This role does not strongly match your profile yet, but it may still be worth exploring.";
+    return "This role does not strongly match the profile yet, but it may still be worth exploring.";
   }
 
   return "This role may be worth exploring.";
@@ -241,7 +271,10 @@ export function getOpportunityMatch(
     opportunity.interests,
   );
 
-  const skillMatches = getSharedValues(volunteerProfile?.skills, opportunity.skills);
+  const skillMatches = getSharedValues(
+    volunteerProfile?.skills,
+    opportunity.skills,
+  );
 
   const supportAvailable = normaliseList(opportunity.support_offered).length > 0;
 
@@ -251,6 +284,8 @@ export function getOpportunityMatch(
   );
 
   const hasVolunteerProfileData = hasProfileData(volunteerProfile);
+  const volunteerHasSupportNeed = hasSupportNeed(volunteerProfile);
+  const volunteerHasAvailabilityNotes = hasAvailabilityNotes(volunteerProfile);
 
   let score = 0;
 
@@ -262,10 +297,14 @@ export function getOpportunityMatch(
   }
 
   if (supportAvailable) {
-    score += 10;
+    score += 8;
   }
 
-  if (volunteerProfile?.support_needs?.trim() && supportAvailable) {
+  if (volunteerHasSupportNeed && supportAvailable) {
+    score += 7;
+  }
+
+  if (volunteerHasAvailabilityNotes && opportunity.time_commitment?.trim()) {
     score += 5;
   }
 
@@ -281,6 +320,8 @@ export function getOpportunityMatch(
     supportAvailable,
     locationPreferenceMatch,
     hasVolunteerProfileData,
+    volunteerHasSupportNeed,
+    volunteerHasAvailabilityNotes,
   });
 
   const summary = buildSummary(tone, reasons, hasVolunteerProfileData);
