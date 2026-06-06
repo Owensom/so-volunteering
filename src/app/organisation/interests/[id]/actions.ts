@@ -19,9 +19,18 @@ function normaliseUserType(value: string | null | undefined) {
 }
 
 function normaliseInterestStatus(value: string) {
-  if (value === "reviewed") return "reviewed";
-  if (value === "contacted") return "contacted";
-  if (value === "closed") return "closed";
+  const status = value.trim().toLowerCase();
+
+  if (status === "new") return "new";
+  if (status === "contacted") return "contacted";
+  if (status === "accepted") return "accepted";
+  if (status === "closed") return "closed";
+
+  if (status === "review" || status === "reviewed") return "contacted";
+  if (status === "pending" || status === "sent" || status === "interested") {
+    return "new";
+  }
+
   return "new";
 }
 
