@@ -17,6 +17,7 @@ type OrganisationProfile = {
   contact_email: string | null;
   phone: string | null;
   website: string | null;
+  logo_url: string | null;
   location: string | null;
   purpose: string | null;
   volunteer_types: string[] | null;
@@ -37,38 +38,38 @@ const volunteerTypeOptions: ChoiceOption[] = [
     value: "One-off events",
     label: "One-off events",
     icon: "🎟️",
-    helpText: "Short event-based roles or occasional help."
+    helpText: "Short event-based roles or occasional help.",
   },
   {
     value: "Regular weekly roles",
     label: "Regular weekly roles",
     icon: "🔁",
-    helpText: "Consistent volunteering with a regular routine."
+    helpText: "Consistent volunteering with a regular routine.",
   },
   {
     value: "Practical hands-on tasks",
     label: "Practical hands-on tasks",
     icon: "🧰",
-    helpText: "Set up, sorting, packing, tidying or active help."
+    helpText: "Set up, sorting, packing, tidying or active help.",
   },
   {
     value: "People-facing roles",
     label: "People-facing roles",
     icon: "🤝",
-    helpText: "Welcoming, supporting visitors or helping groups."
+    helpText: "Welcoming, supporting visitors or helping groups.",
   },
   {
     value: "Admin or digital tasks",
     label: "Admin or digital tasks",
     icon: "💻",
-    helpText: "Forms, emails, simple digital or organising work."
+    helpText: "Forms, emails, simple digital or organising work.",
   },
   {
     value: "Remote or flexible roles",
     label: "Remote or flexible roles",
     icon: "🏡",
-    helpText: "Roles people can do online, from home or flexibly."
-  }
+    helpText: "Roles people can do online, from home or flexibly.",
+  },
 ];
 
 const supportOptions: ChoiceOption[] = [
@@ -76,38 +77,38 @@ const supportOptions: ChoiceOption[] = [
     value: "Clear written instructions",
     label: "Clear written instructions",
     icon: "📝",
-    helpText: "Volunteers know what to expect before they start."
+    helpText: "Volunteers know what to expect before they start.",
   },
   {
     value: "Named contact person",
     label: "Named contact person",
     icon: "👋",
-    helpText: "A clear person volunteers can ask for help."
+    helpText: "A clear person volunteers can ask for help.",
   },
   {
     value: "Shorter starter shifts",
     label: "Shorter starter shifts",
     icon: "🌱",
-    helpText: "People can start gently and build confidence."
+    helpText: "People can start gently and build confidence.",
   },
   {
     value: "Flexible timings where possible",
     label: "Flexible timings",
     icon: "🕒",
-    helpText: "Times can be adjusted where the role allows."
+    helpText: "Times can be adjusted where the role allows.",
   },
   {
     value: "Quiet space or calmer option",
     label: "Quiet or calmer option",
     icon: "🌙",
-    helpText: "A quieter space or lower-pressure task where possible."
+    helpText: "A quieter space or lower-pressure task where possible.",
   },
   {
     value: "Check-ins and encouragement",
     label: "Check-ins",
     icon: "💛",
-    helpText: "Regular supportive check-ins from the organisation."
-  }
+    helpText: "Regular supportive check-ins from the organisation.",
+  },
 ];
 
 function normaliseUserType(value: string | null | undefined) {
@@ -123,7 +124,7 @@ function isChecked(savedValues: string[] | null | undefined, value: string) {
 function ChoiceGrid({
   name,
   options,
-  savedValues
+  savedValues,
 }: {
   name: string;
   options: ChoiceOption[];
@@ -155,7 +156,7 @@ function ChoiceGrid({
 }
 
 export default async function OrganisationProfilePage({
-  searchParams
+  searchParams,
 }: {
   searchParams: Promise<{ error?: string }>;
 }) {
@@ -165,7 +166,7 @@ export default async function OrganisationProfilePage({
   const supabase = await createClient();
 
   const {
-    data: { user }
+    data: { user },
   } = await supabase.auth.getUser();
 
   if (!user) {
@@ -192,19 +193,20 @@ export default async function OrganisationProfilePage({
   const { data: organisationProfile } = await supabase
     .from("organisation_profiles")
     .select(
-      "organisation_name,contact_email,phone,website,location,purpose,volunteer_types,support_offered,safeguarding_notes,profile_completed"
+      "organisation_name,contact_email,phone,website,logo_url,location,purpose,volunteer_types,support_offered,safeguarding_notes,profile_completed",
     )
     .eq("user_id", user.id)
     .maybeSingle<OrganisationProfile>();
 
   const fallbackName = profile?.full_name?.trim() || "";
   const fallbackEmail = profile?.email?.trim() || user.email || "";
+  const currentLogoUrl = organisationProfile?.logo_url?.trim() || "";
 
   const listenText =
-    "This is the organisation profile setup page. Add your organisation name, contact email, location, purpose, volunteering types, support available, and safety notes. Required fields are organisation name, contact email, location, purpose, at least one volunteering type, and at least one support option. The final button says Save organisation profile.";
+    "This is the organisation profile setup page. Add your organisation name, logo, contact email, location, purpose, volunteering types, support available, and safety notes. The logo helps volunteers recognise your organisation. SO Volunteering and organisations using this platform will never ask volunteers for money, bank details, passwords, or a full home address. Required fields are organisation name, contact email, location, purpose, at least one volunteering type, and at least one support option. The final button says Save organisation profile.";
 
   return (
-    <main className="onboarding-shell">
+    <main className="onboarding-shell organisation-profile-page">
       <section className="onboarding-panel">
         <div className="onboarding-top-row">
           <div>
@@ -246,7 +248,7 @@ export default async function OrganisationProfilePage({
             </div>
           </div>
 
-          <div className="onboarding-progress-card">
+          <div className="onboarding-progress-card organisation-logo-preview-card">
             <div className="dashboard-progress-header">
               <span className="dashboard-progress-icon" aria-hidden="true">
                 ✨
@@ -260,12 +262,42 @@ export default async function OrganisationProfilePage({
                 </p>
               </div>
             </div>
+
+            <div className="organisation-logo-preview">
+              {currentLogoUrl ? (
+                <img src={currentLogoUrl} alt="" />
+              ) : (
+                <span aria-hidden="true">🏢</span>
+              )}
+            </div>
+
+            <p className="organisation-logo-helper">
+              Adding a logo helps volunteers recognise your organisation and
+              feel safer when reviewing roles.
+            </p>
           </div>
         </div>
 
         {errorMessage ? (
           <div className="alert alert-error">{errorMessage}</div>
         ) : null}
+
+        <section className="organisation-safety-card" aria-labelledby="safety-title">
+          <div className="organisation-safety-icon" aria-hidden="true">
+            🛡️
+          </div>
+
+          <div className="organisation-safety-copy">
+            <p className="brand-eyebrow">Volunteer safety statement</p>
+            <h2 id="safety-title">Stay safe</h2>
+            <p>
+              SO Volunteering and organisations using this platform will never
+              ask volunteers for money, bank details, passwords, or their full
+              home address. If anyone asks for these, volunteers should stop and
+              use Help using the app to report it.
+            </p>
+          </div>
+        </section>
 
         <form action={saveOrganisationProfile} className="form-stack">
           <label className="field-label">
@@ -279,11 +311,29 @@ export default async function OrganisationProfilePage({
               name="organisation_name"
               type="text"
               required
-              defaultValue={
-                organisationProfile?.organisation_name || fallbackName
-              }
+              defaultValue={organisationProfile?.organisation_name || fallbackName}
               placeholder="Example: Aberdeen Community Hub"
             />
+          </label>
+
+          <label className="field-label">
+            <span className="field-label-row">
+              <span className="field-label-icon" aria-hidden="true">
+                🖼️
+              </span>
+              <span>Organisation logo URL optional</span>
+            </span>
+            <input
+              name="logo_url"
+              type="url"
+              defaultValue={currentLogoUrl}
+              placeholder="https://example.org/logo.png"
+            />
+            <span className="field-helper">
+              Use a public image URL beginning with https://. This will later
+              appear on volunteer-facing role pages to help volunteers recognise
+              your organisation.
+            </span>
           </label>
 
           <div className="dashboard-grid">
@@ -298,9 +348,7 @@ export default async function OrganisationProfilePage({
                 name="contact_email"
                 type="email"
                 required
-                defaultValue={
-                  organisationProfile?.contact_email || fallbackEmail
-                }
+                defaultValue={organisationProfile?.contact_email || fallbackEmail}
                 placeholder="volunteering@example.org"
               />
             </label>
@@ -428,6 +476,135 @@ export default async function OrganisationProfilePage({
           </button>
         </form>
       </section>
+
+      <style>{`
+        .organisation-profile-page,
+        .organisation-profile-page * {
+          box-sizing: border-box;
+        }
+
+        .organisation-logo-preview-card {
+          display: grid;
+          gap: 14px;
+        }
+
+        .organisation-logo-preview {
+          display: flex;
+          width: 100%;
+          min-height: 118px;
+          align-items: center;
+          justify-content: center;
+          overflow: hidden;
+          border: 1px solid rgba(143, 178, 158, 0.22);
+          border-radius: 24px;
+          background:
+            linear-gradient(135deg, rgba(244, 255, 249, 0.86), rgba(255, 255, 255, 0.94)),
+            rgba(255, 255, 255, 0.84);
+          box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.54);
+        }
+
+        .organisation-logo-preview img {
+          display: block;
+          max-width: min(220px, 86%);
+          max-height: 96px;
+          object-fit: contain;
+        }
+
+        .organisation-logo-preview span {
+          display: inline-flex;
+          width: 68px;
+          height: 68px;
+          align-items: center;
+          justify-content: center;
+          border-radius: 24px;
+          background: rgba(143, 178, 158, 0.16);
+          font-size: 2rem;
+        }
+
+        .organisation-logo-helper {
+          margin: 0;
+          color: #60706a;
+          font-size: 0.92rem;
+          font-weight: 750;
+          line-height: 1.42;
+        }
+
+        .organisation-safety-card {
+          display: grid;
+          grid-template-columns: auto 1fr;
+          gap: 16px;
+          align-items: start;
+          margin: 22px 0;
+          padding: 20px;
+          border: 1px solid rgba(34, 124, 78, 0.24);
+          border-radius: 28px;
+          background:
+            radial-gradient(circle at top left, rgba(155, 232, 190, 0.4), transparent 32%),
+            linear-gradient(135deg, rgba(244, 255, 249, 0.94), rgba(255, 255, 255, 0.9));
+          box-shadow: 0 18px 42px rgba(33, 96, 61, 0.1);
+        }
+
+        .organisation-safety-icon {
+          display: inline-flex;
+          width: 62px;
+          height: 62px;
+          align-items: center;
+          justify-content: center;
+          border-radius: 22px;
+          background: rgba(34, 124, 78, 0.12);
+          box-shadow: inset 0 0 0 1px rgba(34, 124, 78, 0.16);
+          font-size: 1.9rem;
+        }
+
+        .organisation-safety-copy {
+          display: grid;
+          gap: 8px;
+          min-width: 0;
+        }
+
+        .organisation-safety-copy h2 {
+          margin: 0;
+          color: #145c38;
+          font-size: clamp(1.3rem, 3vw, 1.75rem);
+          font-weight: 950;
+          letter-spacing: -0.035em;
+          line-height: 1.1;
+        }
+
+        .organisation-safety-copy p {
+          margin: 0;
+          color: #275f45;
+          font-weight: 780;
+          line-height: 1.5;
+        }
+
+        .field-helper {
+          display: block;
+          margin-top: 8px;
+          color: #60706a;
+          font-size: 0.92rem;
+          font-weight: 750;
+          line-height: 1.38;
+        }
+
+        @media (max-width: 760px) {
+          .organisation-safety-card {
+            grid-template-columns: 1fr;
+            padding: 18px;
+            border-radius: 24px;
+          }
+
+          .organisation-safety-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 20px;
+          }
+
+          .organisation-logo-preview {
+            min-height: 104px;
+          }
+        }
+      `}</style>
     </main>
   );
 }
