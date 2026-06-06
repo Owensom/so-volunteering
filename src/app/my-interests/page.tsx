@@ -33,6 +33,11 @@ type OpportunityRow = {
   summary: string;
   location_type: string;
   location: string | null;
+  location_town_city: string | null;
+  location_area: string | null;
+  location_venue: string | null;
+  location_postcode: string | null;
+  hide_exact_location: boolean | null;
   time_commitment: string | null;
   status: string;
   contact_name: string | null;
@@ -86,7 +91,7 @@ function normaliseInterestStatus(status: string | null | undefined) {
     return status;
   }
 
-  if (status === "reviewed") {
+  if (status === "review" || status === "reviewed") {
     return "contacted";
   }
 
@@ -128,7 +133,7 @@ function formatStatus(status: string | null | undefined) {
   if (normalisedStatus === "accepted") return "Accepted";
   if (normalisedStatus === "contacted") return "Contacted";
   if (normalisedStatus === "closed") return "Closed";
-  return "Sent";
+  return "New interest";
 }
 
 function statusIcon(status: string | null | undefined) {
@@ -162,8 +167,8 @@ function statusHelp(status: string | null | undefined, simpleView: boolean) {
   }
 
   return simpleView
-    ? "Sent to the organisation."
-    : "Your interest has been sent to the organisation. They can review it and update the status.";
+    ? "Waiting for the organisation."
+    : "Your interest has been sent to the organisation. They can review it, contact you, accept it, or close it.";
 }
 
 function statusToneClass(status: string | null | undefined) {
@@ -179,6 +184,47 @@ function formatLocationType(value: string | null | undefined) {
   if (value === "remote") return "Remote";
   if (value === "hybrid") return "Hybrid";
   return "In-person";
+}
+
+function formatSafeLocation(opportunity: OpportunityRow) {
+  if (opportunity.location_type === "remote") {
+    return "Remote / online";
+  }
+
+  const safeParts = [
+    opportunity.location_town_city,
+    opportunity.location_area,
+  ].filter((value): value is string => Boolean(value && value.trim()));
+
+  if (safeParts.length > 0) {
+    return safeParts.join(" · ");
+  }
+
+  if (opportunity.location?.trim()) {
+    return opportunity.location.trim();
+  }
+
+  if (opportunity.location_type === "hybrid") {
+    return "Hybrid location to be confirmed";
+  }
+
+  return "Location to be confirmed";
+}
+
+function formatLocationPrivacy(opportunity: OpportunityRow) {
+  if (opportunity.location_type === "remote") {
+    return "";
+  }
+
+  if (opportunity.hide_exact_location === true) {
+    return "Exact venue shared later by the organisation";
+  }
+
+  if (opportunity.location_venue?.trim()) {
+    return `Venue: ${opportunity.location_venue.trim()}`;
+  }
+
+  return "";
 }
 
 export default async function MyInterestsPage({
@@ -238,7 +284,7 @@ export default async function MyInterestsPage({
     ? await supabase
         .from("opportunities")
         .select(
-          "id,title,summary,location_type,location,time_commitment,status,contact_name,contact_email",
+          "id,title,summary,location_type,location,location_town_city,location_area,location_venue,location_postcode,hide_exact_location,time_commitment,status,contact_name,contact_email",
         )
         .in("id", opportunityIds)
     : { data: [] as OpportunityRow[] };
@@ -259,7 +305,7 @@ export default async function MyInterestsPage({
   const simpleView = viewMode === "simple";
   const detailedView = viewMode === "detailed";
 
-  const sentCount = rows.filter(
+  const newCount = rows.filter(
     (row) => normaliseInterestStatus(row.status) === "new",
   ).length;
 
@@ -276,8 +322,8 @@ export default async function MyInterestsPage({
   ).length;
 
   const listenText = simpleView
-    ? "You are on the Roles I am interested in page. This page shows roles you saved. Sent means your interest has gone to the organisation. Contacted means the organisation has contacted you. Accepted means the organisation would like to move forward. Closed means the role is not progressing. Open a role to read it again, or remove interest if you no longer want the organisation to see it."
-    : "You are on the Roles I am interested in page. This page tracks roles where you clicked I’m interested. First, check the Role status card on the right to see how many roles are sent, contacted, accepted or closed. Sent means your interest has been sent to the organisation. Contacted means the organisation has marked that they have contacted you. Accepted means the organisation would like to move forward with you. Closed means the role is not progressing at the moment. Each card shows the role title, current status, what the status means, location details, your supporting statement if you wrote one, and the role contact if available. Use Open opportunity to return to the role details. Use Remove interest if you no longer want the organisation to see that you are interested.";
+    ? "You are on the Roles I am interested in page. This page shows roles you saved. New interest means the organisation has not updated it yet. Contacted means the organisation has contacted you. Accepted means the organisation would like to move forward. Closed means the role is not progressing. Open a role to read it again, or remove interest if you no longer want the organisation to see it."
+    : "You are on the Roles I am interested in page. This page tracks roles where you clicked I’m interested. First, check the Role status card on the right to see how many roles are new, contacted, accepted or closed. New interest means your interest has been sent and is waiting for the organisation to act. Contacted means the organisation has marked that they have contacted you. Accepted means the organisation would like to move forward with you. Closed means the role is not progressing at the moment. Each card shows the role title, current status, what the status means, safe location details, your supporting statement if you wrote one, and the role contact if available. Use Open opportunity to return to the role details. Use Remove interest if you no longer want the organisation to see that you are interested.";
 
   const shellClassName = [
     "dashboard-bg",
@@ -385,7 +431,7 @@ export default async function MyInterestsPage({
             </div>
 
             <p className="dashboard-progress-note">
-              Sent: <strong>{sentCount}</strong>
+              New interest: <strong>{newCount}</strong>
             </p>
             <p className="dashboard-progress-note">
               Contacted: <strong>{contactedCount}</strong>
@@ -447,6 +493,9 @@ export default async function MyInterestsPage({
               const opportunity = opportunityMap.get(interest.opportunity_id);
               const canOpenOpportunity = opportunity?.status === "published";
               const normalisedStatus = normaliseInterestStatus(interest.status);
+              const privacyNote = opportunity
+                ? formatLocationPrivacy(opportunity)
+                : "";
 
               return (
                 <article
@@ -488,15 +537,22 @@ export default async function MyInterestsPage({
                       </div>
 
                       {opportunity ? (
-                        <p className="dashboard-muted-action">
-                          {formatLocationType(opportunity.location_type)}
-                          {opportunity.location
-                            ? ` · ${opportunity.location}`
-                            : ""}
-                          {opportunity.time_commitment
-                            ? ` · ${opportunity.time_commitment}`
-                            : ""}
-                        </p>
+                        <div className="my-interest-location">
+                          <p>
+                            <strong>
+                              {formatLocationType(opportunity.location_type)}
+                            </strong>
+                            {" · "}
+                            {formatSafeLocation(opportunity)}
+                            {opportunity.time_commitment
+                              ? ` · ${opportunity.time_commitment}`
+                              : ""}
+                          </p>
+
+                          {privacyNote && !simpleView ? (
+                            <p>{privacyNote}</p>
+                          ) : null}
+                        </div>
                       ) : null}
 
                       {!simpleView && interest.message ? (
@@ -604,7 +660,8 @@ export default async function MyInterestsPage({
           margin: 0;
         }
 
-        .my-interest-status-panel {
+        .my-interest-status-panel,
+        .my-interest-location {
           display: grid;
           gap: 4px;
           padding: 12px;
@@ -614,7 +671,8 @@ export default async function MyInterestsPage({
           color: #5d6677;
         }
 
-        .my-interest-status-panel strong {
+        .my-interest-status-panel strong,
+        .my-interest-location strong {
           color: #315f48;
         }
 
@@ -792,7 +850,8 @@ export default async function MyInterestsPage({
         .preference-theme-high_contrast .dashboard-welcome-card,
         .preference-theme-high_contrast .info-card,
         .preference-theme-high_contrast .dashboard-progress-card,
-        .preference-theme-high_contrast .my-interest-status-panel {
+        .preference-theme-high_contrast .my-interest-status-panel,
+        .preference-theme-high_contrast .my-interest-location {
           border: 2px solid #1f2937;
           background: rgba(255, 255, 255, 0.98);
         }
@@ -800,14 +859,16 @@ export default async function MyInterestsPage({
         .preference-theme-high_contrast .dashboard-title,
         .preference-theme-high_contrast .dashboard-card-copy h2,
         .preference-theme-high_contrast .dashboard-progress-card h2,
-        .preference-theme-high_contrast .my-interest-status-panel strong {
+        .preference-theme-high_contrast .my-interest-status-panel strong,
+        .preference-theme-high_contrast .my-interest-location strong {
           color: #111827;
         }
 
         .preference-theme-high_contrast .dashboard-lead,
         .preference-theme-high_contrast .dashboard-card-copy p,
         .preference-theme-high_contrast .dashboard-progress-note,
-        .preference-theme-high_contrast .my-interest-status-panel {
+        .preference-theme-high_contrast .my-interest-status-panel,
+        .preference-theme-high_contrast .my-interest-location {
           color: #1f2937;
         }
 
@@ -834,7 +895,8 @@ export default async function MyInterestsPage({
         .preference-theme-neon_arcade .dashboard-welcome-card,
         .preference-theme-neon_arcade .dashboard-progress-card,
         .preference-theme-neon_arcade .info-card,
-        .preference-theme-neon_arcade .my-interest-status-panel {
+        .preference-theme-neon_arcade .my-interest-status-panel,
+        .preference-theme-neon_arcade .my-interest-location {
           border-color: rgba(34, 211, 238, 0.42);
           background: rgba(15, 23, 42, 0.86);
           box-shadow:
@@ -846,7 +908,8 @@ export default async function MyInterestsPage({
         .preference-theme-neon_arcade .dashboard-card-copy h2,
         .preference-theme-neon_arcade .dashboard-progress-card h2,
         .preference-theme-neon_arcade .dashboard-progress-note strong,
-        .preference-theme-neon_arcade .my-interest-status-panel strong {
+        .preference-theme-neon_arcade .my-interest-status-panel strong,
+        .preference-theme-neon_arcade .my-interest-location strong {
           color: #e0f2fe;
         }
 
@@ -857,7 +920,8 @@ export default async function MyInterestsPage({
         .preference-theme-neon_arcade .dashboard-progress-note,
         .preference-theme-neon_arcade .dashboard-muted-action,
         .preference-theme-neon_arcade .my-interest-message,
-        .preference-theme-neon_arcade .my-interest-status-panel {
+        .preference-theme-neon_arcade .my-interest-status-panel,
+        .preference-theme-neon_arcade .my-interest-location {
           color: #dbeafe;
         }
 
@@ -915,7 +979,8 @@ export default async function MyInterestsPage({
             gap: 14px;
           }
 
-          .my-interest-status-panel {
+          .my-interest-status-panel,
+          .my-interest-location {
             border-radius: 16px;
           }
 
