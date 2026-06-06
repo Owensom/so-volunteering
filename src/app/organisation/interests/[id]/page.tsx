@@ -45,10 +45,29 @@ function normaliseUserType(value: string | null | undefined) {
     : "volunteer";
 }
 
+function normaliseInterestStatus(status: string | null | undefined) {
+  if (
+    status === "new" ||
+    status === "contacted" ||
+    status === "accepted" ||
+    status === "closed"
+  ) {
+    return status;
+  }
+
+  if (status === "review" || status === "reviewed") {
+    return "contacted";
+  }
+
+  return "new";
+}
+
 function formatStatus(status: string) {
-  if (status === "reviewed") return "Reviewed";
-  if (status === "contacted") return "Contacted";
-  if (status === "closed") return "Closed";
+  const normalisedStatus = normaliseInterestStatus(status);
+
+  if (normalisedStatus === "accepted") return "Accepted";
+  if (normalisedStatus === "contacted") return "Contacted";
+  if (normalisedStatus === "closed") return "Closed";
   return "New";
 }
 
@@ -271,6 +290,8 @@ export default async function OrganisationInterestDetailPage({
     redirect("/organisation/interests");
   }
 
+  const normalisedStatus = normaliseInterestStatus(interest.status);
+
   const { data: opportunity } = await supabase
     .from("opportunities")
     .select("id,title,summary,location_type,location,time_commitment,status")
@@ -330,7 +351,7 @@ export default async function OrganisationInterestDetailPage({
         : "email";
 
   const listenText =
-    "You are on a volunteer interest detail page. First, read the volunteer name and current status. The cards below show the role, volunteer contact details, preferred contact method, phone number if the volunteer chose phone or text, supporting statement, goals, interests, skills and shared support information. The Status guide explains the workflow: New, Reviewed, Contacted and Closed. The Prepare contact card adapts to the volunteer’s preferred contact method. It can suggest an email, a text message, or phone call notes. The platform does not send messages for you yet. Use the Update status card to mark this interest as reviewed, contacted or closed.";
+    "You are on a volunteer interest detail page. First, read the volunteer name and current status. The cards below show the role, volunteer contact details, preferred contact method, phone number if the volunteer chose phone or text, supporting statement, goals, interests, skills and shared support information. The Status guide explains the workflow: New, Contacted, Accepted and Closed. The Prepare contact card adapts to the volunteer’s preferred contact method. It can suggest an email, a text message, or phone call notes. The platform does not send messages for you yet. Use the Update status card to mark this interest as contacted, accepted or closed.";
 
   return (
     <main className="dashboard-bg organisation-interest-page">
@@ -442,7 +463,8 @@ export default async function OrganisationInterestDetailPage({
             ) : null}
 
             <p className="dashboard-progress-note organisation-interest-status-note">
-              Update the status when this interest has been reviewed or handled.
+              Update the status when this interest has been contacted, accepted
+              or closed.
             </p>
           </aside>
         </section>
@@ -509,7 +531,7 @@ export default async function OrganisationInterestDetailPage({
             <div className="status-guide-list" aria-label="Interest status guide">
               <div
                 className={
-                  interest.status === "new"
+                  normalisedStatus === "new"
                     ? "status-guide-item status-guide-current"
                     : "status-guide-item"
                 }
@@ -525,7 +547,7 @@ export default async function OrganisationInterestDetailPage({
 
               <div
                 className={
-                  interest.status === "reviewed"
+                  normalisedStatus === "contacted"
                     ? "status-guide-item status-guide-current"
                     : "status-guide-item"
                 }
@@ -533,15 +555,15 @@ export default async function OrganisationInterestDetailPage({
                 <span className="status-guide-badge">2</span>
                 <div>
                   <p>
-                    <strong>Reviewed</strong>
+                    <strong>Contacted</strong>
                   </p>
-                  <p>You have read their details and considered fit/support.</p>
+                  <p>You have contacted the volunteer or started the conversation.</p>
                 </div>
               </div>
 
               <div
                 className={
-                  interest.status === "contacted"
+                  normalisedStatus === "accepted"
                     ? "status-guide-item status-guide-current"
                     : "status-guide-item"
                 }
@@ -549,15 +571,15 @@ export default async function OrganisationInterestDetailPage({
                 <span className="status-guide-badge">3</span>
                 <div>
                   <p>
-                    <strong>Contacted</strong>
+                    <strong>Accepted</strong>
                   </p>
-                  <p>You have contacted the volunteer outside the platform.</p>
+                  <p>You are ready to move forward with this volunteer.</p>
                 </div>
               </div>
 
               <div
                 className={
-                  interest.status === "closed"
+                  normalisedStatus === "closed"
                     ? "status-guide-item status-guide-current"
                     : "status-guide-item"
                 }
@@ -737,14 +759,16 @@ export default async function OrganisationInterestDetailPage({
               Read the volunteer’s details and decide whether the role looks like
               a good fit.
             </p>
-            <p>Mark the interest as Reviewed once you have looked at it.</p>
             <p>
               Contact the volunteer outside the platform for now, using their
               preferred contact method where possible.
             </p>
             <p>
-              Mark the interest as Contacted after you have reached out, or
-              Closed when no further action is needed.
+              Mark the interest as Contacted after you have reached out.
+            </p>
+            <p>
+              Mark the interest as Accepted if you are ready to move forward
+              with the volunteer, or Closed when no further action is needed.
             </p>
           </DetailCard>
 
@@ -773,10 +797,10 @@ export default async function OrganisationInterestDetailPage({
                       </span>
                       <span>Interest status</span>
                     </span>
-                    <select name="status" defaultValue={interest.status}>
+                    <select name="status" defaultValue={normalisedStatus}>
                       <option value="new">New</option>
-                      <option value="reviewed">Reviewed</option>
                       <option value="contacted">Contacted</option>
+                      <option value="accepted">Accepted</option>
                       <option value="closed">Closed</option>
                     </select>
                   </label>
