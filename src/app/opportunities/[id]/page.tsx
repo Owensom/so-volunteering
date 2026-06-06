@@ -108,7 +108,7 @@ function normaliseInterestStatus(status: string | null | undefined) {
     return status;
   }
 
-  if (status === "reviewed") {
+  if (status === "review" || status === "reviewed") {
     return "contacted";
   }
 
@@ -156,7 +156,7 @@ function formatInterestStatus(status: string | null | undefined) {
   if (normalisedStatus === "accepted") return "Accepted";
   if (normalisedStatus === "contacted") return "Contacted";
   if (normalisedStatus === "closed") return "Closed";
-  return "Sent";
+  return "New interest";
 }
 
 function getInterestHelpText(status: string | null | undefined) {
@@ -167,14 +167,14 @@ function getInterestHelpText(status: string | null | undefined) {
   }
 
   if (normalisedStatus === "contacted") {
-    return "The organisation has marked this as contacted.";
+    return "The organisation has marked this as contacted. Check your email or any contact method you shared.";
   }
 
   if (normalisedStatus === "closed") {
-    return "This role is not progressing at the moment.";
+    return "This role is not progressing at the moment. This does not mean you did anything wrong. You can keep looking for another role that feels right.";
   }
 
-  return "Your interest has been sent to the organisation.";
+  return "Your interest has been sent to the organisation and is waiting for them to review it.";
 }
 
 function hasText(value: string | null | undefined) {
@@ -598,7 +598,9 @@ export default async function OpportunityDetailPage({
             </p>
           </DetailCard>
 
-          {!simpleView && (hasText(opportunity.travel_notes) || hasText(opportunity.accessibility_notes)) ? (
+          {!simpleView &&
+          (hasText(opportunity.travel_notes) ||
+            hasText(opportunity.accessibility_notes)) ? (
             <DetailCard
               icon="🚌"
               label="Travel and access"
