@@ -26,6 +26,10 @@ type InterestSummary = {
   status: string;
 };
 
+type ReviewSummary = {
+  status: string | null;
+};
+
 type OrganisationCardProps = {
   href?: string;
   icon: string;
@@ -40,6 +44,23 @@ function normaliseUserType(value: string | null | undefined) {
   return value?.trim().toLowerCase() === "organisation"
     ? "organisation"
     : "volunteer";
+}
+
+function normaliseInterestStatus(status: string | null | undefined) {
+  if (
+    status === "new" ||
+    status === "contacted" ||
+    status === "accepted" ||
+    status === "closed"
+  ) {
+    return status;
+  }
+
+  if (status === "review" || status === "reviewed") {
+    return "contacted";
+  }
+
+  return "new";
 }
 
 function OrganisationCard({
@@ -136,8 +157,14 @@ export default async function OrganisationDashboardPage() {
     .select("status")
     .eq("organisation_user_id", user.id);
 
+  const { data: reviews } = await supabase
+    .from("volunteer_skill_reviews")
+    .select("status")
+    .eq("organisation_user_id", user.id);
+
   const opportunityRows = (opportunities as OpportunitySummary[] | null) ?? [];
   const interestRows = (interests as InterestSummary[] | null) ?? [];
+  const reviewRows = (reviews as ReviewSummary[] | null) ?? [];
 
   const publishedCount = opportunityRows.filter(
     (opportunity) => opportunity.status === "published"
@@ -147,8 +174,32 @@ export default async function OrganisationDashboardPage() {
     (opportunity) => opportunity.status === "draft"
   ).length;
 
+  const closedRoleCount = opportunityRows.filter(
+    (opportunity) => opportunity.status === "closed"
+  ).length;
+
   const newInterestCount = interestRows.filter(
-    (interest) => interest.status === "new"
+    (interest) => normaliseInterestStatus(interest.status) === "new"
+  ).length;
+
+  const contactedInterestCount = interestRows.filter(
+    (interest) => normaliseInterestStatus(interest.status) === "contacted"
+  ).length;
+
+  const acceptedInterestCount = interestRows.filter(
+    (interest) => normaliseInterestStatus(interest.status) === "accepted"
+  ).length;
+
+  const closedInterestCount = interestRows.filter(
+    (interest) => normaliseInterestStatus(interest.status) === "closed"
+  ).length;
+
+  const sharedReviewCount = reviewRows.filter(
+    (review) => review.status === "shared"
+  ).length;
+
+  const draftReviewCount = reviewRows.filter(
+    (review) => review.status === "draft"
   ).length;
 
   const displayName =
@@ -168,7 +219,7 @@ export default async function OrganisationDashboardPage() {
   const profileCompleted = organisationProfile?.profile_completed === true;
 
   const listenText =
-    "You are on the organisation dashboard. This is your workspace for creating volunteering roles and reviewing volunteer interest. First, check the Workspace status card. It shows whether your organisation profile is complete, how many roles are published, how many are drafts, and how many new volunteer interests need review. Use the Create role button to make a new volunteering role. Use the View interest button to open the interest inbox. The cards below give quick links. Organisation profile lets you review your organisation details. Create a role opens the role setup form. Opportunity list shows draft, published and closed roles. Interest inbox shows volunteers who have clicked I’m interested. Help using the app is for getting help if you are stuck, something is not working, or you want to report a problem with SO Volunteering. Volunteer matches is a later feature.";
+    "You are on the organisation dashboard. This is your workspace for creating volunteering roles, reviewing volunteer interest, accepting or contacting volunteers, and adding positive skills evidence. First, check the Workspace status card. It shows whether your organisation profile is complete, how many roles are published or in draft, how many volunteer interests are new, contacted, accepted or closed, and how many shared skills reviews have been saved. Use Create role to make a new inclusive volunteering role. Use Interest inbox to review volunteers who clicked I’m interested. Use Opportunity list to edit roles and open volunteers and reviews for each role. Help using the app is for getting support if you are stuck, something is not working, or you want to report a problem with SO Volunteering.";
 
   return (
     <main className="dashboard-bg organisation-dashboard-page">
@@ -232,8 +283,8 @@ export default async function OrganisationDashboardPage() {
 
             <p className="dashboard-lead organisation-hero-lead">
               Hi {displayName}. Create accessible volunteering roles, review
-              volunteer interest, and keep support information clear from the
-              start.
+              volunteer interest, move people forward kindly, and add positive
+              skills evidence after they help.
             </p>
 
             <div className="dashboard-primary-actions organisation-hero-actions">
@@ -253,7 +304,17 @@ export default async function OrganisationDashboardPage() {
               >
                 <span className="dashboard-button-inner">
                   <span aria-hidden="true">📬</span>
-                  <span>View interest</span>
+                  <span>Interest inbox</span>
+                </span>
+              </Link>
+
+              <Link
+                href="/organisation/opportunities"
+                className="secondary-button dashboard-main-action"
+              >
+                <span className="dashboard-button-inner">
+                  <span aria-hidden="true">⭐</span>
+                  <span>Roles & reviews</span>
                 </span>
               </Link>
 
@@ -294,6 +355,8 @@ export default async function OrganisationDashboardPage() {
               </p>
             )}
 
+            <div className="organisation-status-divider" />
+
             <p className="dashboard-progress-note organisation-status-note">
               Published roles: <strong>{publishedCount}</strong>
             </p>
@@ -301,9 +364,82 @@ export default async function OrganisationDashboardPage() {
               Draft roles: <strong>{draftCount}</strong>
             </p>
             <p className="dashboard-progress-note organisation-status-note">
+              Closed roles: <strong>{closedRoleCount}</strong>
+            </p>
+
+            <div className="organisation-status-divider" />
+
+            <p className="dashboard-progress-note organisation-status-note">
               New interest: <strong>{newInterestCount}</strong>
             </p>
+            <p className="dashboard-progress-note organisation-status-note">
+              Contacted: <strong>{contactedInterestCount}</strong>
+            </p>
+            <p className="dashboard-progress-note organisation-status-note">
+              Accepted: <strong>{acceptedInterestCount}</strong>
+            </p>
+            <p className="dashboard-progress-note organisation-status-note">
+              Closed interest: <strong>{closedInterestCount}</strong>
+            </p>
+
+            <div className="organisation-status-divider" />
+
+            <p className="dashboard-progress-note organisation-status-note">
+              Shared skills reviews: <strong>{sharedReviewCount}</strong>
+            </p>
+            <p className="dashboard-progress-note organisation-status-note">
+              Draft skills reviews: <strong>{draftReviewCount}</strong>
+            </p>
           </aside>
+        </section>
+
+        <section
+          className="organisation-workflow-panel"
+          aria-labelledby="organisation-workflow-title"
+        >
+          <div className="organisation-workflow-heading">
+            <span className="organisation-workflow-icon" aria-hidden="true">
+              🌈
+            </span>
+
+            <div>
+              <p className="dashboard-kicker">Inclusive workflow</p>
+              <h2 id="organisation-workflow-title">
+                From role setup to positive evidence
+              </h2>
+              <p>
+                Keep the process clear for volunteers: create a plain-language
+                role, review interest, contact or accept people kindly, then add
+                positive skills evidence after they have helped.
+              </p>
+            </div>
+          </div>
+
+          <div className="organisation-workflow-steps">
+            <article>
+              <span aria-hidden="true">📣</span>
+              <strong>1. Create role</strong>
+              <p>Use clear wording, location, support and readiness checks.</p>
+            </article>
+
+            <article>
+              <span aria-hidden="true">📬</span>
+              <strong>2. Review interest</strong>
+              <p>Open the inbox and read volunteer goals, skills and support.</p>
+            </article>
+
+            <article>
+              <span aria-hidden="true">✅</span>
+              <strong>3. Contact or accept</strong>
+              <p>Update each volunteer as contacted, accepted or closed.</p>
+            </article>
+
+            <article>
+              <span aria-hidden="true">⭐</span>
+              <strong>4. Add skills review</strong>
+              <p>Record positive, employability-focused skills evidence.</p>
+            </article>
+          </div>
         </section>
 
         <section
@@ -324,7 +460,7 @@ export default async function OrganisationDashboardPage() {
             icon="📣"
             label="Opportunities"
             title="Create a role"
-            description="Build plain-language roles with tasks, timings, skills and support notes."
+            description="Build plain-language roles with location, timings, skills, support notes and inclusivity checks."
             action="Create role"
           />
 
@@ -333,7 +469,7 @@ export default async function OrganisationDashboardPage() {
             icon="✅"
             label="Role list"
             title="Opportunity list"
-            description="Review draft, published and closed roles before volunteers respond."
+            description="Review draft, published and closed roles, then open volunteers and reviews for each role."
             action="View roles"
           />
 
@@ -342,8 +478,17 @@ export default async function OrganisationDashboardPage() {
             icon="📬"
             label="Volunteer interest"
             title="Interest inbox"
-            description="See volunteers who have expressed interest in your published roles."
-            action="View interest"
+            description="See volunteers who have expressed interest, then mark them as contacted, accepted or closed."
+            action="Open inbox"
+          />
+
+          <OrganisationCard
+            href="/organisation/opportunities"
+            icon="⭐"
+            label="Positive evidence"
+            title="Volunteers & skills reviews"
+            description="Open a role, then use Volunteers & reviews to add positive employability skills evidence."
+            action="Open roles"
           />
 
           <OrganisationCard
@@ -353,15 +498,6 @@ export default async function OrganisationDashboardPage() {
             title="Help using the app"
             description="Get help if you are stuck, something is not working, or you want to report a problem with SO Volunteering."
             action="Open help page"
-          />
-
-          <OrganisationCard
-            icon="🤝"
-            label="Matching"
-            title="Volunteer matches"
-            description="Match roles with volunteer interests, skills, availability and support preferences."
-            action="Later phase"
-            muted
           />
         </section>
       </section>
@@ -432,6 +568,106 @@ export default async function OrganisationDashboardPage() {
         .organisation-status-note {
           overflow-wrap: anywhere;
           word-break: break-word;
+        }
+
+        .organisation-status-divider {
+          width: 100%;
+          height: 1px;
+          margin: 10px 0;
+          background: rgba(83, 111, 99, 0.12);
+        }
+
+        .organisation-workflow-panel {
+          display: grid;
+          gap: 18px;
+          padding: clamp(18px, 4vw, 24px);
+          border: 1px solid rgba(83, 111, 99, 0.18);
+          border-radius: 28px;
+          background:
+            linear-gradient(135deg, rgba(244, 255, 249, 0.82), rgba(255, 255, 255, 0.9)),
+            rgba(255, 255, 255, 0.84);
+          box-shadow: 0 18px 48px rgba(33, 56, 48, 0.07);
+        }
+
+        .organisation-workflow-heading {
+          display: grid;
+          grid-template-columns: auto 1fr;
+          gap: 14px;
+          align-items: start;
+        }
+
+        .organisation-workflow-icon {
+          display: inline-flex;
+          width: 58px;
+          height: 58px;
+          align-items: center;
+          justify-content: center;
+          border-radius: 20px;
+          background: rgba(143, 178, 158, 0.16);
+          font-size: 1.8rem;
+        }
+
+        .organisation-workflow-heading h2 {
+          margin: 0 0 8px;
+          color: #315f48;
+          font-size: clamp(1.25rem, 3vw, 1.65rem);
+          letter-spacing: -0.035em;
+          line-height: 1.12;
+        }
+
+        .organisation-workflow-heading p {
+          margin: 0;
+          color: #60706a;
+          font-weight: 750;
+          line-height: 1.5;
+        }
+
+        .organisation-workflow-steps {
+          display: grid;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 12px;
+        }
+
+        .organisation-workflow-steps article {
+          display: grid;
+          gap: 8px;
+          min-height: 150px;
+          padding: 14px;
+          border: 1px solid rgba(108, 92, 160, 0.12);
+          border-radius: 20px;
+          background: rgba(255, 255, 255, 0.78);
+        }
+
+        .organisation-workflow-steps span {
+          display: inline-flex;
+          width: 44px;
+          height: 44px;
+          align-items: center;
+          justify-content: center;
+          border-radius: 16px;
+          background: rgba(248, 248, 252, 0.92);
+          font-size: 1.35rem;
+        }
+
+        .organisation-workflow-steps strong {
+          color: #315f48;
+          font-size: 0.98rem;
+          font-weight: 950;
+          line-height: 1.18;
+        }
+
+        .organisation-workflow-steps p {
+          margin: 0;
+          color: #60706a;
+          font-size: 0.9rem;
+          font-weight: 700;
+          line-height: 1.4;
+        }
+
+        @media (max-width: 980px) {
+          .organisation-workflow-steps {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
         }
 
         @media (max-width: 760px) {
@@ -562,6 +798,29 @@ export default async function OrganisationDashboardPage() {
           .organisation-card-main p {
             font-size: 0.98rem !important;
             line-height: 1.45 !important;
+          }
+
+          .organisation-workflow-heading {
+            grid-template-columns: 1fr;
+          }
+
+          .organisation-workflow-panel {
+            border-radius: 24px;
+          }
+
+          .organisation-workflow-icon {
+            width: 54px;
+            height: 54px;
+          }
+        }
+
+        @media (max-width: 560px) {
+          .organisation-workflow-steps {
+            grid-template-columns: 1fr;
+          }
+
+          .organisation-workflow-steps article {
+            min-height: 0;
           }
         }
 
