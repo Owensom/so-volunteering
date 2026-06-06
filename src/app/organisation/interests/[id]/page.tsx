@@ -48,7 +48,7 @@ function normaliseUserType(value: string | null | undefined) {
 }
 
 function normaliseInterestStatus(
-  status: string | null | undefined
+  status: string | null | undefined,
 ): InterestStatus {
   if (
     status === "new" ||
@@ -103,6 +103,7 @@ function formatContactMethod(value: string | null | undefined) {
   if (value === "sms") return "Text message";
   if (value === "phone") return "Phone call";
   if (value === "email") return "Email";
+  if (value === "not_sure") return "Not sure yet";
   return "Not chosen yet";
 }
 
@@ -124,13 +125,13 @@ function formatDate(value: string) {
   return new Intl.DateTimeFormat("en-GB", {
     day: "numeric",
     month: "short",
-    year: "numeric"
+    year: "numeric",
   }).format(date);
 }
 
 function buildContactEmail({
   volunteerName,
-  roleTitle
+  roleTitle,
 }: {
   volunteerName: string;
   roleTitle: string;
@@ -150,7 +151,7 @@ Best wishes`;
 
 function buildContactText({
   volunteerName,
-  roleTitle
+  roleTitle,
 }: {
   volunteerName: string;
   roleTitle: string;
@@ -161,7 +162,7 @@ function buildContactText({
 function buildCallNotes({
   volunteerName,
   roleTitle,
-  preferredContactMethod
+  preferredContactMethod,
 }: {
   volunteerName: string;
   roleTitle: string;
@@ -175,14 +176,14 @@ function buildCallNotes({
     "Briefly explain the role in plain language.",
     "Ask what support would help them feel comfortable.",
     `Note that their preferred contact method is ${preferredContactMethod}.`,
-    "Agree the next step before ending the call."
+    "Agree the next step before ending the call.",
   ];
 }
 
 function buildMailtoHref({
   email,
   subject,
-  body
+  body,
 }: {
   email: string | null;
   subject: string;
@@ -193,13 +194,13 @@ function buildMailtoHref({
   }
 
   return `mailto:${encodeURIComponent(email.trim())}?subject=${encodeURIComponent(
-    subject
+    subject,
   )}&body=${encodeURIComponent(body)}`;
 }
 
 function buildSmsHref({
   phoneNumber,
-  body
+  body,
 }: {
   phoneNumber: string;
   body: string;
@@ -228,7 +229,7 @@ function getReviewStrength(interest: InterestRow) {
 
   const hasMessage = Boolean(interest.message?.trim());
   const hasSharedSupport = Boolean(
-    interest.volunteer_support_shared && interest.volunteer_support_needs?.trim()
+    interest.volunteer_support_shared && interest.volunteer_support_needs?.trim(),
   );
 
   const score =
@@ -243,7 +244,7 @@ function getReviewStrength(interest: InterestRow) {
       icon: "⭐",
       label: "Strong profile",
       text: "There is enough shared information to review this carefully before contact.",
-      className: "review-strength-strong"
+      className: "review-strength-strong",
     };
   }
 
@@ -252,7 +253,7 @@ function getReviewStrength(interest: InterestRow) {
       icon: "✨",
       label: "Good starting point",
       text: "There is some useful information. A short conversation will help.",
-      className: "review-strength-good"
+      className: "review-strength-good",
     };
   }
 
@@ -260,7 +261,7 @@ function getReviewStrength(interest: InterestRow) {
     icon: "🌱",
     label: "Needs conversation",
     text: "The volunteer has shared less detail, so keep the first contact simple and supportive.",
-    className: "review-strength-light"
+    className: "review-strength-light",
   };
 }
 
@@ -268,7 +269,7 @@ function getNextStepText(status: string | null | undefined) {
   const normalisedStatus = normaliseInterestStatus(status);
 
   if (normalisedStatus === "accepted") {
-    return "This volunteer is ready to move forward. You can add a positive skills review after they have completed a task.";
+    return "This volunteer is ready to move forward. After they complete a task, add a positive skills review so their Pathway CV can grow.";
   }
 
   if (normalisedStatus === "contacted") {
@@ -284,7 +285,7 @@ function getNextStepText(status: string | null | undefined) {
 
 function ChipList({
   values,
-  emptyText
+  emptyText,
 }: {
   values: string[] | null | undefined;
   emptyText: string;
@@ -308,7 +309,7 @@ function DetailCard({
   icon,
   label,
   title,
-  children
+  children,
 }: {
   icon: string;
   label: string;
@@ -338,7 +339,7 @@ function DetailCard({
 
 export default async function OrganisationInterestDetailPage({
   params,
-  searchParams
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
   searchParams: Promise<{ error?: string; message?: string }>;
@@ -358,7 +359,7 @@ export default async function OrganisationInterestDetailPage({
   const supabase = await createClient();
 
   const {
-    data: { user }
+    data: { user },
   } = await supabase.auth.getUser();
 
   if (!user) {
@@ -385,7 +386,7 @@ export default async function OrganisationInterestDetailPage({
   const { data: interest } = await supabase
     .from("opportunity_interests")
     .select(
-      "id,opportunity_id,volunteer_user_id,volunteer_name,volunteer_email,volunteer_phone,volunteer_city,volunteer_goals,volunteer_interests,volunteer_skills,volunteer_support_shared,volunteer_support_needs,volunteer_preferred_contact_method,message,status,created_at"
+      "id,opportunity_id,volunteer_user_id,volunteer_name,volunteer_email,volunteer_phone,volunteer_city,volunteer_goals,volunteer_interests,volunteer_skills,volunteer_support_shared,volunteer_support_needs,volunteer_preferred_contact_method,message,status,created_at",
     )
     .eq("id", interestId)
     .eq("organisation_user_id", user.id)
@@ -405,11 +406,11 @@ export default async function OrganisationInterestDetailPage({
     .maybeSingle<OpportunityRow>();
 
   const preferredContactMethod = formatContactMethod(
-    interest.volunteer_preferred_contact_method
+    interest.volunteer_preferred_contact_method,
   );
 
   const showPhoneNumber = shouldShowPhone(
-    interest.volunteer_preferred_contact_method
+    interest.volunteer_preferred_contact_method,
   );
 
   const phoneNumber = interest.volunteer_phone?.trim() || "";
@@ -421,30 +422,30 @@ export default async function OrganisationInterestDetailPage({
   const contactEmailSubject = `Your interest in ${roleTitle}`;
   const contactEmailBody = buildContactEmail({
     volunteerName,
-    roleTitle
+    roleTitle,
   });
 
   const contactTextBody = buildContactText({
     volunteerName,
-    roleTitle
+    roleTitle,
   });
 
   const callNotes = buildCallNotes({
     volunteerName,
     roleTitle,
-    preferredContactMethod
+    preferredContactMethod,
   });
 
   const contactMailtoHref = buildMailtoHref({
     email: interest.volunteer_email,
     subject: contactEmailSubject,
-    body: contactEmailBody
+    body: contactEmailBody,
   });
 
   const contactSmsHref = phoneNumber
     ? buildSmsHref({
         phoneNumber,
-        body: contactTextBody
+        body: contactTextBody,
       })
     : "";
 
@@ -469,8 +470,12 @@ export default async function OrganisationInterestDetailPage({
     ? interest.volunteer_skills.length
     : 0;
 
+  const hasAcceptedVolunteer = normalisedStatus === "accepted";
+  const hasSharedProfile =
+    goalsCount > 0 || interestsCount > 0 || skillsCount > 0;
+
   const listenText =
-    "You are on a volunteer interest detail page. This page helps an organisation review one volunteer interest. The top section shows the volunteer, current status, preferred contact method and next step. The review snapshot shows how much information the volunteer has shared. The role card shows the opportunity. The contact helper prepares an email, text or call notes depending on the volunteer’s preferred contact method. The goals, interests, skills and support cards show the information the volunteer has chosen to share. Use Update status to mark the interest as New interest, Contacted, Accepted or Closed.";
+    "You are on a volunteer interest detail page. This page helps an organisation review one volunteer interest. The top section shows the volunteer, current status, preferred contact method and next step. The contact helper prepares an email, text or call notes depending on the volunteer’s preferred contact method. If the volunteer is accepted, the Volunteer pathway panel explains how to add positive skills evidence after they complete a task. Use Update status to mark the interest as New interest, Contacted, Accepted or Closed.";
 
   return (
     <main className="dashboard-bg organisation-interest-page">
@@ -533,7 +538,7 @@ export default async function OrganisationInterestDetailPage({
             <div className="organisation-interest-hero-meta">
               <span
                 className={`interest-detail-status-pill ${getStatusToneClass(
-                  normalisedStatus
+                  normalisedStatus,
                 )}`}
               >
                 <span aria-hidden="true">{getStatusIcon(normalisedStatus)}</span>
@@ -573,6 +578,18 @@ export default async function OrganisationInterestDetailPage({
                   </span>
                 </Link>
               ) : null}
+
+              {opportunity && hasAcceptedVolunteer ? (
+                <Link
+                  href={`/organisation/opportunities/${opportunity.id}/reviews`}
+                  className="secondary-button dashboard-main-action"
+                >
+                  <span className="dashboard-button-inner">
+                    <span aria-hidden="true">⭐</span>
+                    <span>Positive skills reviews</span>
+                  </span>
+                </Link>
+              ) : null}
             </div>
           </div>
 
@@ -582,11 +599,19 @@ export default async function OrganisationInterestDetailPage({
           >
             <div className="dashboard-progress-header organisation-interest-status-header">
               <span className="dashboard-progress-icon" aria-hidden="true">
-                {reviewStrength.icon}
+                {hasAcceptedVolunteer ? "🌱" : reviewStrength.icon}
               </span>
               <div>
-                <h2>{reviewStrength.label}</h2>
-                <p>{reviewStrength.text}</p>
+                <h2>
+                  {hasAcceptedVolunteer
+                    ? "Pathway ready"
+                    : reviewStrength.label}
+                </h2>
+                <p>
+                  {hasAcceptedVolunteer
+                    ? "This volunteer can now build positive evidence through your role."
+                    : reviewStrength.text}
+                </p>
               </div>
             </div>
 
@@ -620,6 +645,70 @@ export default async function OrganisationInterestDetailPage({
 
         {errorMessage ? (
           <div className="alert alert-error">{errorMessage}</div>
+        ) : null}
+
+        {hasAcceptedVolunteer ? (
+          <section
+            className="accepted-pathway-panel"
+            aria-labelledby="accepted-pathway-title"
+          >
+            <div className="accepted-pathway-icon" aria-hidden="true">
+              🌱
+            </div>
+
+            <div className="accepted-pathway-copy">
+              <p className="dashboard-kicker">Volunteer pathway</p>
+              <h2 id="accepted-pathway-title">
+                Help this volunteer build positive evidence
+              </h2>
+              <p>
+                This interest is marked as accepted. After the volunteer
+                completes a task or takes part in the role, add a positive skills
+                review. Shared reviews can support their Positive Pathway CV.
+              </p>
+
+              <div className="accepted-pathway-steps">
+                <span>
+                  <strong>1</strong>
+                  Agree the first task
+                </span>
+                <span>
+                  <strong>2</strong>
+                  Support the volunteer
+                </span>
+                <span>
+                  <strong>3</strong>
+                  Add positive evidence
+                </span>
+              </div>
+
+              <div className="accepted-pathway-actions">
+                {opportunity ? (
+                  <Link
+                    href={`/organisation/opportunities/${opportunity.id}/reviews`}
+                    className="primary-button"
+                  >
+                    <span className="dashboard-button-inner">
+                      <span aria-hidden="true">⭐</span>
+                      <span>Open positive skills reviews</span>
+                    </span>
+                  </Link>
+                ) : null}
+
+                {opportunity ? (
+                  <Link
+                    href={`/organisation/opportunities/${opportunity.id}`}
+                    className="secondary-button"
+                  >
+                    <span className="dashboard-button-inner">
+                      <span aria-hidden="true">📣</span>
+                      <span>Open role</span>
+                    </span>
+                  </Link>
+                ) : null}
+              </div>
+            </div>
+          </section>
         ) : null}
 
         <section
@@ -664,7 +753,8 @@ export default async function OrganisationInterestDetailPage({
             </p>
             {showPhoneNumber ? (
               <p>
-                Phone number: <strong>{phoneNumber || "Not supplied"}</strong>
+                Phone/text number:{" "}
+                <strong>{phoneNumber || "Not supplied"}</strong>
               </p>
             ) : null}
             <p>
@@ -756,9 +846,9 @@ export default async function OrganisationInterestDetailPage({
             {contactHelperMode === "email" ? (
               <>
                 <p>
-                  The volunteer chose email. A friendly first message is ready.
-                  Open the preview only if you want to check or copy the full
-                  wording.
+                  The volunteer chose email or has not chosen a method yet. A
+                  friendly first message is ready. Open the preview only if you
+                  want to check or copy the full wording.
                 </p>
 
                 <p>
@@ -899,27 +989,70 @@ export default async function OrganisationInterestDetailPage({
             )}
           </DetailCard>
 
-          <DetailCard icon="🧭" label="Next steps" title="What happens next?">
+          <DetailCard
+            icon={hasAcceptedVolunteer ? "🌱" : "🧭"}
+            label={hasAcceptedVolunteer ? "Pathway" : "Next steps"}
+            title={
+              hasAcceptedVolunteer
+                ? "Accepted volunteer next step"
+                : "What happens next?"
+            }
+          >
             <p>{getNextStepText(normalisedStatus)}</p>
-            <p>
-              Contact should stay kind, clear and supportive. Use the
-              volunteer’s preferred contact method where possible.
-            </p>
-            {opportunity ? (
-              <p>
-                After the volunteer has completed a task, use the role review
-                page to add positive skills evidence.
-              </p>
-            ) : null}
 
-            {opportunity ? (
-              <Link
-                href={`/organisation/opportunities/${opportunity.id}/reviews`}
-                className="contact-email-button"
-              >
-                Open positive skills reviews
-              </Link>
-            ) : null}
+            {hasAcceptedVolunteer ? (
+              <>
+                <p>
+                  Keep the first task manageable, agree what support will help,
+                  and add a positive skills review once the volunteer has
+                  completed a meaningful activity.
+                </p>
+
+                {hasSharedProfile ? (
+                  <p className="dashboard-muted-action">
+                    This volunteer has shared profile information that can help
+                    you choose a supportive first task.
+                  </p>
+                ) : (
+                  <p className="dashboard-muted-action">
+                    This volunteer has shared limited profile information, so
+                    use the first conversation to agree what feels comfortable.
+                  </p>
+                )}
+
+                {opportunity ? (
+                  <Link
+                    href={`/organisation/opportunities/${opportunity.id}/reviews`}
+                    className="contact-email-button"
+                  >
+                    Open positive skills reviews
+                  </Link>
+                ) : null}
+              </>
+            ) : (
+              <>
+                <p>
+                  Contact should stay kind, clear and supportive. Use the
+                  volunteer’s preferred contact method where possible.
+                </p>
+
+                {opportunity ? (
+                  <p>
+                    If this volunteer is accepted and later completes a task,
+                    use the role review page to add positive skills evidence.
+                  </p>
+                ) : null}
+
+                {opportunity ? (
+                  <Link
+                    href={`/organisation/opportunities/${opportunity.id}/reviews`}
+                    className="contact-email-button"
+                  >
+                    Open positive skills reviews
+                  </Link>
+                ) : null}
+              </>
+            )}
           </DetailCard>
 
           <article className="info-card dashboard-pathway-card interest-detail-card">
@@ -976,7 +1109,8 @@ export default async function OrganisationInterestDetailPage({
 
         .organisation-interest-hero,
         .organisation-interest-status-card,
-        .interest-detail-card {
+        .interest-detail-card,
+        .accepted-pathway-panel {
           overflow: hidden;
         }
 
@@ -984,7 +1118,9 @@ export default async function OrganisationInterestDetailPage({
         .organisation-interest-status-card,
         .organisation-interest-status-card *,
         .interest-detail-card,
-        .interest-detail-card * {
+        .interest-detail-card *,
+        .accepted-pathway-panel,
+        .accepted-pathway-panel * {
           min-width: 0;
         }
 
@@ -1072,6 +1208,98 @@ export default async function OrganisationInterestDetailPage({
           font-size: 1.35rem;
           font-weight: 950;
           line-height: 1;
+        }
+
+        .accepted-pathway-panel {
+          display: grid;
+          grid-template-columns: auto 1fr;
+          gap: 18px;
+          align-items: start;
+          margin: 22px 0;
+          padding: 24px;
+          border: 1px solid rgba(83, 111, 99, 0.22);
+          border-radius: 30px;
+          background:
+            radial-gradient(circle at top left, rgba(200, 243, 221, 0.42), transparent 34%),
+            rgba(244, 255, 249, 0.92);
+          box-shadow: 0 18px 42px rgba(33, 56, 48, 0.08);
+        }
+
+        .accepted-pathway-icon {
+          display: inline-flex;
+          width: 68px;
+          height: 68px;
+          align-items: center;
+          justify-content: center;
+          border-radius: 24px;
+          background: rgba(255, 255, 255, 0.82);
+          box-shadow: inset 0 0 0 1px rgba(83, 111, 99, 0.12);
+          font-size: 2.05rem;
+        }
+
+        .accepted-pathway-copy {
+          display: grid;
+          gap: 12px;
+        }
+
+        .accepted-pathway-copy h2 {
+          margin: 0;
+          color: #24352f;
+          font-size: clamp(1.55rem, 3vw, 2.1rem);
+          font-weight: 950;
+          line-height: 1.08;
+          letter-spacing: -0.04em;
+        }
+
+        .accepted-pathway-copy p {
+          margin: 0;
+          color: #4f625b;
+          font-size: 1rem;
+          font-weight: 750;
+          line-height: 1.52;
+          overflow-wrap: anywhere;
+        }
+
+        .accepted-pathway-steps {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 10px;
+          margin-top: 4px;
+        }
+
+        .accepted-pathway-steps span {
+          display: grid;
+          gap: 5px;
+          min-height: 86px;
+          padding: 12px;
+          border: 1px solid rgba(83, 111, 99, 0.14);
+          border-radius: 18px;
+          background: rgba(255, 255, 255, 0.72);
+          color: #536f63;
+          font-size: 0.9rem;
+          font-weight: 850;
+          line-height: 1.25;
+        }
+
+        .accepted-pathway-steps strong {
+          display: inline-flex;
+          width: 28px;
+          height: 28px;
+          align-items: center;
+          justify-content: center;
+          border-radius: 999px;
+          background: rgba(83, 111, 99, 0.12);
+          color: #315f48;
+          font-size: 0.84rem;
+          font-weight: 950;
+        }
+
+        .accepted-pathway-actions {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 12px;
+          align-items: center;
+          margin-top: 4px;
         }
 
         .interest-detail-grid {
@@ -1379,6 +1607,33 @@ export default async function OrganisationInterestDetailPage({
             text-align: left;
           }
 
+          .accepted-pathway-panel {
+            grid-template-columns: 1fr;
+            padding: 22px;
+            border-radius: 26px;
+          }
+
+          .accepted-pathway-icon {
+            width: 58px;
+            height: 58px;
+            border-radius: 20px;
+            font-size: 1.85rem;
+          }
+
+          .accepted-pathway-steps {
+            grid-template-columns: 1fr;
+          }
+
+          .accepted-pathway-actions {
+            align-items: stretch;
+            flex-direction: column;
+          }
+
+          .accepted-pathway-actions .primary-button,
+          .accepted-pathway-actions .secondary-button {
+            width: 100%;
+          }
+
           .interest-detail-card {
             min-height: 0;
             padding: 22px;
@@ -1451,7 +1706,8 @@ export default async function OrganisationInterestDetailPage({
           }
 
           .organisation-interest-status-card,
-          .interest-detail-card {
+          .interest-detail-card,
+          .accepted-pathway-panel {
             padding: 18px;
           }
         }
