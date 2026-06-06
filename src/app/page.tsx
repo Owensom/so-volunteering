@@ -3,7 +3,7 @@ import { InclusiveAudioButton } from "@/components/InclusiveSupport";
 
 export default function HomePage() {
   const listenText =
-    "Welcome to SO Volunteering. At the top of the page is the SO Volunteering logo and the Listen support. The main heading says, Belong. Grow. Thrive. This platform helps people find volunteering opportunities, build confidence, develop verified skills, and progress towards education, training, and employment. Near the bottom of this card there are two main buttons. The first button says Get started. Choose this if you want to create an account. The second button says Sign in. Choose this if you already have an account.";
+    "Welcome to SO Volunteering. This is the public home page. The main heading says, Belong. Grow. Thrive. SO Volunteering helps people find supportive volunteering opportunities, build confidence, develop positive skills evidence, and create a pathway towards education, training, employment or community connection. There is an About SO Volunteering section explaining how the app helps volunteers and organisations. Near the bottom there are two main buttons. The first button says Get started. Choose this if you want to create an account. The second button says Sign in. Choose this if you already have an account.";
 
   return (
     <main className="center-shell">
@@ -40,6 +40,62 @@ export default function HomePage() {
           progress towards education, training, and employment.
         </p>
 
+        <section className="home-about-card" aria-labelledby="about-title">
+          <div className="home-about-heading">
+            <span className="home-about-icon" aria-hidden="true">
+              🌈
+            </span>
+
+            <div>
+              <p className="home-section-kicker">About SO Volunteering</p>
+              <h2 id="about-title">Supportive volunteering, built around people.</h2>
+            </div>
+          </div>
+
+          <p className="home-about-text">
+            SO Volunteering helps volunteers find roles that feel realistic,
+            welcoming and useful. It also helps organisations understand what
+            support people may need, recognise positive skills, and help
+            volunteers build a pathway towards work, learning or community
+            connection.
+          </p>
+
+          <div className="home-about-grid" aria-label="What SO Volunteering supports">
+            <article className="home-about-mini-card">
+              <span aria-hidden="true">🌱</span>
+              <div>
+                <h3>For volunteers</h3>
+                <p>
+                  Find opportunities, choose what feels right, and build your
+                  confidence step by step.
+                </p>
+              </div>
+            </article>
+
+            <article className="home-about-mini-card">
+              <span aria-hidden="true">🤝</span>
+              <div>
+                <h3>For organisations</h3>
+                <p>
+                  Create inclusive roles, manage interest, and recognise the
+                  positive skills volunteers show.
+                </p>
+              </div>
+            </article>
+
+            <article className="home-about-mini-card">
+              <span aria-hidden="true">📄</span>
+              <div>
+                <h3>Positive pathway</h3>
+                <p>
+                  Shared skills reviews can help volunteers build a positive CV
+                  for future steps.
+                </p>
+              </div>
+            </article>
+          </div>
+        </section>
+
         <div className="action-row">
           <Link href="/signup" className="primary-button home-action-button">
             <span className="home-action-inner">
@@ -60,6 +116,147 @@ export default function HomePage() {
           </Link>
         </div>
       </section>
+
+      <style>{`
+        .home-about-card {
+          width: 100%;
+          display: grid;
+          gap: 18px;
+          margin-top: 24px;
+          padding: clamp(18px, 4vw, 26px);
+          border: 1px solid rgba(143, 178, 158, 0.24);
+          border-radius: 30px;
+          background:
+            linear-gradient(135deg, rgba(244, 255, 249, 0.86), rgba(255, 255, 255, 0.9)),
+            rgba(255, 255, 255, 0.86);
+          box-shadow: 0 22px 56px rgba(33, 56, 48, 0.08);
+          text-align: left;
+        }
+
+        .home-about-heading {
+          display: grid;
+          grid-template-columns: auto 1fr;
+          gap: 14px;
+          align-items: center;
+        }
+
+        .home-about-icon {
+          width: 62px;
+          height: 62px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 22px;
+          background: rgba(143, 178, 158, 0.16);
+          box-shadow: inset 0 0 0 1px rgba(83, 111, 99, 0.12);
+          font-size: 2rem;
+        }
+
+        .home-section-kicker {
+          margin: 0 0 4px;
+          color: #536f63;
+          font-size: 0.78rem;
+          font-weight: 950;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
+        }
+
+        .home-about-heading h2 {
+          margin: 0;
+          color: #315f48;
+          font-size: clamp(1.35rem, 3vw, 1.95rem);
+          line-height: 1.08;
+          letter-spacing: -0.04em;
+        }
+
+        .home-about-text {
+          margin: 0;
+          color: #4d5566;
+          font-size: clamp(1rem, 2.2vw, 1.12rem);
+          font-weight: 700;
+          line-height: 1.58;
+        }
+
+        .home-about-grid {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 12px;
+        }
+
+        .home-about-mini-card {
+          display: grid;
+          grid-template-columns: auto 1fr;
+          gap: 12px;
+          align-items: start;
+          min-height: 132px;
+          padding: 14px;
+          border: 1px solid rgba(108, 92, 160, 0.12);
+          border-radius: 22px;
+          background: rgba(255, 255, 255, 0.78);
+        }
+
+        .home-about-mini-card > span {
+          width: 46px;
+          height: 46px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 16px;
+          background: rgba(248, 248, 252, 0.92);
+          font-size: 1.45rem;
+        }
+
+        .home-about-mini-card h3 {
+          margin: 0 0 6px;
+          color: #315f48;
+          font-size: 1rem;
+          font-weight: 950;
+          line-height: 1.18;
+        }
+
+        .home-about-mini-card p {
+          margin: 0;
+          color: #60706a;
+          font-size: 0.94rem;
+          font-weight: 700;
+          line-height: 1.42;
+        }
+
+        @media (max-width: 860px) {
+          .home-about-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .home-about-mini-card {
+            min-height: 0;
+          }
+        }
+
+        @media (max-width: 560px) {
+          .home-about-card {
+            border-radius: 26px;
+          }
+
+          .home-about-heading {
+            grid-template-columns: 1fr;
+          }
+
+          .home-about-icon {
+            width: 58px;
+            height: 58px;
+          }
+
+          .home-about-mini-card {
+            grid-template-columns: 1fr;
+          }
+
+          .home-about-mini-card > span {
+            width: 52px;
+            height: 52px;
+            font-size: 1.6rem;
+          }
+        }
+      `}</style>
     </main>
   );
 }
