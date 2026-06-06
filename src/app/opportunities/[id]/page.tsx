@@ -34,6 +34,7 @@ type VolunteerPreferences = {
 
 type Opportunity = {
   id: string;
+  organisation_user_id: string;
   title: string;
   summary: string;
   location_type: string;
@@ -53,6 +54,14 @@ type Opportunity = {
   contact_email: string | null;
   safety_notes: string | null;
   status: string;
+};
+
+type OrganisationProfile = {
+  organisation_name: string | null;
+  logo_url: string | null;
+  website: string | null;
+  location: string | null;
+  purpose: string | null;
 };
 
 type ExistingInterest = {
@@ -238,6 +247,28 @@ function getPostcodeDisplay(opportunity: Opportunity) {
   return "";
 }
 
+function getOrganisationDisplayName(
+  organisationProfile: OrganisationProfile | null,
+) {
+  return organisationProfile?.organisation_name?.trim() || "This organisation";
+}
+
+function getOrganisationLogoUrl(
+  organisationProfile: OrganisationProfile | null,
+) {
+  const logoUrl = organisationProfile?.logo_url?.trim();
+
+  if (!logoUrl) {
+    return "";
+  }
+
+  if (logoUrl.startsWith("https://") || logoUrl.startsWith("http://")) {
+    return logoUrl;
+  }
+
+  return "";
+}
+
 function ChipList({
   values,
   emptyText,
@@ -355,7 +386,7 @@ export default async function OpportunityDetailPage({
   const { data: opportunity } = await supabase
     .from("opportunities")
     .select(
-      "id,title,summary,location_type,location,location_town_city,location_area,location_venue,location_postcode,travel_notes,accessibility_notes,hide_exact_location,time_commitment,interests,skills,support_offered,contact_name,contact_email,safety_notes,status",
+      "id,organisation_user_id,title,summary,location_type,location,location_town_city,location_area,location_venue,location_postcode,travel_notes,accessibility_notes,hide_exact_location,time_commitment,interests,skills,support_offered,contact_name,contact_email,safety_notes,status",
     )
     .eq("id", opportunityId)
     .eq("status", "published")
@@ -364,6 +395,12 @@ export default async function OpportunityDetailPage({
   if (!opportunity) {
     redirect("/opportunities");
   }
+
+  const { data: organisationProfile } = await supabase
+    .from("organisation_profiles")
+    .select("organisation_name,logo_url,website,location,purpose")
+    .eq("user_id", opportunity.organisation_user_id)
+    .maybeSingle<OrganisationProfile>();
 
   const { data: existingInterest } = await supabase
     .from("opportunity_interests")
@@ -388,10 +425,12 @@ export default async function OpportunityDetailPage({
   const visibleReasons = simpleView ? match.reasons.slice(0, 2) : match.reasons;
 
   const postcodeDisplay = getPostcodeDisplay(opportunity);
+  const organisationDisplayName = getOrganisationDisplayName(organisationProfile);
+  const organisationLogoUrl = getOrganisationLogoUrl(organisationProfile);
 
   const listenText = simpleView
-    ? "You are on an opportunity details page. Read the role. The location card shows safe location information. The match card explains why it may suit you. If it feels right, go to the Interest section and press I’m interested."
-    : "You are on an opportunity details page. First, read the role title and short description at the top. The location section shows safe location information, travel notes and accessibility notes where the organisation has provided them. Exact venue or postcode details may be hidden until the organisation has contacted or accepted a volunteer. The Why this may suit you card explains the match using your interests, skills, volunteering preference and support information. If the role feels right for you, go to the Interest section and press I’m interested.";
+    ? "You are on an opportunity details page. Read the role. The organisation card shows who posted the role. The safety card explains that SO Volunteering and organisations using this platform will never ask you for money, bank details, passwords, or financial information. If it feels right, go to the Interest section and press I’m interested."
+    : "You are on an opportunity details page. First, read the role title and short description at the top. The organisation card shows the organisation name and logo when it has been added. The safety statement explains that SO Volunteering and organisations using this platform will never ask you for money, bank details, passwords, or financial information. An organisation may need to confirm practical details such as where you should go for an in-person volunteering role, but they should not ask for your full home address through the app. The location section shows safe location information, travel notes and accessibility notes where provided. Exact venue or postcode details may be hidden until the organisation has contacted or accepted a volunteer. The Why this may suit you card explains the match using your interests, skills, volunteering preference and support information. If the role feels right for you, go to the Interest section and press I’m interested.";
 
   const shellClassName = [
     "dashboard-bg",
@@ -529,6 +568,79 @@ export default async function OpportunityDetailPage({
         {errorMessage ? (
           <div className="alert alert-error">{errorMessage}</div>
         ) : null}
+
+        <section
+          className="opportunity-trust-panel"
+          aria-labelledby="opportunity-trust-title"
+        >
+          <article className="organisation-identity-card">
+            <div className="organisation-identity-logo" aria-hidden="true">
+              {organisationLogoUrl ? (
+                <img src={organisationLogoUrl} alt="" />
+              ) : (
+                <span>🏢</span>
+              )}
+            </div>
+
+            <div className="organisation-identity-copy">
+              <p className="dashboard-kicker">Organisation</p>
+              <h2 id="opportunity-trust-title">{organisationDisplayName}</h2>
+              <p>
+                {organisationProfile?.purpose?.trim()
+                  ? organisationProfile.purpose
+                  : "This role has been added by an organisation using SO Volunteering."}
+              </p>
+
+              <div className="organisation-identity-meta">
+                {organisationProfile?.location?.trim() ? (
+                  <span>
+                    <span aria-hidden="true">📍</span>
+                    {organisationProfile.location}
+                  </span>
+                ) : null}
+
+                {organisationProfile?.website?.trim() ? (
+                  <span>
+                    <span aria-hidden="true">🌐</span>
+                    Website added
+                  </span>
+                ) : null}
+
+                {organisationLogoUrl ? (
+                  <span>
+                    <span aria-hidden="true">🖼️</span>
+                    Logo added
+                  </span>
+                ) : (
+                  <span>
+                    <span aria-hidden="true">🏢</span>
+                    Logo not added yet
+                  </span>
+                )}
+              </div>
+            </div>
+          </article>
+
+          <article className="volunteer-safety-card" aria-labelledby="safe-title">
+            <div className="volunteer-safety-icon" aria-hidden="true">
+              🛡️
+            </div>
+
+            <div className="volunteer-safety-copy">
+              <p className="dashboard-kicker">Volunteer safety</p>
+              <h2 id="safe-title">Stay safe</h2>
+              <p>
+                SO Volunteering and organisations using this platform will never
+                ask you for money, bank details, passwords, or financial
+                information. An organisation may need to confirm practical
+                details, such as where you should go for an in-person
+                volunteering role, but they should not ask for your full home
+                address through the app. If anything feels wrong, stop and use
+                Help using the app to report it.
+              </p>
+            </div>
+          </article>
+        </section>
 
         <section
           className="match-detail-panel"
@@ -682,8 +794,8 @@ export default async function OpportunityDetailPage({
                   supporting statement if you write one.
                 </p>
                 <p>
-                  They may contact you outside the platform for now, using the
-                  email saved on your profile.
+                  They may contact you outside the platform for now, using your
+                  saved contact preference.
                 </p>
               </>
             ) : null}
@@ -772,6 +884,16 @@ export default async function OpportunityDetailPage({
                       value={opportunity.id}
                     />
 
+                    <div className="interest-safety-reminder">
+                      <span aria-hidden="true">🛡️</span>
+                      <p>
+                        Before you continue: no organisation using SO
+                        Volunteering should ask you for money, bank details,
+                        passwords, financial information, or your full home
+                        address through the app.
+                      </p>
+                    </div>
+
                     <label className="field-label">
                       <span className="field-label-row">
                         <span className="field-label-icon" aria-hidden="true">
@@ -821,6 +943,158 @@ export default async function OpportunityDetailPage({
         .opportunity-detail-page .dashboard-pathway-card {
           height: 100%;
           align-items: stretch;
+        }
+
+        .opportunity-trust-panel {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr);
+          gap: 16px;
+          align-items: stretch;
+        }
+
+        .organisation-identity-card,
+        .volunteer-safety-card {
+          display: grid;
+          min-width: 0;
+          min-height: 100%;
+          gap: 16px;
+          align-items: start;
+          padding: clamp(18px, 4vw, 24px);
+          border-radius: 28px;
+          box-shadow: 0 18px 56px rgba(38, 50, 56, 0.07);
+          overflow: hidden;
+        }
+
+        .organisation-identity-card {
+          grid-template-columns: auto 1fr;
+          border: 1px solid rgba(108, 92, 160, 0.14);
+          background: rgba(255, 255, 255, 0.86);
+        }
+
+        .volunteer-safety-card {
+          grid-template-columns: auto 1fr;
+          border: 1px solid rgba(34, 124, 78, 0.24);
+          background:
+            radial-gradient(circle at top left, rgba(155, 232, 190, 0.4), transparent 32%),
+            linear-gradient(135deg, rgba(244, 255, 249, 0.94), rgba(255, 255, 255, 0.92));
+        }
+
+        .organisation-identity-logo,
+        .volunteer-safety-icon {
+          display: inline-flex;
+          width: 72px;
+          height: 72px;
+          align-items: center;
+          justify-content: center;
+          overflow: hidden;
+          border-radius: 24px;
+          background: rgba(248, 248, 252, 0.94);
+          box-shadow: inset 0 0 0 1px rgba(108, 92, 160, 0.1);
+          flex: 0 0 auto;
+        }
+
+        .organisation-identity-logo img {
+          display: block;
+          max-width: 86%;
+          max-height: 58px;
+          object-fit: contain;
+        }
+
+        .organisation-identity-logo span,
+        .volunteer-safety-icon {
+          font-size: 2rem;
+        }
+
+        .volunteer-safety-icon {
+          background: rgba(34, 124, 78, 0.12);
+          box-shadow: inset 0 0 0 1px rgba(34, 124, 78, 0.16);
+        }
+
+        .organisation-identity-copy,
+        .volunteer-safety-copy {
+          display: grid;
+          gap: 8px;
+          min-width: 0;
+        }
+
+        .organisation-identity-copy h2,
+        .volunteer-safety-copy h2 {
+          margin: 0;
+          font-size: clamp(1.3rem, 3vw, 1.75rem);
+          font-weight: 950;
+          line-height: 1.1;
+          letter-spacing: -0.035em;
+          overflow-wrap: anywhere;
+        }
+
+        .organisation-identity-copy h2 {
+          color: #315f48;
+        }
+
+        .volunteer-safety-copy h2 {
+          color: #145c38;
+        }
+
+        .organisation-identity-copy p,
+        .volunteer-safety-copy p {
+          margin: 0;
+          color: #60706a;
+          font-weight: 750;
+          line-height: 1.5;
+          overflow-wrap: anywhere;
+        }
+
+        .volunteer-safety-copy p {
+          color: #275f45;
+          font-weight: 780;
+        }
+
+        .organisation-identity-meta {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+          margin-top: 4px;
+        }
+
+        .organisation-identity-meta span {
+          display: inline-flex;
+          min-height: 32px;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+          padding: 7px 10px;
+          border: 1px solid rgba(83, 111, 99, 0.14);
+          border-radius: 999px;
+          background: rgba(244, 255, 249, 0.78);
+          color: #536f63;
+          font-size: 0.82rem;
+          font-weight: 900;
+          line-height: 1.12;
+        }
+
+        .interest-safety-reminder {
+          display: grid;
+          grid-template-columns: auto 1fr;
+          gap: 10px;
+          align-items: start;
+          padding: 12px 14px;
+          border: 1px solid rgba(34, 124, 78, 0.2);
+          border-radius: 18px;
+          background: rgba(244, 255, 249, 0.9);
+          color: #275f45;
+        }
+
+        .interest-safety-reminder span {
+          font-size: 1.25rem;
+          line-height: 1;
+        }
+
+        .interest-safety-reminder p {
+          margin: 0;
+          color: #275f45;
+          font-size: 0.94rem;
+          font-weight: 850;
+          line-height: 1.42;
         }
 
         .match-detail-panel {
@@ -1035,7 +1309,9 @@ export default async function OpportunityDetailPage({
         .preference-text-large .opportunity-detail-body,
         .preference-text-large .dashboard-progress-note,
         .preference-text-large .match-detail-heading p,
-        .preference-text-large .match-helper-note {
+        .preference-text-large .match-helper-note,
+        .preference-text-large .volunteer-safety-copy p,
+        .preference-text-large .organisation-identity-copy p {
           font-size: 1.04em;
         }
 
@@ -1068,13 +1344,16 @@ export default async function OpportunityDetailPage({
         .preference-theme-calm_green .dashboard-welcome-card,
         .preference-theme-calm_green .info-card,
         .preference-theme-calm_green .dashboard-progress-card,
-        .preference-theme-calm_green .match-detail-card {
+        .preference-theme-calm_green .match-detail-card,
+        .preference-theme-calm_green .organisation-identity-card,
+        .preference-theme-calm_green .volunteer-safety-card {
           border-color: rgba(83, 111, 99, 0.2);
         }
 
         .preference-theme-calm_green .dashboard-card-icon,
         .preference-theme-calm_green .dashboard-progress-icon,
-        .preference-theme-calm_green .match-detail-icon {
+        .preference-theme-calm_green .match-detail-icon,
+        .preference-theme-calm_green .organisation-identity-logo {
           background: rgba(226, 255, 239, 0.86);
         }
 
@@ -1087,13 +1366,16 @@ export default async function OpportunityDetailPage({
         .preference-theme-soft_blue .dashboard-welcome-card,
         .preference-theme-soft_blue .info-card,
         .preference-theme-soft_blue .dashboard-progress-card,
-        .preference-theme-soft_blue .match-detail-card {
+        .preference-theme-soft_blue .match-detail-card,
+        .preference-theme-soft_blue .organisation-identity-card,
+        .preference-theme-soft_blue .volunteer-safety-card {
           border-color: rgba(74, 112, 160, 0.2);
         }
 
         .preference-theme-soft_blue .dashboard-card-icon,
         .preference-theme-soft_blue .dashboard-progress-icon,
-        .preference-theme-soft_blue .match-detail-icon {
+        .preference-theme-soft_blue .match-detail-icon,
+        .preference-theme-soft_blue .organisation-identity-logo {
           background: rgba(231, 244, 255, 0.92);
         }
 
@@ -1106,13 +1388,16 @@ export default async function OpportunityDetailPage({
         .preference-theme-warm_peach .dashboard-welcome-card,
         .preference-theme-warm_peach .info-card,
         .preference-theme-warm_peach .dashboard-progress-card,
-        .preference-theme-warm_peach .match-detail-card {
+        .preference-theme-warm_peach .match-detail-card,
+        .preference-theme-warm_peach .organisation-identity-card,
+        .preference-theme-warm_peach .volunteer-safety-card {
           border-color: rgba(190, 118, 76, 0.2);
         }
 
         .preference-theme-warm_peach .dashboard-card-icon,
         .preference-theme-warm_peach .dashboard-progress-icon,
-        .preference-theme-warm_peach .match-detail-icon {
+        .preference-theme-warm_peach .match-detail-icon,
+        .preference-theme-warm_peach .organisation-identity-logo {
           background: rgba(255, 239, 226, 0.92);
         }
 
@@ -1127,7 +1412,10 @@ export default async function OpportunityDetailPage({
         .preference-theme-high_contrast .supporting-statement-box,
         .preference-theme-high_contrast .match-detail-card,
         .preference-theme-high_contrast .match-reason-list span,
-        .preference-theme-high_contrast .safe-location-note {
+        .preference-theme-high_contrast .safe-location-note,
+        .preference-theme-high_contrast .organisation-identity-card,
+        .preference-theme-high_contrast .volunteer-safety-card,
+        .preference-theme-high_contrast .interest-safety-reminder {
           border: 2px solid #1f2937;
           background: rgba(255, 255, 255, 0.98);
         }
@@ -1135,7 +1423,9 @@ export default async function OpportunityDetailPage({
         .preference-theme-high_contrast .dashboard-title,
         .preference-theme-high_contrast .dashboard-card-copy h2,
         .preference-theme-high_contrast .dashboard-progress-card h2,
-        .preference-theme-high_contrast .match-detail-heading h2 {
+        .preference-theme-high_contrast .match-detail-heading h2,
+        .preference-theme-high_contrast .organisation-identity-copy h2,
+        .preference-theme-high_contrast .volunteer-safety-copy h2 {
           color: #111827;
         }
 
@@ -1147,13 +1437,19 @@ export default async function OpportunityDetailPage({
         .preference-theme-high_contrast .match-detail-heading p,
         .preference-theme-high_contrast .match-helper-note,
         .preference-theme-high_contrast .match-reason-list span,
-        .preference-theme-high_contrast .safe-location-note {
+        .preference-theme-high_contrast .safe-location-note,
+        .preference-theme-high_contrast .organisation-identity-copy p,
+        .preference-theme-high_contrast .volunteer-safety-copy p,
+        .preference-theme-high_contrast .interest-safety-reminder,
+        .preference-theme-high_contrast .interest-safety-reminder p {
           color: #1f2937;
         }
 
         .preference-theme-high_contrast .dashboard-card-icon,
         .preference-theme-high_contrast .dashboard-progress-icon,
-        .preference-theme-high_contrast .match-detail-icon {
+        .preference-theme-high_contrast .match-detail-icon,
+        .preference-theme-high_contrast .organisation-identity-logo,
+        .preference-theme-high_contrast .volunteer-safety-icon {
           border: 2px solid #1f2937;
           background: #ffffff;
           color: #111827;
@@ -1170,7 +1466,10 @@ export default async function OpportunityDetailPage({
         .preference-theme-neon_arcade .dashboard-progress-card,
         .preference-theme-neon_arcade .info-card,
         .preference-theme-neon_arcade .supporting-statement-box,
-        .preference-theme-neon_arcade .match-detail-card {
+        .preference-theme-neon_arcade .match-detail-card,
+        .preference-theme-neon_arcade .organisation-identity-card,
+        .preference-theme-neon_arcade .volunteer-safety-card,
+        .preference-theme-neon_arcade .interest-safety-reminder {
           border-color: rgba(34, 211, 238, 0.42);
           background: rgba(15, 23, 42, 0.86);
           box-shadow:
@@ -1183,7 +1482,9 @@ export default async function OpportunityDetailPage({
         .preference-theme-neon_arcade .dashboard-progress-card h2,
         .preference-theme-neon_arcade .dashboard-progress-note strong,
         .preference-theme-neon_arcade .opportunity-detail-body strong,
-        .preference-theme-neon_arcade .match-detail-heading h2 {
+        .preference-theme-neon_arcade .match-detail-heading h2,
+        .preference-theme-neon_arcade .organisation-identity-copy h2,
+        .preference-theme-neon_arcade .volunteer-safety-copy h2 {
           color: #e0f2fe;
         }
 
@@ -1194,13 +1495,18 @@ export default async function OpportunityDetailPage({
         .preference-theme-neon_arcade .dashboard-progress-note,
         .preference-theme-neon_arcade .dashboard-muted-action,
         .preference-theme-neon_arcade .match-detail-heading p,
-        .preference-theme-neon_arcade .match-helper-note {
+        .preference-theme-neon_arcade .match-helper-note,
+        .preference-theme-neon_arcade .organisation-identity-copy p,
+        .preference-theme-neon_arcade .volunteer-safety-copy p,
+        .preference-theme-neon_arcade .interest-safety-reminder p {
           color: #dbeafe;
         }
 
         .preference-theme-neon_arcade .dashboard-card-icon,
         .preference-theme-neon_arcade .dashboard-progress-icon,
-        .preference-theme-neon_arcade .match-detail-icon {
+        .preference-theme-neon_arcade .match-detail-icon,
+        .preference-theme-neon_arcade .organisation-identity-logo,
+        .preference-theme-neon_arcade .volunteer-safety-icon {
           border: 1px solid rgba(34, 211, 238, 0.42);
           background: rgba(34, 211, 238, 0.12);
           color: #a7f3d0;
@@ -1210,7 +1516,8 @@ export default async function OpportunityDetailPage({
         .preference-theme-neon_arcade .opportunity-chip,
         .preference-theme-neon_arcade .text-link,
         .preference-theme-neon_arcade .match-reason-list span,
-        .preference-theme-neon_arcade .safe-location-note {
+        .preference-theme-neon_arcade .safe-location-note,
+        .preference-theme-neon_arcade .organisation-identity-meta span {
           border-color: rgba(34, 211, 238, 0.42);
           background: rgba(34, 211, 238, 0.12);
           color: #a7f3d0;
@@ -1222,18 +1529,37 @@ export default async function OpportunityDetailPage({
           color: #fecaca;
         }
 
+        @media (max-width: 900px) {
+          .opportunity-trust-panel {
+            grid-template-columns: 1fr;
+          }
+        }
+
         @media (max-width: 640px) {
+          .organisation-identity-card,
+          .volunteer-safety-card,
           .match-detail-heading {
             grid-template-columns: 1fr;
           }
 
+          .organisation-identity-card,
+          .volunteer-safety-card,
           .match-detail-card {
             border-radius: 24px;
           }
 
+          .organisation-identity-logo,
+          .volunteer-safety-icon,
           .match-detail-icon {
             width: 58px;
             height: 58px;
+            border-radius: 20px;
+          }
+
+          .organisation-identity-meta span {
+            width: 100%;
+            justify-content: center;
+            text-align: center;
           }
 
           .match-reason-list span {
@@ -1270,6 +1596,11 @@ export default async function OpportunityDetailPage({
 
           .remove-interest-button {
             width: 100%;
+          }
+
+          .interest-safety-reminder {
+            grid-template-columns: 1fr;
+            text-align: left;
           }
 
           .preference-text-large {
