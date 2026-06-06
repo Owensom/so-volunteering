@@ -839,20 +839,28 @@ export default async function OrganisationInterestDetailPage({
         }
 
         .interest-detail-grid {
-          align-items: stretch;
+          align-items: start !important;
         }
 
-        .interest-detail-card {
-          min-height: 228px;
-          height: 100%;
-          align-items: stretch;
+        .interest-detail-grid .interest-detail-card {
+          height: auto !important;
+          min-height: 0 !important;
+          align-self: start !important;
+        }
+
+        .interest-detail-grid .dashboard-pathway-card {
+          height: auto !important;
+          min-height: 0 !important;
         }
 
         .interest-detail-copy {
-          display: flex;
-          min-height: 100%;
-          flex-direction: column;
-          gap: 18px;
+          display: grid !important;
+          min-height: 0 !important;
+          gap: 14px;
+        }
+
+        .interest-detail-copy h2 {
+          margin-bottom: 0;
         }
 
         .interest-detail-body {
@@ -1107,7 +1115,6 @@ export default async function OrganisationInterestDetailPage({
           }
 
           .interest-detail-card {
-            min-height: 0;
             padding: 22px;
           }
 
