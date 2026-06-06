@@ -6,6 +6,7 @@ import {
   getOpportunityMatch,
   getOpportunityMatchCardIcon,
   getOpportunityMatchToneClass,
+  type OpportunityMatchResult,
 } from "@/lib/opportunity-matching";
 
 export const dynamic = "force-dynamic";
@@ -51,6 +52,11 @@ type Opportunity = {
   contact_name: string | null;
   status: string;
   created_at: string;
+};
+
+type MatchedOpportunity = {
+  opportunity: Opportunity;
+  match: OpportunityMatchResult;
 };
 
 function normaliseUserType(value: string | null | undefined) {
@@ -166,16 +172,42 @@ function formatLocationPrivacyNote(opportunity: Opportunity) {
   return "";
 }
 
+function getCreatedAtTime(value: string | null | undefined) {
+  if (!value) return 0;
+
+  const time = new Date(value).getTime();
+
+  return Number.isFinite(time) ? time : 0;
+}
+
+function getMatchedOpportunities(
+  opportunities: Opportunity[],
+  volunteerProfile: VolunteerProfile | null,
+): MatchedOpportunity[] {
+  return opportunities
+    .map((opportunity) => ({
+      opportunity,
+      match: getOpportunityMatch(volunteerProfile, opportunity),
+    }))
+    .sort((a, b) => {
+      if (b.match.score !== a.match.score) {
+        return b.match.score - a.match.score;
+      }
+
+      return (
+        getCreatedAtTime(b.opportunity.created_at) -
+        getCreatedAtTime(a.opportunity.created_at)
+      );
+    });
+}
+
 function OpportunityMatchPanel({
-  volunteerProfile,
-  opportunity,
+  match,
   simpleView,
 }: {
-  volunteerProfile: VolunteerProfile | null;
-  opportunity: Opportunity;
+  match: OpportunityMatchResult;
   simpleView: boolean;
 }) {
-  const match = getOpportunityMatch(volunteerProfile, opportunity);
   const toneClass = getOpportunityMatchToneClass(match.tone);
   const icon = getOpportunityMatchCardIcon(match.tone);
   const visibleReasons = simpleView ? match.reasons.slice(0, 1) : match.reasons;
@@ -267,9 +299,23 @@ export default async function OpportunitiesPage() {
   const simpleView = viewMode === "simple";
   const detailedView = viewMode === "detailed";
 
+  const matchedRows = getMatchedOpportunities(rows, volunteerProfile ?? null);
+
+  const strongMatchCount = matchedRows.filter(
+    (row) => row.match.tone === "strong",
+  ).length;
+
+  const goodMatchCount = matchedRows.filter(
+    (row) => row.match.tone === "good",
+  ).length;
+
+  const exploreMatchCount = matchedRows.filter(
+    (row) => row.match.tone === "explore",
+  ).length;
+
   const listenText = simpleView
-    ? "You are on the Find opportunities page. This page shows volunteering roles. Each card shows a safe location summary and a match label. Choose Read more when a role sounds right. Use Dashboard to go back."
-    : "You are on the Find opportunities page. This page shows published volunteering roles. Each card includes a safe location summary, time commitment and gentle match information based on your profile. Exact venues or postcodes may be hidden until the organisation has contacted or accepted a volunteer. Select Read more to open the full opportunity details page.";
+    ? "You are on the Find opportunities page. This page shows volunteering roles. Best matches are shown first. Each card shows a safe location summary and a match label. Choose Read more when a role sounds right. Use Dashboard to go back."
+    : "You are on the Find opportunities page. This page shows published volunteering roles. Roles are shown with the strongest profile matches first. Each card includes a safe location summary, time commitment and gentle match information based on your profile. Match labels are only a guide, and you can explore any role that interests you. Exact venues or postcodes may be hidden until the organisation has contacted or accepted a volunteer. Select Read more to open the full opportunity details page.";
 
   const shellClassName = [
     "dashboard-bg",
@@ -328,13 +374,13 @@ export default async function OpportunitiesPage() {
 
             <h1 id="opportunities-title" className="dashboard-title">
               <span aria-hidden="true">{avatarIcon}</span>
-              <span>{simpleView ? "Find roles" : "Volunteering roles"}</span>
+              <span>{simpleView ? "Find roles" : "Best roles for you"}</span>
             </h1>
 
             <p className="dashboard-lead">
               {simpleView
                 ? "Look through available roles and open any that feel right."
-                : "Browse published opportunities from organisations. Match labels are only a guide — you can explore any role that interests you."}
+                : "Browse published opportunities from organisations. Best matches are shown first, but every role is open to explore."}
             </p>
 
             <div className="dashboard-primary-actions">
@@ -372,6 +418,20 @@ export default async function OpportunitiesPage() {
                 </p>
               </div>
             </div>
+
+            <p className="dashboard-progress-note">
+              Strong matches: <strong>{strongMatchCount}</strong>
+            </p>
+
+            <p className="dashboard-progress-note">
+              Good matches: <strong>{goodMatchCount}</strong>
+            </p>
+
+            {!simpleView ? (
+              <p className="dashboard-progress-note">
+                Explore roles: <strong>{exploreMatchCount}</strong>
+              </p>
+            ) : null}
 
             <p className="dashboard-progress-note">
               {simpleView
@@ -413,7 +473,7 @@ export default async function OpportunitiesPage() {
           </section>
         ) : (
           <section className="dashboard-grid" aria-label="Published opportunities">
-            {rows.map((opportunity) => {
+            {matchedRows.map(({ opportunity, match }) => {
               const privacyNote = formatLocationPrivacyNote(opportunity);
 
               return (
@@ -446,8 +506,7 @@ export default async function OpportunitiesPage() {
                       ) : null}
 
                       <OpportunityMatchPanel
-                        volunteerProfile={volunteerProfile}
-                        opportunity={opportunity}
+                        match={match}
                         simpleView={simpleView}
                       />
 
