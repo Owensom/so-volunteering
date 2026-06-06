@@ -37,6 +37,50 @@ function normaliseUserType(value: string | null | undefined) {
     : "volunteer";
 }
 
+function normaliseInterestStatus(status: string | null | undefined) {
+  if (
+    status === "new" ||
+    status === "contacted" ||
+    status === "accepted" ||
+    status === "closed"
+  ) {
+    return status;
+  }
+
+  if (status === "review" || status === "reviewed") {
+    return "contacted";
+  }
+
+  return "new";
+}
+
+function formatStatus(status: string | null | undefined) {
+  const normalisedStatus = normaliseInterestStatus(status);
+
+  if (normalisedStatus === "accepted") return "Accepted";
+  if (normalisedStatus === "contacted") return "Contacted";
+  if (normalisedStatus === "closed") return "Closed";
+  return "New interest";
+}
+
+function getStatusIcon(status: string | null | undefined) {
+  const normalisedStatus = normaliseInterestStatus(status);
+
+  if (normalisedStatus === "accepted") return "✅";
+  if (normalisedStatus === "contacted") return "💬";
+  if (normalisedStatus === "closed") return "🌙";
+  return "🌱";
+}
+
+function getStatusToneClass(status: string | null | undefined) {
+  const normalisedStatus = normaliseInterestStatus(status);
+
+  if (normalisedStatus === "accepted") return "interest-status-accepted";
+  if (normalisedStatus === "contacted") return "interest-status-contacted";
+  if (normalisedStatus === "closed") return "interest-status-closed";
+  return "interest-status-new";
+}
+
 function ChipList({
   values,
   emptyText
@@ -60,13 +104,6 @@ function ChipList({
       ) : null}
     </div>
   );
-}
-
-function formatStatus(status: string) {
-  if (status === "reviewed") return "Reviewed";
-  if (status === "contacted") return "Contacted";
-  if (status === "closed") return "Closed";
-  return "New";
 }
 
 export default async function OrganisationInterestsPage() {
@@ -124,13 +161,24 @@ export default async function OrganisationInterestsPage() {
     ])
   );
 
-  const newCount = rows.filter((row) => row.status === "new").length;
-  const reviewedCount = rows.filter((row) => row.status === "reviewed").length;
-  const contactedCount = rows.filter((row) => row.status === "contacted").length;
-  const closedCount = rows.filter((row) => row.status === "closed").length;
+  const newCount = rows.filter(
+    (row) => normaliseInterestStatus(row.status) === "new"
+  ).length;
+
+  const contactedCount = rows.filter(
+    (row) => normaliseInterestStatus(row.status) === "contacted"
+  ).length;
+
+  const acceptedCount = rows.filter(
+    (row) => normaliseInterestStatus(row.status) === "accepted"
+  ).length;
+
+  const closedCount = rows.filter(
+    (row) => normaliseInterestStatus(row.status) === "closed"
+  ).length;
 
   const listenText =
-    "You are on the organisation interest inbox. This page shows volunteers who have clicked I’m interested on your published roles. First, check the Inbox status card on the right. It shows how many interests are new, reviewed, contacted and closed. Then read the volunteer interest cards below. Each card shows the volunteer name, the role they are interested in, their area if shared, their message if they wrote one, and a short skills summary. Select a card or the Review interest link to open the full interest detail page. On the detail page you can review the volunteer information and update the status.";
+    "You are on the organisation interest inbox. This page shows volunteers who have clicked I’m interested on your published roles. First, check the Inbox status card on the right. It shows how many interests are new, contacted, accepted and closed. Then read the volunteer interest cards below. Each card shows the volunteer name, the role they are interested in, their area if shared, their message if they wrote one, and a short skills summary. Select a card or the Open interest link to open the full interest detail page. On the detail page you can review the volunteer information and update the status.";
 
   return (
     <main className="dashboard-bg">
@@ -224,13 +272,13 @@ export default async function OrganisationInterestsPage() {
             </div>
 
             <p className="dashboard-progress-note">
-              New: <strong>{newCount}</strong>
-            </p>
-            <p className="dashboard-progress-note">
-              Reviewed: <strong>{reviewedCount}</strong>
+              New interest: <strong>{newCount}</strong>
             </p>
             <p className="dashboard-progress-note">
               Contacted: <strong>{contactedCount}</strong>
+            </p>
+            <p className="dashboard-progress-note">
+              Accepted: <strong>{acceptedCount}</strong>
             </p>
             <p className="dashboard-progress-note">
               Closed: <strong>{closedCount}</strong>
@@ -267,6 +315,7 @@ export default async function OrganisationInterestsPage() {
           >
             {rows.map((interest) => {
               const opportunity = opportunityMap.get(interest.opportunity_id);
+              const normalisedStatus = normaliseInterestStatus(interest.status);
 
               return (
                 <Link
@@ -274,14 +323,17 @@ export default async function OrganisationInterestsPage() {
                   href={`/organisation/interests/${interest.id}`}
                   className="info-card dashboard-pathway-card interest-inbox-card"
                 >
-                  <div className="dashboard-card-icon" aria-hidden="true">
-                    📬
+                  <div
+                    className="dashboard-card-icon"
+                    aria-hidden="true"
+                  >
+                    {getStatusIcon(normalisedStatus)}
                   </div>
 
                   <div className="dashboard-card-copy interest-inbox-copy">
                     <div className="interest-inbox-main">
                       <p className="dashboard-card-label">
-                        {formatStatus(interest.status)}
+                        {formatStatus(normalisedStatus)}
                       </p>
 
                       <h2>{interest.volunteer_name || "Volunteer"}</h2>
@@ -297,6 +349,17 @@ export default async function OrganisationInterestsPage() {
                         </p>
                       ) : null}
 
+                      <div
+                        className={`interest-status-pill ${getStatusToneClass(
+                          normalisedStatus
+                        )}`}
+                      >
+                        <span aria-hidden="true">
+                          {getStatusIcon(normalisedStatus)}
+                        </span>
+                        <span>{formatStatus(normalisedStatus)}</span>
+                      </div>
+
                       {interest.message ? <p>{interest.message}</p> : null}
 
                       <ChipList
@@ -305,7 +368,7 @@ export default async function OrganisationInterestsPage() {
                       />
                     </div>
 
-                    <p className="card-action text-link">Review interest</p>
+                    <p className="card-action text-link">Open interest</p>
                   </div>
                 </Link>
               );
@@ -346,6 +409,48 @@ export default async function OrganisationInterestsPage() {
           margin: 0;
         }
 
+        .interest-status-pill {
+          display: inline-flex;
+          width: fit-content;
+          max-width: 100%;
+          min-height: 34px;
+          align-items: center;
+          justify-content: center;
+          gap: 7px;
+          padding: 7px 11px;
+          border: 1px solid rgba(108, 92, 160, 0.16);
+          border-radius: 999px;
+          background: rgba(255, 255, 255, 0.84);
+          color: #536f63;
+          font-size: 0.84rem;
+          font-weight: 950;
+          line-height: 1.1;
+        }
+
+        .interest-status-new {
+          border-color: rgba(108, 92, 160, 0.18);
+          background: rgba(248, 245, 255, 0.92);
+          color: #6c5ca0;
+        }
+
+        .interest-status-contacted {
+          border-color: rgba(74, 112, 160, 0.22);
+          background: rgba(243, 249, 255, 0.94);
+          color: #4a70a0;
+        }
+
+        .interest-status-accepted {
+          border-color: rgba(83, 111, 99, 0.24);
+          background: rgba(244, 255, 249, 0.96);
+          color: #536f63;
+        }
+
+        .interest-status-closed {
+          border-color: rgba(100, 100, 110, 0.18);
+          background: rgba(248, 248, 252, 0.94);
+          color: #5d6677;
+        }
+
         .interest-inbox-chip-list {
           display: flex;
           flex-wrap: wrap;
@@ -378,6 +483,10 @@ export default async function OrganisationInterestsPage() {
 
           .interest-inbox-copy {
             gap: 14px;
+          }
+
+          .interest-status-pill {
+            width: 100%;
           }
 
           .interest-inbox-chip {
