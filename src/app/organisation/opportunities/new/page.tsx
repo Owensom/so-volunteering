@@ -26,6 +26,12 @@ type ChoiceOption = {
   helpText: string;
 };
 
+type ChecklistItem = {
+  icon: string;
+  title: string;
+  text: string;
+};
+
 function normaliseUserType(value: string | null | undefined) {
   return value?.trim().toLowerCase() === "organisation"
     ? "organisation"
@@ -197,6 +203,39 @@ const supportOptions: ChoiceOption[] = [
   },
 ];
 
+const roleReadinessChecklist: ChecklistItem[] = [
+  {
+    icon: "💬",
+    title: "Plain language",
+    text: "Use short, clear wording so volunteers know what they will do.",
+  },
+  {
+    icon: "📍",
+    title: "Realistic location",
+    text: "Add town/city, area, travel notes and accessibility details where possible.",
+  },
+  {
+    icon: "🕒",
+    title: "Clear time commitment",
+    text: "Choose a simple time pattern so people can decide if it fits.",
+  },
+  {
+    icon: "💛",
+    title: "Support available",
+    text: "Select the support you can offer, such as clear instructions or check-ins.",
+  },
+  {
+    icon: "🛡️",
+    title: "Safety and supervision",
+    text: "Explain who welcomes volunteers and who they can ask for help.",
+  },
+  {
+    icon: "🔒",
+    title: "Location privacy",
+    text: "Hide exact venue details if they should only be shared after contact.",
+  },
+];
+
 function ChoiceGrid({
   name,
   options,
@@ -275,7 +314,7 @@ export default async function NewOpportunityPage({
   const profileCompleted = organisationProfile?.profile_completed === true;
 
   const listenText =
-    "This is the create opportunity page. Add a clear title, plain language description, location type, detailed location information, time commitment, interests, skills, support available, contact details, safety notes and status. For safety, you can choose to hide the exact venue or postcode until a volunteer has been contacted or accepted. You can save as draft or publish if your organisation profile is complete.";
+    "This is the create opportunity page. Add a clear title, plain language description, location type, detailed location information, time commitment, interests, skills, support available, contact details, safety notes and status. The role display readiness checklist reminds you to make the role inclusive, realistic and safe. For safety, you can choose to hide the exact venue or postcode until a volunteer has been contacted or accepted. You can save as draft or publish if your organisation profile is complete.";
 
   return (
     <main className="onboarding-shell">
@@ -335,6 +374,43 @@ export default async function NewOpportunityPage({
           </div>
         </div>
 
+        <section
+          className="role-readiness-panel"
+          aria-labelledby="role-readiness-title"
+        >
+          <div className="role-readiness-heading">
+            <span className="role-readiness-icon" aria-hidden="true">
+              ✅
+            </span>
+
+            <div>
+              <p className="brand-eyebrow">Role display readiness</p>
+              <h2 id="role-readiness-title">
+                Quick inclusion checklist before publishing
+              </h2>
+              <p>
+                These reminders help make roles easier to understand, safer to
+                try and more welcoming for different volunteers.
+              </p>
+            </div>
+          </div>
+
+          <div className="role-readiness-grid">
+            {roleReadinessChecklist.map((item) => (
+              <article key={item.title} className="role-readiness-card">
+                <span className="role-readiness-card-icon" aria-hidden="true">
+                  {item.icon}
+                </span>
+
+                <div>
+                  <h3>{item.title}</h3>
+                  <p>{item.text}</p>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+
         {errorMessage ? (
           <div className="alert alert-error">{errorMessage}</div>
         ) : null}
@@ -370,14 +446,19 @@ export default async function NewOpportunityPage({
             />
           </label>
 
-          <section className="location-details-panel" aria-labelledby="location-details-title">
+          <section
+            className="location-details-panel"
+            aria-labelledby="location-details-title"
+          >
             <div className="location-details-heading">
               <span className="location-details-icon" aria-hidden="true">
                 📍
               </span>
               <div>
                 <p className="brand-eyebrow">Location details</p>
-                <h2 id="location-details-title">Help volunteers decide if the role is realistic</h2>
+                <h2 id="location-details-title">
+                  Help volunteers decide if the role is realistic
+                </h2>
                 <p>
                   Add enough location information to help people plan safely. You
                   can hide the exact venue or postcode from the public page until
@@ -526,7 +607,9 @@ export default async function NewOpportunityPage({
               <option value="Weekly">Weekly</option>
               <option value="Monthly">Monthly</option>
               <option value="Flexible">Flexible</option>
-              <option value="Short shifts to start">Short shifts to start</option>
+              <option value="Short shifts to start">
+                Short shifts to start
+              </option>
             </select>
           </label>
 
@@ -648,6 +731,96 @@ export default async function NewOpportunityPage({
       </section>
 
       <style>{`
+        .role-readiness-panel {
+          display: grid;
+          gap: 18px;
+          padding: clamp(18px, 4vw, 24px);
+          border: 1px solid rgba(83, 111, 99, 0.18);
+          border-radius: 28px;
+          background:
+            linear-gradient(135deg, rgba(244, 255, 249, 0.82), rgba(255, 255, 255, 0.88)),
+            rgba(255, 255, 255, 0.84);
+          box-shadow: 0 18px 48px rgba(33, 56, 48, 0.07);
+        }
+
+        .role-readiness-heading {
+          display: grid;
+          grid-template-columns: auto 1fr;
+          gap: 14px;
+          align-items: start;
+        }
+
+        .role-readiness-icon {
+          display: inline-flex;
+          width: 58px;
+          height: 58px;
+          align-items: center;
+          justify-content: center;
+          border-radius: 20px;
+          background: rgba(143, 178, 158, 0.16);
+          font-size: 1.8rem;
+        }
+
+        .role-readiness-heading h2 {
+          margin: 0 0 8px;
+          color: #315f48;
+          font-size: clamp(1.25rem, 3vw, 1.65rem);
+          letter-spacing: -0.035em;
+          line-height: 1.12;
+        }
+
+        .role-readiness-heading p {
+          margin: 0;
+          color: #60706a;
+          font-weight: 750;
+          line-height: 1.5;
+        }
+
+        .role-readiness-grid {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 12px;
+        }
+
+        .role-readiness-card {
+          display: grid;
+          grid-template-columns: auto 1fr;
+          gap: 12px;
+          align-items: start;
+          min-height: 128px;
+          padding: 14px;
+          border: 1px solid rgba(108, 92, 160, 0.12);
+          border-radius: 20px;
+          background: rgba(255, 255, 255, 0.78);
+        }
+
+        .role-readiness-card-icon {
+          display: inline-flex;
+          width: 44px;
+          height: 44px;
+          align-items: center;
+          justify-content: center;
+          border-radius: 16px;
+          background: rgba(248, 248, 252, 0.92);
+          font-size: 1.35rem;
+        }
+
+        .role-readiness-card h3 {
+          margin: 0 0 5px;
+          color: #315f48;
+          font-size: 0.98rem;
+          font-weight: 950;
+          line-height: 1.18;
+        }
+
+        .role-readiness-card p {
+          margin: 0;
+          color: #60706a;
+          font-size: 0.9rem;
+          font-weight: 700;
+          line-height: 1.4;
+        }
+
         .location-details-panel {
           display: grid;
           gap: 18px;
@@ -718,15 +891,33 @@ export default async function NewOpportunityPage({
           accent-color: #536f63;
         }
 
+        @media (max-width: 900px) {
+          .role-readiness-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+        }
+
         @media (max-width: 640px) {
+          .role-readiness-heading,
           .location-details-heading {
             grid-template-columns: 1fr;
           }
 
+          .role-readiness-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .role-readiness-panel,
           .location-details-panel {
             border-radius: 24px;
           }
 
+          .role-readiness-card {
+            min-height: 0;
+            grid-template-columns: 1fr;
+          }
+
+          .role-readiness-icon,
           .location-details-icon {
             width: 54px;
             height: 54px;
