@@ -990,14 +990,64 @@ export default async function OpportunityReviewsPage({
           border-radius: 20px;
           background: rgba(255, 255, 255, 0.78);
           cursor: pointer;
+          transition:
+            border-color 160ms ease,
+            background 160ms ease,
+            box-shadow 160ms ease,
+            transform 160ms ease;
+        }
+
+        .review-skill-card:hover {
+          transform: translateY(-1px);
+          border-color: rgba(83, 111, 99, 0.34);
+          background: rgba(255, 255, 255, 0.92);
         }
 
         .review-skill-card input {
           position: absolute;
           inset: 12px auto auto 12px;
-          width: 22px;
-          height: 22px;
-          accent-color: #8fb29e;
+          width: 24px;
+          height: 24px;
+          accent-color: #536f63;
+          cursor: pointer;
+        }
+
+        .review-skill-card:has(input:checked) {
+          border-color: rgba(83, 111, 99, 0.68);
+          background:
+            linear-gradient(135deg, rgba(244, 255, 249, 0.96), rgba(255, 255, 255, 0.94));
+          box-shadow:
+            0 18px 42px rgba(33, 56, 48, 0.12),
+            0 0 0 4px rgba(83, 111, 99, 0.12);
+        }
+
+        .review-skill-card:has(input:checked)::after {
+          content: "Selected";
+          position: absolute;
+          top: 12px;
+          right: 12px;
+          display: inline-flex;
+          min-height: 28px;
+          align-items: center;
+          justify-content: center;
+          padding: 6px 9px;
+          border-radius: 999px;
+          background: rgba(83, 111, 99, 0.12);
+          color: #315f48;
+          font-size: 0.75rem;
+          font-weight: 950;
+          line-height: 1;
+        }
+
+        .review-skill-card:has(input:checked) .review-skill-icon {
+          background: rgba(83, 111, 99, 0.14);
+          box-shadow:
+            inset 0 0 0 1px rgba(83, 111, 99, 0.18),
+            0 8px 18px rgba(33, 56, 48, 0.08);
+        }
+
+        .review-skill-card:has(input:checked) .review-skill-title {
+          color: #24352f;
         }
 
         .review-skill-icon {
@@ -1016,6 +1066,7 @@ export default async function OpportunityReviewsPage({
           display: grid;
           gap: 4px;
           padding-top: 4px;
+          padding-right: 78px;
         }
 
         .review-skill-title {
@@ -1104,6 +1155,26 @@ export default async function OpportunityReviewsPage({
             grid-template-columns: 1fr;
           }
 
+          .review-skill-card {
+            min-height: 108px;
+            grid-template-columns: auto 1fr;
+            padding: 16px 14px;
+          }
+
+          .review-skill-card input {
+            width: 26px;
+            height: 26px;
+          }
+
+          .review-skill-card:has(input:checked)::after {
+            top: 14px;
+            right: 14px;
+          }
+
+          .review-skill-copy {
+            padding-right: 82px;
+          }
+
           .review-form .primary-button {
             width: 100%;
           }
@@ -1121,6 +1192,23 @@ export default async function OpportunityReviewsPage({
           .review-status,
           .interest-status {
             width: 100%;
+          }
+
+          .review-skill-card {
+            grid-template-columns: 1fr;
+            gap: 10px;
+          }
+
+          .review-skill-icon {
+            margin-top: 32px;
+          }
+
+          .review-skill-copy {
+            padding-right: 0;
+          }
+
+          .review-skill-card:has(input:checked)::after {
+            font-size: 0.72rem;
           }
         }
       `}</style>
