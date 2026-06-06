@@ -14,6 +14,7 @@ type VolunteerProfile = {
   city: string | null;
   goals: string[] | null;
   volunteering_preference: string | null;
+  preferred_contact_method: string | null;
 };
 
 type VolunteerPreferences = {
@@ -25,6 +26,13 @@ type VolunteerPreferences = {
 };
 
 type GoalOption = {
+  value: string;
+  label: string;
+  icon: string;
+  helpText: string;
+};
+
+type ContactOption = {
   value: string;
   label: string;
   icon: string;
@@ -89,6 +97,33 @@ const goalOptions: GoalOption[] = [
   {
     value: "I am not sure yet",
     label: "I am not sure yet",
+    icon: "🌈",
+    helpText: "That is okay. You can change this later.",
+  },
+];
+
+const contactOptions: ContactOption[] = [
+  {
+    value: "email",
+    label: "Email",
+    icon: "✉️",
+    helpText: "Best if you like to read and reply in your own time.",
+  },
+  {
+    value: "phone",
+    label: "Phone call",
+    icon: "📞",
+    helpText: "Best if talking things through feels easier.",
+  },
+  {
+    value: "sms",
+    label: "Text message",
+    icon: "💬",
+    helpText: "Best if short messages feel easier than email.",
+  },
+  {
+    value: "not_sure",
+    label: "Not sure yet",
     icon: "🌈",
     helpText: "That is okay. You can change this later.",
   },
@@ -168,6 +203,14 @@ function normaliseVolunteeringPreference(value: string | null | undefined) {
   return "both";
 }
 
+function normalisePreferredContactMethod(value: string | null | undefined) {
+  if (value === "email" || value === "phone" || value === "sms" || value === "not_sure") {
+    return value;
+  }
+
+  return "email";
+}
+
 export default async function VolunteerOnboardingPage({
   searchParams,
 }: {
@@ -205,7 +248,7 @@ export default async function VolunteerOnboardingPage({
 
   const { data: volunteerProfile } = await supabase
     .from("volunteer_profiles")
-    .select("city,goals,volunteering_preference")
+    .select("city,goals,volunteering_preference,preferred_contact_method")
     .eq("user_id", user.id)
     .maybeSingle<VolunteerProfile>();
 
@@ -229,10 +272,13 @@ export default async function VolunteerOnboardingPage({
   const volunteeringPreference = normaliseVolunteeringPreference(
     volunteerProfile?.volunteering_preference,
   );
+  const preferredContactMethod = normalisePreferredContactMethod(
+    volunteerProfile?.preferred_contact_method,
+  );
 
   const listenText = simpleView
-    ? "This is step one. Add your nearest town or city. Choose one or more goal cards. Choose how you prefer to volunteer. Press Save and continue."
-    : "This is step one of your volunteer profile setup. This page asks what you would like to achieve. If you opened this page by mistake, use the Dashboard button at the top or the Cancel and return to profile button near the bottom. First, type your nearest town or city. Then choose one or more large goal cards. Each card has an icon and a short label. Near the bottom there is a choice for how you prefer to volunteer. The final button says Save and continue.";
+    ? "This is step one. Add your nearest town or city. Choose one or more goal cards. Choose how you prefer to volunteer. Choose how organisations should contact you. Press Save and continue."
+    : "This is step one of your volunteer profile setup. This page asks what you would like to achieve. If you opened this page by mistake, use the Dashboard button at the top or the Cancel and return to profile button near the bottom. First, type your nearest town or city. Then choose one or more large goal cards. Each card has an icon and a short label. Near the bottom there is a choice for how you prefer to volunteer. There is also a contact preference section where you can choose email, phone call, text message, or not sure yet. This helps organisations contact you in a way that feels comfortable. The final button says Save and continue.";
 
   const shellClassName = [
     "dashboard-bg",
@@ -430,6 +476,52 @@ export default async function VolunteerOnboardingPage({
             </select>
           </label>
 
+          <fieldset className="onboarding-choice-section contact-choice-section">
+            <legend>
+              <span className="field-label-row">
+                <span className="field-label-icon" aria-hidden="true">
+                  📞
+                </span>
+                <span>How should organisations contact you?</span>
+              </span>
+            </legend>
+
+            {!simpleView ? (
+              <p className="contact-choice-helper">
+                Choose what feels easiest. This can be shown to organisations
+                when you express interest in one of their roles.
+              </p>
+            ) : null}
+
+            <div className="onboarding-choice-grid contact-choice-grid">
+              {contactOptions.map((option) => (
+                <label key={option.value} className="onboarding-choice-card contact-choice-card">
+                  <input
+                    type="radio"
+                    name="preferred_contact_method"
+                    value={option.value}
+                    defaultChecked={preferredContactMethod === option.value}
+                  />
+
+                  <span className="onboarding-choice-icon" aria-hidden="true">
+                    {option.icon}
+                  </span>
+
+                  <span className="onboarding-choice-copy">
+                    <span className="onboarding-choice-title">
+                      {option.label}
+                    </span>
+                    {!simpleView ? (
+                      <span className="onboarding-choice-description">
+                        {option.helpText}
+                      </span>
+                    ) : null}
+                  </span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
+
           <div className="onboarding-actions">
             <Link href="/profile" className="secondary-button">
               <span className="dashboard-button-inner">
@@ -478,10 +570,23 @@ export default async function VolunteerOnboardingPage({
           font-weight: 950;
         }
 
+        .contact-choice-helper {
+          max-width: 58rem;
+          margin: 0;
+          color: #5d6677;
+          font-size: 0.98rem;
+          font-weight: 750;
+          line-height: 1.5;
+        }
+
         .onboarding-choice-grid {
           display: grid;
           grid-template-columns: repeat(3, minmax(0, 1fr));
           gap: 14px;
+        }
+
+        .contact-choice-grid {
+          grid-template-columns: repeat(4, minmax(0, 1fr));
         }
 
         .onboarding-choice-card {
@@ -502,6 +607,10 @@ export default async function VolunteerOnboardingPage({
             border-color 160ms ease,
             background 160ms ease,
             box-shadow 160ms ease;
+        }
+
+        .contact-choice-card {
+          min-height: 156px;
         }
 
         .onboarding-choice-card:hover {
@@ -618,6 +727,10 @@ export default async function VolunteerOnboardingPage({
           min-height: 178px;
         }
 
+        .preference-view-detailed .contact-choice-card {
+          min-height: 166px;
+        }
+
         .preference-text-large {
           font-size: 1.06rem;
         }
@@ -625,7 +738,8 @@ export default async function VolunteerOnboardingPage({
         .preference-text-large .dashboard-lead,
         .preference-text-large .dashboard-progress-note,
         .preference-text-large .onboarding-choice-description,
-        .preference-text-large .onboarding-choice-section legend {
+        .preference-text-large .onboarding-choice-section legend,
+        .preference-text-large .contact-choice-helper {
           font-size: 1.04em;
         }
 
@@ -701,7 +815,8 @@ export default async function VolunteerOnboardingPage({
         .preference-theme-high_contrast .dashboard-progress-note,
         .preference-theme-high_contrast .progress-meta,
         .preference-theme-high_contrast .onboarding-choice-section legend,
-        .preference-theme-high_contrast .onboarding-choice-description {
+        .preference-theme-high_contrast .onboarding-choice-description,
+        .preference-theme-high_contrast .contact-choice-helper {
           color: #1f2937;
         }
 
@@ -746,7 +861,8 @@ export default async function VolunteerOnboardingPage({
         .preference-theme-neon_arcade .dashboard-lead,
         .preference-theme-neon_arcade .dashboard-progress-note,
         .preference-theme-neon_arcade .onboarding-choice-section legend,
-        .preference-theme-neon_arcade .onboarding-choice-description {
+        .preference-theme-neon_arcade .onboarding-choice-description,
+        .preference-theme-neon_arcade .contact-choice-helper {
           color: #dbeafe;
         }
 
@@ -786,9 +902,19 @@ export default async function VolunteerOnboardingPage({
           background: linear-gradient(90deg, #22d3ee, #a7f3d0, #d946ef);
         }
 
+        @media (max-width: 1200px) {
+          .contact-choice-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+        }
+
         @media (max-width: 1100px) {
           .preference-view-simple .onboarding-choice-grid {
             grid-template-columns: repeat(3, minmax(0, 1fr));
+          }
+
+          .preference-view-simple .contact-choice-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
           }
         }
 
@@ -801,11 +927,14 @@ export default async function VolunteerOnboardingPage({
 
         @media (max-width: 640px) {
           .onboarding-choice-grid,
-          .preference-view-simple .onboarding-choice-grid {
+          .contact-choice-grid,
+          .preference-view-simple .onboarding-choice-grid,
+          .preference-view-simple .contact-choice-grid {
             grid-template-columns: 1fr;
           }
 
           .onboarding-choice-card,
+          .contact-choice-card,
           .preference-view-simple .onboarding-choice-card,
           .preference-view-detailed .onboarding-choice-card {
             min-height: 0;
