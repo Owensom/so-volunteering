@@ -541,7 +541,7 @@ export default async function OrganisationInterestDetailPage({
                   <p>
                     <strong>New</strong>
                   </p>
-                  <p>The volunteer has expressed interest and is waiting.</p>
+                  <p>Waiting.</p>
                 </div>
               </div>
 
@@ -557,7 +557,7 @@ export default async function OrganisationInterestDetailPage({
                   <p>
                     <strong>Contacted</strong>
                   </p>
-                  <p>You have contacted the volunteer or started the conversation.</p>
+                  <p>Conversation started.</p>
                 </div>
               </div>
 
@@ -573,7 +573,7 @@ export default async function OrganisationInterestDetailPage({
                   <p>
                     <strong>Accepted</strong>
                   </p>
-                  <p>You are ready to move forward with this volunteer.</p>
+                  <p>Ready to move forward.</p>
                 </div>
               </div>
 
@@ -589,7 +589,7 @@ export default async function OrganisationInterestDetailPage({
                   <p>
                     <strong>Closed</strong>
                   </p>
-                  <p>No further action is needed for this interest.</p>
+                  <p>No further action.</p>
                 </div>
               </div>
             </div>
@@ -839,28 +839,20 @@ export default async function OrganisationInterestDetailPage({
         }
 
         .interest-detail-grid {
-          align-items: start !important;
+          align-items: stretch;
         }
 
-        .interest-detail-grid .interest-detail-card {
-          height: auto !important;
-          min-height: 0 !important;
-          align-self: start !important;
-        }
-
-        .interest-detail-grid .dashboard-pathway-card {
-          height: auto !important;
-          min-height: 0 !important;
+        .interest-detail-card {
+          min-height: 228px;
+          height: 100%;
+          align-items: stretch;
         }
 
         .interest-detail-copy {
-          display: grid !important;
-          min-height: 0 !important;
-          gap: 14px;
-        }
-
-        .interest-detail-copy h2 {
-          margin-bottom: 0;
+          display: flex;
+          min-height: 100%;
+          flex-direction: column;
+          gap: 18px;
         }
 
         .interest-detail-body {
@@ -905,15 +897,17 @@ export default async function OrganisationInterestDetailPage({
 
         .status-guide-list {
           display: grid;
-          gap: 10px;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 8px;
         }
 
         .status-guide-item {
           display: grid;
           grid-template-columns: auto 1fr;
-          gap: 10px;
+          gap: 8px;
           align-items: start;
-          padding: 10px;
+          min-height: 72px;
+          padding: 9px;
           border: 1px solid rgba(108, 92, 160, 0.12);
           border-radius: 16px;
           background: rgba(255, 255, 255, 0.66);
@@ -927,16 +921,32 @@ export default async function OrganisationInterestDetailPage({
 
         .status-guide-badge {
           display: inline-flex;
-          width: 28px;
-          height: 28px;
+          width: 26px;
+          height: 26px;
           align-items: center;
           justify-content: center;
           border-radius: 999px;
           background: rgba(83, 111, 99, 0.1);
           color: #536f63;
-          font-size: 0.8rem;
+          font-size: 0.76rem;
           font-weight: 950;
           flex: 0 0 auto;
+        }
+
+        .status-guide-item p {
+          margin: 0;
+          color: #60706a;
+          font-size: 0.86rem;
+          font-weight: 750;
+          line-height: 1.28;
+        }
+
+        .status-guide-item strong {
+          display: block;
+          color: #536f63;
+          font-size: 0.92rem;
+          line-height: 1.1;
+          margin-bottom: 2px;
         }
 
         .contact-email-details {
@@ -1115,6 +1125,7 @@ export default async function OrganisationInterestDetailPage({
           }
 
           .interest-detail-card {
+            min-height: 0;
             padding: 22px;
           }
 
@@ -1140,6 +1151,22 @@ export default async function OrganisationInterestDetailPage({
           .interest-chip {
             border-radius: 18px;
             font-size: 0.86rem;
+          }
+
+          .status-guide-list {
+            grid-template-columns: 1fr;
+          }
+
+          .status-guide-item {
+            min-height: 0;
+          }
+
+          .status-guide-item p {
+            font-size: 0.95rem;
+          }
+
+          .status-guide-item strong {
+            font-size: 1rem;
           }
 
           .contact-email-details summary,
