@@ -11,6 +11,14 @@ type Profile = {
   user_type: string | null;
 };
 
+type VolunteerPreferences = {
+  view_mode: string | null;
+  colour_theme: string | null;
+  text_size: string | null;
+  avatar_icon: string | null;
+  listen_mode: string | null;
+};
+
 type EducationEntry = {
   id: string;
   entry_type: string;
@@ -56,13 +64,13 @@ const entryTypeOptions: EntryTypeOption[] = [
   {
     value: "training_course",
     icon: "🧭",
-    title: "Training course",
+    title: "Training",
     description: "Training completed in person.",
   },
   {
     value: "online_course",
     icon: "💻",
-    title: "Online course",
+    title: "Online",
     description: "Online learning, course or module.",
   },
   {
@@ -74,7 +82,7 @@ const entryTypeOptions: EntryTypeOption[] = [
   {
     value: "work_related_training",
     icon: "🛠️",
-    title: "Work-related training",
+    title: "Work training",
     description: "Training linked to work or volunteering.",
   },
   {
@@ -89,6 +97,50 @@ function normaliseUserType(value: string | null | undefined) {
   return value?.trim().toLowerCase() === "organisation"
     ? "organisation"
     : "volunteer";
+}
+
+function normaliseViewMode(value: string | null | undefined) {
+  if (value === "simple" || value === "detailed") return value;
+  return "standard";
+}
+
+function normaliseColourTheme(value: string | null | undefined) {
+  if (
+    value === "calm_green" ||
+    value === "soft_blue" ||
+    value === "warm_peach" ||
+    value === "high_contrast"
+  ) {
+    return value;
+  }
+
+  return "default";
+}
+
+function normaliseTextSize(value: string | null | undefined) {
+  return value === "large" ? "large" : "standard";
+}
+
+function normaliseAvatarIcon(value: string | null | undefined) {
+  return value && value.trim() ? value : "🌱";
+}
+
+function normaliseListenMode(value: string | null | undefined) {
+  return value === "context" ? "context" : "always";
+}
+
+function getThemeClass(colourTheme: string) {
+  return `preference-theme-${colourTheme}`;
+}
+
+function getTextClass(textSize: string) {
+  return textSize === "large"
+    ? "preference-text-large"
+    : "preference-text-standard";
+}
+
+function getViewClass(viewMode: string) {
+  return `preference-view-${viewMode}`;
 }
 
 function formatEntryType(value: string) {
@@ -107,7 +159,7 @@ function formatStudyDates(entry: EducationEntry) {
   }
 
   if (entry.is_current) {
-    return "Currently studying";
+    return "Current";
   }
 
   if (entry.year_started && entry.year_completed) {
@@ -122,13 +174,15 @@ function formatStudyDates(entry: EducationEntry) {
     return `Started ${entry.year_started}`;
   }
 
-  return "Dates optional";
+  return "";
 }
 
 function EntryTypeChoiceGrid({
   selectedValue,
+  simpleView,
 }: {
   selectedValue: string;
+  simpleView: boolean;
 }) {
   return (
     <div className="education-choice-grid">
@@ -147,9 +201,11 @@ function EntryTypeChoiceGrid({
 
           <span className="education-choice-copy">
             <span className="education-choice-title">{option.title}</span>
-            <span className="education-choice-description">
-              {option.description}
-            </span>
+            {!simpleView ? (
+              <span className="education-choice-description">
+                {option.description}
+              </span>
+            ) : null}
           </span>
         </label>
       ))}
@@ -159,8 +215,10 @@ function EntryTypeChoiceGrid({
 
 function EducationEntryForm({
   entry,
+  simpleView,
 }: {
   entry?: EducationEntry;
+  simpleView: boolean;
 }) {
   const isEditing = Boolean(entry);
 
@@ -176,11 +234,14 @@ function EducationEntryForm({
             <span className="field-label-icon" aria-hidden="true">
               📚
             </span>
-            <span>Type of education or training</span>
+            <span>Type</span>
           </span>
         </legend>
 
-        <EntryTypeChoiceGrid selectedValue={entry?.entry_type || "school"} />
+        <EntryTypeChoiceGrid
+          selectedValue={entry?.entry_type || "school"}
+          simpleView={simpleView}
+        />
       </fieldset>
 
       <div className="education-form-grid">
@@ -189,14 +250,18 @@ function EducationEntryForm({
             <span className="field-label-icon" aria-hidden="true">
               ⭐
             </span>
-            <span>Qualification, course or training name</span>
+            <span>{simpleView ? "Name" : "Qualification, course or training name"}</span>
           </span>
           <input
             name="qualification_name"
             type="text"
             required
             defaultValue={entry?.qualification_name || ""}
-            placeholder="Example: National 5 English, Food Hygiene, First Aid"
+            placeholder={
+              simpleView
+                ? "Example: First Aid"
+                : "Example: National 5 English, Food Hygiene, First Aid"
+            }
           />
         </label>
 
@@ -205,13 +270,17 @@ function EducationEntryForm({
             <span className="field-label-icon" aria-hidden="true">
               🏫
             </span>
-            <span>School, college or provider optional</span>
+            <span>{simpleView ? "Place optional" : "School, college or provider optional"}</span>
           </span>
           <input
             name="institution_name"
             type="text"
             defaultValue={entry?.institution_name || ""}
-            placeholder="Example: Aberdeen College, Online course, Local charity"
+            placeholder={
+              simpleView
+                ? "Example: College"
+                : "Example: Aberdeen College, online course, local charity"
+            }
           />
         </label>
 
@@ -226,7 +295,7 @@ function EducationEntryForm({
             name="qualification_level"
             type="text"
             defaultValue={entry?.qualification_level || ""}
-            placeholder="Example: National 5, Level 2, Beginner"
+            placeholder="Example: Level 2"
           />
         </label>
 
@@ -235,13 +304,13 @@ function EducationEntryForm({
             <span className="field-label-icon" aria-hidden="true">
               💡
             </span>
-            <span>Subject or area optional</span>
+            <span>{simpleView ? "Subject optional" : "Subject or area optional"}</span>
           </span>
           <input
             name="subject_or_area"
             type="text"
             defaultValue={entry?.subject_or_area || ""}
-            placeholder="Example: Music, Customer service, Health and safety"
+            placeholder="Example: Health and safety"
           />
         </label>
 
@@ -250,14 +319,14 @@ function EducationEntryForm({
             <span className="field-label-icon" aria-hidden="true">
               📅
             </span>
-            <span>Year started optional</span>
+            <span>Started optional</span>
           </span>
           <input
             name="year_started"
             type="text"
             inputMode="numeric"
             defaultValue={entry?.year_started || ""}
-            placeholder="Example: 2024"
+            placeholder="2024"
           />
         </label>
 
@@ -266,14 +335,14 @@ function EducationEntryForm({
             <span className="field-label-icon" aria-hidden="true">
               ✅
             </span>
-            <span>Year completed optional</span>
+            <span>Completed optional</span>
           </span>
           <input
             name="year_completed"
             type="text"
             inputMode="numeric"
             defaultValue={entry?.year_completed || ""}
-            placeholder="Example: 2026"
+            placeholder="2026"
           />
         </label>
       </div>
@@ -286,32 +355,36 @@ function EducationEntryForm({
         />
         <span aria-hidden="true">🌱</span>
         <span>
-          <strong>I am still studying or completing this</strong>
-          <small>This will show as “Present” on the CV.</small>
+          <strong>Still studying</strong>
+          {!simpleView ? <small>This will show as “Present” on the CV.</small> : null}
         </span>
       </label>
 
-      <label className="field-label">
-        <span className="field-label-row">
-          <span className="field-label-icon" aria-hidden="true">
-            💬
+      {!simpleView ? (
+        <label className="field-label">
+          <span className="field-label-row">
+            <span className="field-label-icon" aria-hidden="true">
+              💬
+            </span>
+            <span>Short note optional</span>
           </span>
-          <span>Short note optional</span>
-        </span>
-        <textarea
-          name="notes"
-          rows={3}
-          defaultValue={entry?.notes || ""}
-          placeholder="Example: Completed as part of volunteering preparation. I enjoyed learning how to help safely."
-        />
-      </label>
+          <textarea
+            name="notes"
+            rows={3}
+            defaultValue={entry?.notes || ""}
+            placeholder="Example: Completed as part of volunteering preparation."
+          />
+        </label>
+      ) : (
+        <input type="hidden" name="notes" value={entry?.notes || ""} />
+      )}
 
       <label className="field-label display-order-field">
         <span className="field-label-row">
           <span className="field-label-icon" aria-hidden="true">
             🔢
           </span>
-          <span>Order optional</span>
+          <span>Order</span>
         </span>
         <input
           name="display_order"
@@ -325,7 +398,7 @@ function EducationEntryForm({
       <button type="submit" className="primary-button education-submit-button">
         <span className="button-balanced-inner">
           <span aria-hidden="true">{isEditing ? "✅" : "➕"}</span>
-          <span>{isEditing ? "Save changes" : "Add to my CV"}</span>
+          <span>{isEditing ? "Save" : "Add to CV"}</span>
         </span>
       </button>
     </form>
@@ -368,6 +441,12 @@ export default async function EducationPage({
     redirect("/organisation/dashboard");
   }
 
+  const { data: preferences } = await supabase
+    .from("volunteer_preferences")
+    .select("view_mode,colour_theme,text_size,avatar_icon,listen_mode")
+    .eq("user_id", user.id)
+    .maybeSingle<VolunteerPreferences>();
+
   const { data: educationEntries } = await supabase
     .from("volunteer_education_entries")
     .select(
@@ -380,11 +459,28 @@ export default async function EducationPage({
   const rows = (educationEntries as EducationEntry[] | null) ?? [];
   const displayName = profile?.full_name?.trim() || "there";
 
-  const listenText =
-    "You are on the Education and Qualifications page. This page is optional. Add school, college, training, certificates, online courses or other useful learning if you want them to appear on your Positive Pathway CV. Choose a type first, then add the qualification, course or training name. Provider, level, subject, years and notes are optional. You can edit or remove entries later.";
+  const viewMode = normaliseViewMode(preferences?.view_mode);
+  const colourTheme = normaliseColourTheme(preferences?.colour_theme);
+  const textSize = normaliseTextSize(preferences?.text_size);
+  const avatarIcon = normaliseAvatarIcon(preferences?.avatar_icon);
+  const listenMode = normaliseListenMode(preferences?.listen_mode);
+  const simpleView = viewMode === "simple";
+  const detailedView = viewMode === "detailed";
+
+  const listenText = simpleView
+    ? "Education page. Add learning you want on your CV. Choose a type, add a name, then save."
+    : "You are on the Education and Qualifications page. This page is optional. Add school, college, training, certificates, online courses or other useful learning if you want them to appear on your Positive Pathway CV. Choose a type first, then add the qualification, course or training name. Provider, level, subject, years and notes are optional. You can edit or remove entries later.";
+
+  const shellClassName = [
+    "dashboard-bg",
+    "education-page",
+    getThemeClass(colourTheme),
+    getTextClass(textSize),
+    getViewClass(viewMode),
+  ].join(" ");
 
   return (
-    <main className="dashboard-bg education-page">
+    <main className={shellClassName}>
       <section className="dashboard-shell">
         <header className="dashboard-topbar education-topbar">
           <Link
@@ -407,7 +503,9 @@ export default async function EducationPage({
           </Link>
 
           <div className="dashboard-topbar-actions education-topbar-actions">
-            <InclusiveAudioButton text={listenText} />
+            {listenMode === "always" || listenMode === "context" ? (
+              <InclusiveAudioButton text={listenText} />
+            ) : null}
 
             <Link
               href="/profile"
@@ -415,7 +513,7 @@ export default async function EducationPage({
             >
               <span className="dashboard-button-inner">
                 <span aria-hidden="true">←</span>
-                <span>Back to profile</span>
+                <span>Profile</span>
               </span>
             </Link>
 
@@ -425,7 +523,7 @@ export default async function EducationPage({
             >
               <span className="dashboard-button-inner">
                 <span aria-hidden="true">📄</span>
-                <span>View CV</span>
+                <span>CV</span>
               </span>
             </Link>
           </div>
@@ -439,20 +537,21 @@ export default async function EducationPage({
             <p className="dashboard-kicker">Optional CV section</p>
 
             <h1 id="education-title" className="dashboard-title">
-              <span aria-hidden="true">📚</span>
-              <span>Education & Qualifications</span>
+              <span aria-hidden="true">{avatarIcon || "📚"}</span>
+              <span>{simpleView ? "Education" : "Education & Qualifications"}</span>
             </h1>
 
             <p className="dashboard-lead">
-              Hi {displayName}. Add any learning, courses, certificates or
-              qualifications you want included in your Positive Pathway CV.
+              {simpleView
+                ? `Hi ${displayName}. Add learning you want on your CV.`
+                : `Hi ${displayName}. Add learning, courses, certificates or qualifications you want included in your Positive Pathway CV.`}
             </p>
 
             <div className="dashboard-primary-actions education-hero-actions">
               <a href="#add-education" className="primary-button">
                 <span className="dashboard-button-inner">
                   <span aria-hidden="true">➕</span>
-                  <span>Add education</span>
+                  <span>Add</span>
                 </span>
               </a>
 
@@ -471,17 +570,25 @@ export default async function EducationPage({
                 🎓
               </span>
               <div>
-                <h2>CV entries</h2>
+                <h2>{simpleView ? "Added" : "CV entries"}</h2>
                 <p>
-                  {rows.length} education entr
-                  {rows.length === 1 ? "y" : "ies"} added.
+                  {rows.length} entr{rows.length === 1 ? "y" : "ies"}.
                 </p>
               </div>
             </div>
 
-            <p className="dashboard-progress-note">
-              This section is optional. It is fine to leave it blank.
-            </p>
+            {!simpleView ? (
+              <p className="dashboard-progress-note">
+                This section is optional. It is fine to leave it blank.
+              </p>
+            ) : null}
+
+            {detailedView ? (
+              <p className="dashboard-progress-note">
+                View: <strong>{viewMode}</strong> · Theme:{" "}
+                <strong>{colourTheme.replaceAll("_", " ")}</strong>
+              </p>
+            ) : null}
           </aside>
         </section>
 
@@ -495,12 +602,11 @@ export default async function EducationPage({
 
         <section className="education-existing-section" aria-label="Saved education entries">
           <div className="education-section-heading">
-            <p className="dashboard-kicker">Saved entries</p>
-            <h2>Your education and training</h2>
-            <p>
-              These entries will be formatted into the Education &
-              Qualifications section of your CV.
-            </p>
+            <p className="dashboard-kicker">Saved</p>
+            <h2>{simpleView ? "Your entries" : "Your education and training"}</h2>
+            {!simpleView ? (
+              <p>These entries will appear in the Education section of your CV.</p>
+            ) : null}
           </div>
 
           {rows.length === 0 ? (
@@ -509,12 +615,11 @@ export default async function EducationPage({
                 📚
               </div>
               <div className="dashboard-card-copy">
-                <p className="dashboard-card-label">Nothing added yet</p>
-                <h2>No education or qualifications added</h2>
-                <p>
-                  You can add school, training, certificates, online learning or
-                  any qualification you want to include.
-                </p>
+                <p className="dashboard-card-label">Empty</p>
+                <h2>Nothing added yet</h2>
+                {!simpleView ? (
+                  <p>Add school, training, certificates or qualifications.</p>
+                ) : null}
               </div>
             </article>
           ) : (
@@ -532,33 +637,37 @@ export default async function EducationPage({
                       </p>
                       <h2>{entry.qualification_name}</h2>
                       <p>
-                        {entry.institution_name || "Provider not added"} ·{" "}
-                        {formatStudyDates(entry)}
+                        {entry.institution_name || "No provider"}
+                        {formatStudyDates(entry)
+                          ? ` · ${formatStudyDates(entry)}`
+                          : ""}
                       </p>
                     </div>
                   </div>
 
-                  <div className="education-entry-details">
-                    {entry.qualification_level ? (
-                      <span>Level: {entry.qualification_level}</span>
-                    ) : null}
+                  {!simpleView ? (
+                    <div className="education-entry-details">
+                      {entry.qualification_level ? (
+                        <span>Level: {entry.qualification_level}</span>
+                      ) : null}
 
-                    {entry.subject_or_area ? (
-                      <span>Area: {entry.subject_or_area}</span>
-                    ) : null}
+                      {entry.subject_or_area ? (
+                        <span>Area: {entry.subject_or_area}</span>
+                      ) : null}
 
-                    {entry.is_current ? <span>Currently studying</span> : null}
-                  </div>
+                      {entry.is_current ? <span>Current</span> : null}
+                    </div>
+                  ) : null}
 
-                  {entry.notes ? (
+                  {!simpleView && entry.notes ? (
                     <div className="education-note-box">
                       <p>{entry.notes}</p>
                     </div>
                   ) : null}
 
                   <details className="education-edit-details">
-                    <summary>Edit this entry</summary>
-                    <EducationEntryForm entry={entry} />
+                    <summary>Edit</summary>
+                    <EducationEntryForm entry={entry} simpleView={simpleView} />
 
                     <form
                       action={deleteEducationEntry}
@@ -573,7 +682,7 @@ export default async function EducationPage({
                       <button type="submit" className="secondary-button danger-button">
                         <span className="button-balanced-inner">
                           <span aria-hidden="true">🗑️</span>
-                          <span>Remove this entry</span>
+                          <span>Remove</span>
                         </span>
                       </button>
                     </form>
@@ -590,15 +699,16 @@ export default async function EducationPage({
           aria-labelledby="add-education-title"
         >
           <div className="education-section-heading">
-            <p className="dashboard-kicker">Add new entry</p>
-            <h2 id="add-education-title">Add education or training</h2>
-            <p>
-              Add only what you want. The CV page will format this into a clean,
-              appropriate CV section.
-            </p>
+            <p className="dashboard-kicker">Add</p>
+            <h2 id="add-education-title">
+              {simpleView ? "Add to CV" : "Add education or training"}
+            </h2>
+            {!simpleView ? (
+              <p>The CV page will format this into a clean CV section.</p>
+            ) : null}
           </div>
 
-          <EducationEntryForm />
+          <EducationEntryForm simpleView={simpleView} />
         </section>
       </section>
 
@@ -763,7 +873,7 @@ export default async function EducationPage({
 
         .education-choice-card {
           position: relative;
-          min-height: 126px;
+          min-height: 112px;
           display: grid;
           gap: 10px;
           align-content: start;
@@ -874,6 +984,126 @@ export default async function EducationPage({
           background: rgba(255, 248, 240, 0.92);
         }
 
+        .preference-view-simple .education-choice-card {
+          min-height: 92px;
+          align-content: center;
+        }
+
+        .preference-view-simple .education-choice-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .preference-view-simple .education-section-heading {
+          gap: 3px;
+        }
+
+        .preference-view-simple .education-entry-card {
+          gap: 12px;
+        }
+
+        .preference-text-large {
+          font-size: 1.06rem;
+        }
+
+        .preference-text-large .dashboard-lead,
+        .preference-text-large .education-section-heading p,
+        .preference-text-large .dashboard-progress-note,
+        .preference-text-large .education-entry-header p {
+          font-size: 1.04em;
+        }
+
+        .preference-theme-calm_green {
+          background:
+            radial-gradient(circle at top left, rgba(200, 243, 221, 0.58), transparent 34%),
+            linear-gradient(135deg, #f3fff8 0%, #f7fbf5 46%, #fffaf2 100%);
+        }
+
+        .preference-theme-calm_green .dashboard-welcome-card,
+        .preference-theme-calm_green .info-card,
+        .preference-theme-calm_green .dashboard-progress-card {
+          border-color: rgba(83, 111, 99, 0.2);
+        }
+
+        .preference-theme-calm_green .dashboard-card-icon,
+        .preference-theme-calm_green .dashboard-progress-icon {
+          background: rgba(226, 255, 239, 0.86);
+        }
+
+        .preference-theme-soft_blue {
+          background:
+            radial-gradient(circle at top left, rgba(197, 226, 255, 0.62), transparent 34%),
+            linear-gradient(135deg, #f3f9ff 0%, #f8fbff 48%, #fffaf2 100%);
+        }
+
+        .preference-theme-soft_blue .dashboard-welcome-card,
+        .preference-theme-soft_blue .info-card,
+        .preference-theme-soft_blue .dashboard-progress-card {
+          border-color: rgba(74, 112, 160, 0.2);
+        }
+
+        .preference-theme-soft_blue .dashboard-card-icon,
+        .preference-theme-soft_blue .dashboard-progress-icon {
+          background: rgba(231, 244, 255, 0.92);
+        }
+
+        .preference-theme-warm_peach {
+          background:
+            radial-gradient(circle at top left, rgba(255, 210, 184, 0.58), transparent 34%),
+            linear-gradient(135deg, #fff8f1 0%, #fffaf6 48%, #f7fff8 100%);
+        }
+
+        .preference-theme-warm_peach .dashboard-welcome-card,
+        .preference-theme-warm_peach .info-card,
+        .preference-theme-warm_peach .dashboard-progress-card {
+          border-color: rgba(190, 118, 76, 0.2);
+        }
+
+        .preference-theme-warm_peach .dashboard-card-icon,
+        .preference-theme-warm_peach .dashboard-progress-icon {
+          background: rgba(255, 239, 226, 0.92);
+        }
+
+        .preference-theme-high_contrast {
+          background: #f8fafc;
+        }
+
+        .preference-theme-high_contrast .dashboard-welcome-card,
+        .preference-theme-high_contrast .info-card,
+        .preference-theme-high_contrast .dashboard-progress-card,
+        .preference-theme-high_contrast .education-choice-card,
+        .preference-theme-high_contrast .education-entry-details span,
+        .preference-theme-high_contrast .education-note-box,
+        .preference-theme-high_contrast .education-checkbox-card {
+          border: 2px solid #1f2937;
+          background: rgba(255, 255, 255, 0.98);
+        }
+
+        .preference-theme-high_contrast .dashboard-title,
+        .preference-theme-high_contrast .education-section-heading h2,
+        .preference-theme-high_contrast .education-entry-header h2,
+        .preference-theme-high_contrast .education-choice-title,
+        .preference-theme-high_contrast .education-checkbox-card strong {
+          color: #111827;
+        }
+
+        .preference-theme-high_contrast .dashboard-lead,
+        .preference-theme-high_contrast .education-section-heading p,
+        .preference-theme-high_contrast .dashboard-progress-note,
+        .preference-theme-high_contrast .education-entry-header p,
+        .preference-theme-high_contrast .education-choice-description,
+        .preference-theme-high_contrast .education-note-box p,
+        .preference-theme-high_contrast .education-checkbox-card small {
+          color: #1f2937;
+        }
+
+        .preference-theme-high_contrast .dashboard-card-icon,
+        .preference-theme-high_contrast .dashboard-progress-icon,
+        .preference-theme-high_contrast .education-choice-icon {
+          border: 2px solid #1f2937;
+          background: #ffffff;
+          color: #111827;
+        }
+
         @media (max-width: 980px) {
           .education-choice-grid {
             grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -920,11 +1150,13 @@ export default async function EducationPage({
           }
 
           .education-choice-grid,
+          .preference-view-simple .education-choice-grid,
           .education-form-grid {
             grid-template-columns: 1fr;
           }
 
-          .education-choice-card {
+          .education-choice-card,
+          .preference-view-simple .education-choice-card {
             min-height: 0;
           }
 
