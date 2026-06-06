@@ -15,6 +15,7 @@ type VolunteerProfile = {
   goals: string[] | null;
   volunteering_preference: string | null;
   preferred_contact_method: string | null;
+  phone: string | null;
 };
 
 type VolunteerPreferences = {
@@ -204,7 +205,12 @@ function normaliseVolunteeringPreference(value: string | null | undefined) {
 }
 
 function normalisePreferredContactMethod(value: string | null | undefined) {
-  if (value === "email" || value === "phone" || value === "sms" || value === "not_sure") {
+  if (
+    value === "email" ||
+    value === "phone" ||
+    value === "sms" ||
+    value === "not_sure"
+  ) {
     return value;
   }
 
@@ -248,7 +254,7 @@ export default async function VolunteerOnboardingPage({
 
   const { data: volunteerProfile } = await supabase
     .from("volunteer_profiles")
-    .select("city,goals,volunteering_preference,preferred_contact_method")
+    .select("city,goals,volunteering_preference,preferred_contact_method,phone")
     .eq("user_id", user.id)
     .maybeSingle<VolunteerProfile>();
 
@@ -277,8 +283,8 @@ export default async function VolunteerOnboardingPage({
   );
 
   const listenText = simpleView
-    ? "This is step one. Add your nearest town or city. Choose one or more goal cards. Choose how you prefer to volunteer. Choose how organisations should contact you. Press Save and continue."
-    : "This is step one of your volunteer profile setup. This page asks what you would like to achieve. If you opened this page by mistake, use the Dashboard button at the top or the Cancel and return to profile button near the bottom. First, type your nearest town or city. Then choose one or more large goal cards. Each card has an icon and a short label. Near the bottom there is a choice for how you prefer to volunteer. There is also a contact preference section where you can choose email, phone call, text message, or not sure yet. This helps organisations contact you in a way that feels comfortable. The final button says Save and continue.";
+    ? "This is step one. Add your nearest town or city. Choose one or more goal cards. Choose how you prefer to volunteer. Choose how organisations should contact you. You can add a phone or text number if you want to. Press Save and continue."
+    : "This is step one of your volunteer profile setup. This page asks what you would like to achieve. If you opened this page by mistake, use the Dashboard button at the top or the Cancel and return to profile button near the bottom. First, type your nearest town or city. Then choose one or more large goal cards. Each card has an icon and a short label. Near the bottom there is a choice for how you prefer to volunteer. There is also a contact preference section where you can choose email, phone call, text message, or not sure yet. There is an optional phone or text number box. This helps organisations contact you in a way that feels comfortable when you express interest in a role. The final button says Save and continue.";
 
   const shellClassName = [
     "dashboard-bg",
@@ -426,7 +432,9 @@ export default async function VolunteerOnboardingPage({
                 <span className="field-label-icon" aria-hidden="true">
                   ✨
                 </span>
-                <span>{simpleView ? "Choose goals" : "Choose one or more goals"}</span>
+                <span>
+                  {simpleView ? "Choose goals" : "Choose one or more goals"}
+                </span>
               </span>
             </legend>
 
@@ -476,57 +484,96 @@ export default async function VolunteerOnboardingPage({
             </select>
           </label>
 
-          <fieldset className="onboarding-choice-section contact-choice-section">
-            <legend>
+          <section className="contact-preference-panel" aria-labelledby="contact-title">
+            <div className="contact-preference-heading">
+              <span className="contact-preference-icon" aria-hidden="true">
+                📞
+              </span>
+              <div>
+                <h2 id="contact-title">Contact options</h2>
+                <p>
+                  Choose how organisations should contact you when you express
+                  interest in a role.
+                </p>
+              </div>
+            </div>
+
+            <fieldset className="onboarding-choice-section contact-choice-section">
+              <legend>
+                <span className="field-label-row">
+                  <span className="field-label-icon" aria-hidden="true">
+                    💬
+                  </span>
+                  <span>How should organisations contact you?</span>
+                </span>
+              </legend>
+
+              <div className="onboarding-choice-grid contact-choice-grid">
+                {contactOptions.map((option) => (
+                  <label
+                    key={option.value}
+                    className="onboarding-choice-card contact-choice-card"
+                  >
+                    <input
+                      type="radio"
+                      name="preferred_contact_method"
+                      value={option.value}
+                      defaultChecked={preferredContactMethod === option.value}
+                    />
+
+                    <span className="onboarding-choice-icon" aria-hidden="true">
+                      {option.icon}
+                    </span>
+
+                    <span className="onboarding-choice-copy">
+                      <span className="onboarding-choice-title">
+                        {option.label}
+                      </span>
+                      {!simpleView ? (
+                        <span className="onboarding-choice-description">
+                          {option.helpText}
+                        </span>
+                      ) : null}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+
+            <label className="field-label onboarding-field-label contact-phone-field">
               <span className="field-label-row">
                 <span className="field-label-icon" aria-hidden="true">
-                  📞
+                  📱
                 </span>
-                <span>How should organisations contact you?</span>
+                <span>Phone or text number</span>
               </span>
-            </legend>
+              <input
+                name="phone"
+                type="tel"
+                inputMode="tel"
+                autoComplete="tel"
+                placeholder="Optional"
+                defaultValue={volunteerProfile?.phone || ""}
+              />
+            </label>
 
-            {!simpleView ? (
-              <p className="contact-choice-helper">
-                Choose what feels easiest. This can be shown to organisations
-                when you express interest in one of their roles.
-              </p>
-            ) : null}
-
-            <div className="onboarding-choice-grid contact-choice-grid">
-              {contactOptions.map((option) => (
-                <label key={option.value} className="onboarding-choice-card contact-choice-card">
-                  <input
-                    type="radio"
-                    name="preferred_contact_method"
-                    value={option.value}
-                    defaultChecked={preferredContactMethod === option.value}
-                  />
-
-                  <span className="onboarding-choice-icon" aria-hidden="true">
-                    {option.icon}
-                  </span>
-
-                  <span className="onboarding-choice-copy">
-                    <span className="onboarding-choice-title">
-                      {option.label}
-                    </span>
-                    {!simpleView ? (
-                      <span className="onboarding-choice-description">
-                        {option.helpText}
-                      </span>
-                    ) : null}
-                  </span>
-                </label>
-              ))}
-            </div>
-          </fieldset>
+            <p className="contact-privacy-note">
+              <span aria-hidden="true">💛</span>
+              <span>
+                This is only used to help organisations contact you after you
+                choose to express interest in one of their roles. You can leave
+                it blank.
+              </span>
+            </p>
+          </section>
 
           <div className="onboarding-actions">
             <Link href="/profile" className="secondary-button">
               <span className="dashboard-button-inner">
                 <span aria-hidden="true">←</span>
-                <span>{simpleView ? "Cancel" : "Cancel and return to profile"}</span>
+                <span>
+                  {simpleView ? "Cancel" : "Cancel and return to profile"}
+                </span>
               </span>
             </Link>
 
@@ -570,23 +617,10 @@ export default async function VolunteerOnboardingPage({
           font-weight: 950;
         }
 
-        .contact-choice-helper {
-          max-width: 58rem;
-          margin: 0;
-          color: #5d6677;
-          font-size: 0.98rem;
-          font-weight: 750;
-          line-height: 1.5;
-        }
-
         .onboarding-choice-grid {
           display: grid;
           grid-template-columns: repeat(3, minmax(0, 1fr));
           gap: 14px;
-        }
-
-        .contact-choice-grid {
-          grid-template-columns: repeat(4, minmax(0, 1fr));
         }
 
         .onboarding-choice-card {
@@ -607,10 +641,6 @@ export default async function VolunteerOnboardingPage({
             border-color 160ms ease,
             background 160ms ease,
             box-shadow 160ms ease;
-        }
-
-        .contact-choice-card {
-          min-height: 156px;
         }
 
         .onboarding-choice-card:hover {
@@ -685,6 +715,78 @@ export default async function VolunteerOnboardingPage({
           line-height: 1.45;
         }
 
+        .contact-preference-panel {
+          display: grid;
+          gap: 18px;
+          padding: 22px;
+          border: 1px solid rgba(108, 92, 160, 0.14);
+          border-radius: 30px;
+          background: rgba(255, 255, 255, 0.7);
+          box-shadow: 0 18px 42px rgba(33, 56, 48, 0.07);
+        }
+
+        .contact-preference-heading {
+          display: grid;
+          grid-template-columns: auto 1fr;
+          gap: 14px;
+          align-items: start;
+        }
+
+        .contact-preference-icon {
+          display: inline-flex;
+          width: 58px;
+          height: 58px;
+          align-items: center;
+          justify-content: center;
+          border-radius: 20px;
+          background: rgba(244, 255, 249, 0.9);
+          box-shadow: inset 0 0 0 1px rgba(83, 111, 99, 0.12);
+          font-size: 1.8rem;
+        }
+
+        .contact-preference-heading h2 {
+          margin: 0;
+          color: #24352f;
+          font-size: 1.35rem;
+          font-weight: 950;
+          line-height: 1.1;
+        }
+
+        .contact-preference-heading p {
+          margin: 6px 0 0;
+          color: #5d6677;
+          font-weight: 750;
+          line-height: 1.45;
+        }
+
+        .contact-choice-grid {
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
+
+        .contact-choice-card {
+          min-height: 156px;
+        }
+
+        .contact-phone-field {
+          max-width: 36rem;
+        }
+
+        .contact-privacy-note {
+          display: grid;
+          grid-template-columns: auto 1fr;
+          gap: 10px;
+          align-items: start;
+          margin: 0;
+          padding: 14px 16px;
+          border: 1px solid rgba(191, 146, 72, 0.18);
+          border-radius: 20px;
+          background: rgba(255, 250, 241, 0.86);
+          color: #6d5b38;
+          font-size: 0.96rem;
+          font-weight: 800;
+          line-height: 1.45;
+        }
+
         .onboarding-actions {
           display: flex;
           flex-wrap: wrap;
@@ -723,6 +825,10 @@ export default async function VolunteerOnboardingPage({
           font-size: 1.04rem;
         }
 
+        .preference-view-simple .contact-choice-grid {
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
+
         .preference-view-detailed .onboarding-choice-card {
           min-height: 178px;
         }
@@ -739,7 +845,8 @@ export default async function VolunteerOnboardingPage({
         .preference-text-large .dashboard-progress-note,
         .preference-text-large .onboarding-choice-description,
         .preference-text-large .onboarding-choice-section legend,
-        .preference-text-large .contact-choice-helper {
+        .preference-text-large .contact-preference-heading p,
+        .preference-text-large .contact-privacy-note {
           font-size: 1.04em;
         }
 
@@ -751,12 +858,14 @@ export default async function VolunteerOnboardingPage({
 
         .preference-theme-calm_green .dashboard-welcome-card,
         .preference-theme-calm_green .dashboard-progress-card,
-        .preference-theme-calm_green .onboarding-choice-card {
+        .preference-theme-calm_green .onboarding-choice-card,
+        .preference-theme-calm_green .contact-preference-panel {
           border-color: rgba(83, 111, 99, 0.2);
         }
 
         .preference-theme-calm_green .dashboard-progress-icon,
-        .preference-theme-calm_green .onboarding-choice-icon {
+        .preference-theme-calm_green .onboarding-choice-icon,
+        .preference-theme-calm_green .contact-preference-icon {
           background: rgba(226, 255, 239, 0.86);
         }
 
@@ -768,12 +877,14 @@ export default async function VolunteerOnboardingPage({
 
         .preference-theme-soft_blue .dashboard-welcome-card,
         .preference-theme-soft_blue .dashboard-progress-card,
-        .preference-theme-soft_blue .onboarding-choice-card {
+        .preference-theme-soft_blue .onboarding-choice-card,
+        .preference-theme-soft_blue .contact-preference-panel {
           border-color: rgba(74, 112, 160, 0.2);
         }
 
         .preference-theme-soft_blue .dashboard-progress-icon,
-        .preference-theme-soft_blue .onboarding-choice-icon {
+        .preference-theme-soft_blue .onboarding-choice-icon,
+        .preference-theme-soft_blue .contact-preference-icon {
           background: rgba(231, 244, 255, 0.92);
         }
 
@@ -785,12 +896,14 @@ export default async function VolunteerOnboardingPage({
 
         .preference-theme-warm_peach .dashboard-welcome-card,
         .preference-theme-warm_peach .dashboard-progress-card,
-        .preference-theme-warm_peach .onboarding-choice-card {
+        .preference-theme-warm_peach .onboarding-choice-card,
+        .preference-theme-warm_peach .contact-preference-panel {
           border-color: rgba(190, 118, 76, 0.2);
         }
 
         .preference-theme-warm_peach .dashboard-progress-icon,
-        .preference-theme-warm_peach .onboarding-choice-icon {
+        .preference-theme-warm_peach .onboarding-choice-icon,
+        .preference-theme-warm_peach .contact-preference-icon {
           background: rgba(255, 239, 226, 0.92);
         }
 
@@ -800,14 +913,17 @@ export default async function VolunteerOnboardingPage({
 
         .preference-theme-high_contrast .dashboard-welcome-card,
         .preference-theme-high_contrast .dashboard-progress-card,
-        .preference-theme-high_contrast .onboarding-choice-card {
+        .preference-theme-high_contrast .onboarding-choice-card,
+        .preference-theme-high_contrast .contact-preference-panel,
+        .preference-theme-high_contrast .contact-privacy-note {
           border: 2px solid #1f2937;
           background: rgba(255, 255, 255, 0.98);
         }
 
         .preference-theme-high_contrast .dashboard-title,
         .preference-theme-high_contrast .dashboard-progress-card h2,
-        .preference-theme-high_contrast .onboarding-choice-title {
+        .preference-theme-high_contrast .onboarding-choice-title,
+        .preference-theme-high_contrast .contact-preference-heading h2 {
           color: #111827;
         }
 
@@ -816,12 +932,14 @@ export default async function VolunteerOnboardingPage({
         .preference-theme-high_contrast .progress-meta,
         .preference-theme-high_contrast .onboarding-choice-section legend,
         .preference-theme-high_contrast .onboarding-choice-description,
-        .preference-theme-high_contrast .contact-choice-helper {
+        .preference-theme-high_contrast .contact-preference-heading p,
+        .preference-theme-high_contrast .contact-privacy-note {
           color: #1f2937;
         }
 
         .preference-theme-high_contrast .dashboard-progress-icon,
-        .preference-theme-high_contrast .onboarding-choice-icon {
+        .preference-theme-high_contrast .onboarding-choice-icon,
+        .preference-theme-high_contrast .contact-preference-icon {
           border: 2px solid #1f2937;
           background: #ffffff;
           color: #111827;
@@ -841,7 +959,9 @@ export default async function VolunteerOnboardingPage({
 
         .preference-theme-neon_arcade .dashboard-welcome-card,
         .preference-theme-neon_arcade .dashboard-progress-card,
-        .preference-theme-neon_arcade .onboarding-choice-card {
+        .preference-theme-neon_arcade .onboarding-choice-card,
+        .preference-theme-neon_arcade .contact-preference-panel,
+        .preference-theme-neon_arcade .contact-privacy-note {
           border-color: rgba(34, 211, 238, 0.42);
           background: rgba(15, 23, 42, 0.86);
           box-shadow:
@@ -853,7 +973,8 @@ export default async function VolunteerOnboardingPage({
         .preference-theme-neon_arcade .dashboard-progress-card h2,
         .preference-theme-neon_arcade .dashboard-progress-note strong,
         .preference-theme-neon_arcade .onboarding-choice-title,
-        .preference-theme-neon_arcade .progress-meta {
+        .preference-theme-neon_arcade .progress-meta,
+        .preference-theme-neon_arcade .contact-preference-heading h2 {
           color: #e0f2fe;
         }
 
@@ -862,12 +983,14 @@ export default async function VolunteerOnboardingPage({
         .preference-theme-neon_arcade .dashboard-progress-note,
         .preference-theme-neon_arcade .onboarding-choice-section legend,
         .preference-theme-neon_arcade .onboarding-choice-description,
-        .preference-theme-neon_arcade .contact-choice-helper {
+        .preference-theme-neon_arcade .contact-preference-heading p,
+        .preference-theme-neon_arcade .contact-privacy-note {
           color: #dbeafe;
         }
 
         .preference-theme-neon_arcade .dashboard-progress-icon,
-        .preference-theme-neon_arcade .onboarding-choice-icon {
+        .preference-theme-neon_arcade .onboarding-choice-icon,
+        .preference-theme-neon_arcade .contact-preference-icon {
           border: 1px solid rgba(34, 211, 238, 0.42);
           background: rgba(34, 211, 238, 0.12);
           color: #a7f3d0;
@@ -903,7 +1026,8 @@ export default async function VolunteerOnboardingPage({
         }
 
         @media (max-width: 1200px) {
-          .contact-choice-grid {
+          .contact-choice-grid,
+          .preference-view-simple .contact-choice-grid {
             grid-template-columns: repeat(2, minmax(0, 1fr));
           }
         }
@@ -911,10 +1035,6 @@ export default async function VolunteerOnboardingPage({
         @media (max-width: 1100px) {
           .preference-view-simple .onboarding-choice-grid {
             grid-template-columns: repeat(3, minmax(0, 1fr));
-          }
-
-          .preference-view-simple .contact-choice-grid {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
           }
         }
 
@@ -957,6 +1077,20 @@ export default async function VolunteerOnboardingPage({
           .onboarding-choice-card:has(input:checked)::after {
             top: 14px;
             right: 14px;
+          }
+
+          .contact-preference-panel {
+            padding: 18px;
+            border-radius: 26px;
+          }
+
+          .contact-preference-heading {
+            grid-template-columns: 1fr;
+          }
+
+          .contact-preference-icon {
+            width: 58px;
+            height: 58px;
           }
 
           .onboarding-actions {
