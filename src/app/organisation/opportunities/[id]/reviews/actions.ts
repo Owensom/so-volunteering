@@ -47,13 +47,21 @@ function normaliseReviewStatus(value: string) {
 }
 
 function normaliseInterestStatus(value: string) {
-  if (
-    value === "new" ||
-    value === "contacted" ||
-    value === "accepted" ||
-    value === "closed"
-  ) {
-    return value;
+  const status = value.trim().toLowerCase();
+
+  if (status === "new") return "new";
+  if (status === "contacted") return "contacted";
+  if (status === "accepted") return "accepted";
+  if (status === "closed") return "closed";
+
+  /*
+    Backwards compatibility for older UI labels/options.
+    The database constraint only allows:
+    new, contacted, accepted, closed.
+  */
+  if (status === "review" || status === "reviewed") return "contacted";
+  if (status === "pending" || status === "sent" || status === "interested") {
+    return "new";
   }
 
   return "new";
@@ -172,13 +180,17 @@ export async function updateOpportunityInterestStatus(formData: FormData) {
     .from("opportunity_interests")
     .update({
       status: nextStatus,
+      updated_at: new Date().toISOString(),
     })
     .eq("id", opportunityInterestId)
     .eq("opportunity_id", opportunityId)
     .eq("organisation_user_id", user.id);
 
   if (error) {
-    redirectWithError(opportunityId, error.message || "Could not update volunteer status.");
+    redirectWithError(
+      opportunityId,
+      error.message || "Could not update volunteer status.",
+    );
   }
 
   revalidatePath(`/organisation/opportunities/${opportunityId}/reviews`);
@@ -259,7 +271,10 @@ export async function saveVolunteerSkillReview(formData: FormData) {
   );
 
   if (error) {
-    redirectWithError(opportunityId, error.message || "Could not save the skills review.");
+    redirectWithError(
+      opportunityId,
+      error.message || "Could not save the skills review.",
+    );
   }
 
   revalidatePath(`/organisation/opportunities/${opportunityId}/reviews`);
