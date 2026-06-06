@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 type VoicePreference = "female" | "neutral" | "default";
 
@@ -27,7 +27,7 @@ const FEMALE_VOICE_HINTS = [
   "google uk english female",
   "microsoft hazel",
   "microsoft susan",
-  "microsoft zira"
+  "microsoft zira",
 ];
 
 const NEUTRAL_VOICE_HINTS = [
@@ -37,7 +37,7 @@ const NEUTRAL_VOICE_HINTS = [
   "great britain",
   "british",
   "google uk english",
-  "microsoft"
+  "microsoft",
 ];
 
 function normaliseVoiceText(value: string) {
@@ -45,13 +45,17 @@ function normaliseVoiceText(value: string) {
 }
 
 function isLikelyFemaleVoice(voice: SpeechSynthesisVoice) {
-  const voiceText = normaliseVoiceText(`${voice.name} ${voice.voiceURI} ${voice.lang}`);
+  const voiceText = normaliseVoiceText(
+    `${voice.name} ${voice.voiceURI} ${voice.lang}`,
+  );
 
   return FEMALE_VOICE_HINTS.some((hint) => voiceText.includes(hint));
 }
 
 function isLikelyNeutralEnglishVoice(voice: SpeechSynthesisVoice) {
-  const voiceText = normaliseVoiceText(`${voice.name} ${voice.voiceURI} ${voice.lang}`);
+  const voiceText = normaliseVoiceText(
+    `${voice.name} ${voice.voiceURI} ${voice.lang}`,
+  );
 
   return (
     voice.lang.toLowerCase().startsWith("en") ||
@@ -61,12 +65,12 @@ function isLikelyNeutralEnglishVoice(voice: SpeechSynthesisVoice) {
 
 function chooseVoice(
   voices: SpeechSynthesisVoice[],
-  preference: VoicePreference
+  preference: VoicePreference,
 ): SpeechSynthesisVoice | null {
   if (!voices.length) return null;
 
   const englishVoices = voices.filter((voice) =>
-    voice.lang.toLowerCase().startsWith("en")
+    voice.lang.toLowerCase().startsWith("en"),
   );
 
   const usableVoices = englishVoices.length ? englishVoices : voices;
@@ -99,23 +103,50 @@ function chooseVoice(
 function getStoredVoicePreference(): VoicePreference {
   if (typeof window === "undefined") return "female";
 
-  const stored = window.localStorage.getItem("so-volunteering-voice-preference");
+  try {
+    const stored = window.localStorage.getItem(
+      "so-volunteering-voice-preference",
+    );
 
-  if (stored === "female" || stored === "neutral" || stored === "default") {
-    return stored;
+    if (stored === "female" || stored === "neutral" || stored === "default") {
+      return stored;
+    }
+  } catch {
+    return "female";
   }
 
   return "female";
 }
 
+function saveStoredVoicePreference(nextPreference: VoicePreference) {
+  if (typeof window === "undefined") return;
+
+  try {
+    window.localStorage.setItem(
+      "so-volunteering-voice-preference",
+      nextPreference,
+    );
+  } catch {
+    // Local storage can be blocked in some browser/privacy modes.
+  }
+}
+
 function buildPageReadingText(text: string, label?: string) {
   const cleanText = text.trim();
 
+  if (!cleanText && !label) return "";
+
   if (label) {
-    return `${label}. ${cleanText}`;
+    return `${label}. ${cleanText}`.trim();
   }
 
   return cleanText;
+}
+
+function getVoiceSignature(voices: SpeechSynthesisVoice[]) {
+  return voices
+    .map((voice) => `${voice.name}|${voice.lang}|${voice.voiceURI}`)
+    .join("::");
 }
 
 export function InclusiveAudioButton({ text, label }: InclusiveSupportProps) {
@@ -123,6 +154,10 @@ export function InclusiveAudioButton({ text, label }: InclusiveSupportProps) {
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [voicePreference, setVoicePreference] =
     useState<VoicePreference>("female");
+
+  const mountedRef = useRef(false);
+  const voiceSignatureRef = useRef("");
+  const currentUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
   const selectedVoiceName = useMemo(() => {
     const selectedVoice = chooseVoice(voices, voicePreference);
@@ -139,54 +174,103 @@ export function InclusiveAudioButton({ text, label }: InclusiveSupportProps) {
   }, [voices, voicePreference]);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    mountedRef.current = true;
 
-    setVoicePreference(getStoredVoicePreference());
+    const storedPreference = getStoredVoicePreference();
+    setVoicePreference((currentPreference) =>
+      currentPreference === storedPreference ? currentPreference : storedPreference,
+    );
 
-    if (!("speechSynthesis" in window)) return;
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) {
+      return () => {
+        mountedRef.current = false;
+      };
+    }
+
+    const speechSynthesis = window.speechSynthesis;
 
     function updateVoices() {
-      setVoices(window.speechSynthesis.getVoices());
+      if (!mountedRef.current) return;
+
+      const nextVoices = speechSynthesis.getVoices();
+      const nextSignature = getVoiceSignature(nextVoices);
+
+      if (voiceSignatureRef.current === nextSignature) {
+        return;
+      }
+
+      voiceSignatureRef.current = nextSignature;
+      setVoices(nextVoices);
     }
 
     updateVoices();
 
-    window.speechSynthesis.addEventListener("voiceschanged", updateVoices);
+    if (typeof speechSynthesis.addEventListener === "function") {
+      speechSynthesis.addEventListener("voiceschanged", updateVoices);
+    } else {
+      speechSynthesis.onvoiceschanged = updateVoices;
+    }
 
     return () => {
-      window.speechSynthesis.cancel();
-      window.speechSynthesis.removeEventListener("voiceschanged", updateVoices);
+      mountedRef.current = false;
+
+      currentUtteranceRef.current = null;
+
+      try {
+        speechSynthesis.cancel();
+      } catch {
+        // Some browsers can throw if speech synthesis is not ready.
+      }
+
+      if (typeof speechSynthesis.removeEventListener === "function") {
+        speechSynthesis.removeEventListener("voiceschanged", updateVoices);
+      } else if (speechSynthesis.onvoiceschanged === updateVoices) {
+        speechSynthesis.onvoiceschanged = null;
+      }
     };
   }, []);
 
   function saveVoicePreference(nextPreference: VoicePreference) {
-    setVoicePreference(nextPreference);
+    setVoicePreference((currentPreference) =>
+      currentPreference === nextPreference ? currentPreference : nextPreference,
+    );
 
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem(
-        "so-volunteering-voice-preference",
-        nextPreference
-      );
-    }
+    saveStoredVoicePreference(nextPreference);
   }
 
   function stopReading() {
-    if (typeof window === "undefined" || !window.speechSynthesis) return;
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
 
-    window.speechSynthesis.cancel();
-    setIsSpeaking(false);
+    try {
+      window.speechSynthesis.cancel();
+    } catch {
+      // Ignore browser speech synthesis interruption errors.
+    }
+
+    currentUtteranceRef.current = null;
+
+    if (mountedRef.current) {
+      setIsSpeaking(false);
+    }
   }
 
   function speakText() {
-    if (typeof window === "undefined" || !window.speechSynthesis) return;
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
 
-    window.speechSynthesis.cancel();
+    const readingText = buildPageReadingText(text, label);
 
-    const utterance = new SpeechSynthesisUtterance(
-      buildPageReadingText(text, label)
-    );
+    if (!readingText) return;
 
+    try {
+      window.speechSynthesis.cancel();
+    } catch {
+      // Ignore browser speech synthesis interruption errors.
+    }
+
+    const utterance = new SpeechSynthesisUtterance(readingText);
     const selectedVoice = chooseVoice(voices, voicePreference);
+
+    currentUtteranceRef.current = utterance;
 
     if (selectedVoice) {
       utterance.voice = selectedVoice;
@@ -199,11 +283,43 @@ export function InclusiveAudioButton({ text, label }: InclusiveSupportProps) {
     utterance.pitch = voicePreference === "female" ? 1.04 : 1;
     utterance.volume = 1;
 
-    utterance.onstart = () => setIsSpeaking(true);
-    utterance.onend = () => setIsSpeaking(false);
-    utterance.onerror = () => setIsSpeaking(false);
+    utterance.onstart = () => {
+      if (!mountedRef.current || currentUtteranceRef.current !== utterance) {
+        return;
+      }
 
-    window.speechSynthesis.speak(utterance);
+      setIsSpeaking(true);
+    };
+
+    utterance.onend = () => {
+      if (!mountedRef.current || currentUtteranceRef.current !== utterance) {
+        return;
+      }
+
+      currentUtteranceRef.current = null;
+      setIsSpeaking(false);
+    };
+
+    utterance.onerror = () => {
+      if (!mountedRef.current || currentUtteranceRef.current !== utterance) {
+        return;
+      }
+
+      currentUtteranceRef.current = null;
+      setIsSpeaking(false);
+    };
+
+    setIsSpeaking(true);
+
+    try {
+      window.speechSynthesis.speak(utterance);
+    } catch {
+      currentUtteranceRef.current = null;
+
+      if (mountedRef.current) {
+        setIsSpeaking(false);
+      }
+    }
   }
 
   return (
@@ -213,7 +329,9 @@ export function InclusiveAudioButton({ text, label }: InclusiveSupportProps) {
           type="button"
           className="audio-help-button"
           onClick={isSpeaking ? stopReading : speakText}
-          aria-label={isSpeaking ? "Stop reading this page" : "Read this page aloud"}
+          aria-label={
+            isSpeaking ? "Stop reading this page" : "Read this page aloud"
+          }
         >
           {isSpeaking ? "⏹ Stop" : "🔊 Listen"}
         </button>
@@ -244,10 +362,10 @@ export function InclusiveAudioButton({ text, label }: InclusiveSupportProps) {
 
 export function IconLabel({
   icon,
-  children
+  children,
 }: {
   icon: string;
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   return (
     <span className="icon-label">
