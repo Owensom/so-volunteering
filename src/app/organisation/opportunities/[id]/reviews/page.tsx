@@ -2,7 +2,10 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { InclusiveAudioButton } from "@/components/InclusiveSupport";
-import { saveVolunteerSkillReview } from "./actions";
+import {
+  saveVolunteerSkillReview,
+  updateOpportunityInterestStatus,
+} from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -151,11 +154,53 @@ function normaliseUserType(value: string | null | undefined) {
     : "volunteer";
 }
 
-function formatInterestStatus(status: string) {
-  if (status === "accepted") return "Accepted";
-  if (status === "contacted") return "Contacted";
-  if (status === "closed") return "Closed";
+function normaliseInterestStatus(status: string | null | undefined) {
+  if (
+    status === "contacted" ||
+    status === "accepted" ||
+    status === "closed" ||
+    status === "new"
+  ) {
+    return status;
+  }
+
+  return "new";
+}
+
+function formatInterestStatus(status: string | null | undefined) {
+  const normalisedStatus = normaliseInterestStatus(status);
+
+  if (normalisedStatus === "accepted") return "Accepted";
+  if (normalisedStatus === "contacted") return "Contacted";
+  if (normalisedStatus === "closed") return "Closed";
   return "New interest";
+}
+
+function getInterestStatusClass(status: string | null | undefined) {
+  const normalisedStatus = normaliseInterestStatus(status);
+
+  if (normalisedStatus === "accepted") {
+    return "interest-status status-accepted";
+  }
+
+  if (normalisedStatus === "contacted") {
+    return "interest-status status-contacted";
+  }
+
+  if (normalisedStatus === "closed") {
+    return "interest-status status-closed";
+  }
+
+  return "interest-status status-new";
+}
+
+function getInterestStatusIcon(status: string | null | undefined) {
+  const normalisedStatus = normaliseInterestStatus(status);
+
+  if (normalisedStatus === "accepted") return "✅";
+  if (normalisedStatus === "contacted") return "💬";
+  if (normalisedStatus === "closed") return "🚫";
+  return "🌱";
 }
 
 function formatReviewStatus(status: string | null | undefined) {
@@ -214,6 +259,23 @@ function ReviewSkillGrid({ review }: { review: SkillReview | undefined }) {
         </label>
       ))}
     </div>
+  );
+}
+
+function CountCard({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: number;
+  tone: string;
+}) {
+  return (
+    <article className={`review-count-card ${tone}`}>
+      <span>{label}</span>
+      <strong>{value}</strong>
+    </article>
   );
 }
 
@@ -297,6 +359,22 @@ export default async function OpportunityReviewsPage({
     reviewRows.map((review) => [review.opportunity_interest_id, review]),
   );
 
+  const newInterestCount = interestRows.filter(
+    (interest) => normaliseInterestStatus(interest.status) === "new",
+  ).length;
+
+  const contactedCount = interestRows.filter(
+    (interest) => normaliseInterestStatus(interest.status) === "contacted",
+  ).length;
+
+  const acceptedCount = interestRows.filter(
+    (interest) => normaliseInterestStatus(interest.status) === "accepted",
+  ).length;
+
+  const closedCount = interestRows.filter(
+    (interest) => normaliseInterestStatus(interest.status) === "closed",
+  ).length;
+
   const sharedReviewCount = reviewRows.filter(
     (review) => review.status === "shared",
   ).length;
@@ -306,7 +384,7 @@ export default async function OpportunityReviewsPage({
   ).length;
 
   const listenText =
-    "This is the positive skills review page for this opportunity. It shows volunteers who registered interest. For each volunteer, tick the positive skills they showed, add an optional encouraging comment, choose whether the review is shared with the volunteer, and save. Shared reviews can become part of the volunteer pathway. Private organisation notes are only for the organisation.";
+    "This is the organiser volunteer management and positive skills review page for this opportunity. It shows volunteers who registered interest. You can update each volunteer status to new, contacted, accepted, or closed. Accepted means your organisation is ready to move forward with that volunteer. You can also tick positive skills, add an optional encouraging comment, choose whether the review is shared with the volunteer, and save. Shared reviews can become part of the volunteer pathway. Private organisation notes are only for the organisation.";
 
   return (
     <main className="dashboard-bg review-page">
@@ -361,17 +439,16 @@ export default async function OpportunityReviewsPage({
           aria-labelledby="reviews-title"
         >
           <div className="dashboard-welcome-copy">
-            <p className="dashboard-kicker">Positive pathway</p>
+            <p className="dashboard-kicker">Volunteer management</p>
 
             <h1 id="reviews-title" className="dashboard-title">
               <span aria-hidden="true">⭐</span>
-              <span>Skills reviews</span>
+              <span>Volunteers & reviews</span>
             </h1>
 
             <p className="dashboard-lead">
-              Review positive skills shown by volunteers for{" "}
-              <strong>{opportunity.title}</strong>. Keep feedback encouraging,
-              simple and practical.
+              Manage volunteers for <strong>{opportunity.title}</strong>, then
+              add positive skills evidence when they have helped.
             </p>
 
             <div className="dashboard-primary-actions review-hero-actions">
@@ -403,7 +480,7 @@ export default async function OpportunityReviewsPage({
                 🌱
               </span>
               <div>
-                <h2>Review summary</h2>
+                <h2>Volunteer summary</h2>
                 <p>
                   {interestRows.length} volunteer
                   {interestRows.length === 1 ? "" : "s"} registered interest.
@@ -412,12 +489,30 @@ export default async function OpportunityReviewsPage({
             </div>
 
             <p className="dashboard-progress-note">
+              Accepted: <strong>{acceptedCount}</strong>
+            </p>
+            <p className="dashboard-progress-note">
               Shared reviews: <strong>{sharedReviewCount}</strong>
             </p>
             <p className="dashboard-progress-note">
               Draft reviews: <strong>{draftReviewCount}</strong>
             </p>
           </aside>
+        </section>
+
+        <section className="review-count-grid" aria-label="Volunteer status counts">
+          <CountCard label="New" value={newInterestCount} tone="count-new" />
+          <CountCard
+            label="Contacted"
+            value={contactedCount}
+            tone="count-contacted"
+          />
+          <CountCard
+            label="Accepted"
+            value={acceptedCount}
+            tone="count-accepted"
+          />
+          <CountCard label="Closed" value={closedCount} tone="count-closed" />
         </section>
 
         {successMessage ? (
@@ -440,8 +535,8 @@ export default async function OpportunityReviewsPage({
                 <h2>No one has registered interest in this role yet</h2>
                 <p>
                   When a volunteer clicks “I’m interested”, they will appear
-                  here and you can add a positive skills review after they have
-                  helped.
+                  here and you can manage their status or add a positive skills
+                  review after they have helped.
                 </p>
               </div>
             </article>
@@ -465,7 +560,7 @@ export default async function OpportunityReviewsPage({
                           ? "✅"
                           : hasSavedSkill
                             ? "📝"
-                            : "🌱"}
+                            : getInterestStatusIcon(interest.status)}
                       </span>
 
                       <div>
@@ -486,10 +581,56 @@ export default async function OpportunityReviewsPage({
                       </div>
                     </div>
 
-                    <span className={getReviewStatusClass(review?.status)}>
-                      {review ? formatReviewStatus(review.status) : "No review"}
-                    </span>
+                    <div className="review-status-stack">
+                      <span className={getInterestStatusClass(interest.status)}>
+                        {formatInterestStatus(interest.status)}
+                      </span>
+                      <span className={getReviewStatusClass(review?.status)}>
+                        {review ? formatReviewStatus(review.status) : "No review"}
+                      </span>
+                    </div>
                   </div>
+
+                  <form
+                    action={updateOpportunityInterestStatus}
+                    className="interest-status-form"
+                  >
+                    <input
+                      type="hidden"
+                      name="opportunity_id"
+                      value={opportunity.id}
+                    />
+                    <input
+                      type="hidden"
+                      name="opportunity_interest_id"
+                      value={interest.id}
+                    />
+
+                    <label className="field-label">
+                      <span className="field-label-row">
+                        <span className="field-label-icon" aria-hidden="true">
+                          🧭
+                        </span>
+                        <span>Volunteer status</span>
+                      </span>
+                      <select
+                        name="interest_status"
+                        defaultValue={normaliseInterestStatus(interest.status)}
+                      >
+                        <option value="new">New interest</option>
+                        <option value="contacted">Contacted</option>
+                        <option value="accepted">Accepted / move forward</option>
+                        <option value="closed">Closed / not progressing</option>
+                      </select>
+                    </label>
+
+                    <button type="submit" className="secondary-button">
+                      <span className="button-balanced-inner">
+                        <span aria-hidden="true">✅</span>
+                        <span>Update volunteer status</span>
+                      </span>
+                    </button>
+                  </form>
 
                   <div className="review-volunteer-meta">
                     <p>
@@ -613,6 +754,52 @@ export default async function OpportunityReviewsPage({
           gap: 12px;
         }
 
+        .review-count-grid {
+          display: grid;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 12px;
+        }
+
+        .review-count-card {
+          display: grid;
+          gap: 8px;
+          min-height: 112px;
+          padding: 18px;
+          border: 1px solid rgba(143, 178, 158, 0.22);
+          border-radius: 24px;
+          background: rgba(255, 255, 255, 0.84);
+          box-shadow: 0 14px 38px rgba(33, 56, 48, 0.07);
+        }
+
+        .review-count-card span {
+          color: #60706a;
+          font-weight: 900;
+        }
+
+        .review-count-card strong {
+          color: #315f48;
+          font-size: 2rem;
+          line-height: 1;
+        }
+
+        .count-new {
+          border-color: rgba(108, 92, 160, 0.16);
+        }
+
+        .count-contacted {
+          border-color: rgba(74, 112, 160, 0.2);
+        }
+
+        .count-accepted {
+          border-color: rgba(83, 111, 99, 0.24);
+          background: rgba(244, 255, 249, 0.92);
+        }
+
+        .count-closed {
+          border-color: rgba(100, 100, 110, 0.16);
+          background: rgba(248, 248, 252, 0.86);
+        }
+
         .review-list {
           display: grid;
           gap: 18px;
@@ -653,7 +840,15 @@ export default async function OpportunityReviewsPage({
           overflow-wrap: anywhere;
         }
 
-        .review-status {
+        .review-status-stack {
+          display: flex;
+          flex-wrap: wrap;
+          justify-content: flex-end;
+          gap: 8px;
+        }
+
+        .review-status,
+        .interest-status {
           display: inline-flex;
           min-height: 34px;
           align-items: center;
@@ -664,6 +859,30 @@ export default async function OpportunityReviewsPage({
           font-weight: 950;
           line-height: 1.1;
           white-space: nowrap;
+        }
+
+        .status-new {
+          border: 1px solid rgba(108, 92, 160, 0.18);
+          background: rgba(248, 245, 255, 0.96);
+          color: #6c5ca0;
+        }
+
+        .status-contacted {
+          border: 1px solid rgba(74, 112, 160, 0.22);
+          background: rgba(243, 249, 255, 0.96);
+          color: #4a70a0;
+        }
+
+        .status-accepted {
+          border: 1px solid rgba(83, 111, 99, 0.24);
+          background: rgba(244, 255, 249, 0.96);
+          color: #536f63;
+        }
+
+        .status-closed {
+          border: 1px solid rgba(100, 100, 110, 0.18);
+          background: rgba(248, 248, 252, 0.96);
+          color: #5d6677;
         }
 
         .status-shared {
@@ -682,6 +901,22 @@ export default async function OpportunityReviewsPage({
           border: 1px solid rgba(100, 100, 110, 0.18);
           background: rgba(248, 248, 252, 0.96);
           color: #5d6677;
+        }
+
+        .interest-status-form {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) auto;
+          gap: 12px;
+          align-items: end;
+          padding: 14px;
+          border: 1px solid rgba(108, 92, 160, 0.12);
+          border-radius: 20px;
+          background: rgba(255, 255, 255, 0.66);
+        }
+
+        .interest-status-form .secondary-button {
+          min-height: 48px;
+          white-space: nowrap;
         }
 
         .review-volunteer-meta {
@@ -803,6 +1038,20 @@ export default async function OpportunityReviewsPage({
           width: fit-content;
         }
 
+        @media (max-width: 960px) {
+          .review-count-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+
+          .interest-status-form {
+            grid-template-columns: 1fr;
+          }
+
+          .interest-status-form .secondary-button {
+            width: 100%;
+          }
+        }
+
         @media (max-width: 760px) {
           .review-topbar {
             gap: 14px;
@@ -846,12 +1095,31 @@ export default async function OpportunityReviewsPage({
             display: grid;
           }
 
+          .review-status-stack {
+            justify-content: flex-start;
+          }
+
           .review-volunteer-meta,
           .review-skill-grid {
             grid-template-columns: 1fr;
           }
 
           .review-form .primary-button {
+            width: 100%;
+          }
+        }
+
+        @media (max-width: 560px) {
+          .review-count-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .review-count-card {
+            min-height: 92px;
+          }
+
+          .review-status,
+          .interest-status {
             width: 100%;
           }
         }
