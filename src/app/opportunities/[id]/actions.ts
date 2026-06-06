@@ -41,6 +41,7 @@ function normaliseUserType(value: string | null | undefined) {
 function normalisePreferredContactMethod(value: string | null | undefined) {
   if (value === "phone") return "phone";
   if (value === "sms") return "sms";
+  if (value === "not_sure") return "not_sure";
   return "email";
 }
 
@@ -66,7 +67,7 @@ function fallbackNameFromEmail(email: string | null | undefined) {
 function getVolunteerDisplayName({
   profile,
   metadataName,
-  email
+  email,
 }: {
   profile: Profile | null;
   metadataName: unknown;
@@ -89,7 +90,7 @@ async function requireVolunteerUser() {
   const supabase = await createClient();
 
   const {
-    data: { user }
+    data: { user },
   } = await supabase.auth.getUser();
 
   if (!user) {
@@ -147,15 +148,15 @@ export async function expressInterest(formData: FormData) {
   if (existingInterest) {
     redirect(
       `/opportunities/${opportunity.id}?message=${encodeURIComponent(
-        "You have already expressed interest in this role."
-      )}`
+        "You have already expressed interest in this role.",
+      )}`,
     );
   }
 
   const { data: volunteerProfile } = await supabase
     .from("volunteer_profiles")
     .select(
-      "city,goals,interests,skills,support_needs,share_accessibility_needs,preferred_contact_method,phone_number"
+      "city,goals,interests,skills,support_needs,share_accessibility_needs,preferred_contact_method,phone_number",
     )
     .eq("user_id", user.id)
     .maybeSingle<VolunteerProfile>();
@@ -164,13 +165,13 @@ export async function expressInterest(formData: FormData) {
     volunteerProfile?.share_accessibility_needs === true;
 
   const preferredContactMethod = normalisePreferredContactMethod(
-    volunteerProfile?.preferred_contact_method
+    volunteerProfile?.preferred_contact_method,
   );
 
   const volunteerName = getVolunteerDisplayName({
     profile,
     metadataName: user.user_metadata?.full_name,
-    email: user.email
+    email: user.email,
   });
 
   const volunteerPhone =
@@ -196,21 +197,21 @@ export async function expressInterest(formData: FormData) {
     volunteer_phone: volunteerPhone,
     message: message || null,
     status: "new",
-    updated_at: new Date().toISOString()
+    updated_at: new Date().toISOString(),
   });
 
   if (error) {
     redirect(
       `/opportunities/${opportunity.id}?error=${encodeURIComponent(
-        error.message
-      )}`
+        error.message,
+      )}`,
     );
   }
 
   redirect(
     `/opportunities/${opportunity.id}?message=${encodeURIComponent(
-      "Interest sent. The organisation can now see that you are interested."
-    )}`
+      "Interest sent. The organisation can now see that you are interested.",
+    )}`,
   );
 }
 
@@ -245,14 +246,14 @@ export async function removeInterestFromOpportunity(formData: FormData) {
   if (error) {
     redirect(
       `/opportunities/${opportunityId}?error=${encodeURIComponent(
-        error.message
-      )}`
+        error.message,
+      )}`,
     );
   }
 
   redirect(
     `/opportunities/${opportunityId}?message=${encodeURIComponent(
-      "Interest removed. The organisation will no longer see this interest."
-    )}`
+      "Interest removed. The organisation will no longer see this interest.",
+    )}`,
   );
 }
