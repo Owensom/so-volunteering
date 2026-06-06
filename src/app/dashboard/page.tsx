@@ -75,6 +75,23 @@ function normaliseListenMode(value: string | null | undefined) {
   return value === "context" ? "context" : "always";
 }
 
+function normaliseInterestStatus(status: string | null | undefined) {
+  if (
+    status === "new" ||
+    status === "contacted" ||
+    status === "accepted" ||
+    status === "closed"
+  ) {
+    return status;
+  }
+
+  if (status === "review" || status === "reviewed") {
+    return "contacted";
+  }
+
+  return "new";
+}
+
 function hasArrayValue(value: string[] | null | undefined) {
   return Array.isArray(value) && value.length > 0;
 }
@@ -190,10 +207,10 @@ function getVolunteerProgress(volunteerProfile: VolunteerProfile | null) {
     totalSteps,
     percentage: 100,
     nextStepHref: "/opportunities",
-    nextStepLabel: "Find opportunities",
+    nextStepLabel: "Best roles for me",
     nextStepIcon: "🔎",
     nextStepText:
-      "Your pathway profile is ready. You can now browse published opportunities.",
+      "Your pathway profile is ready. You can now browse your best-matching published opportunities.",
   };
 }
 
@@ -274,9 +291,25 @@ export default async function DashboardPage() {
     .eq("volunteer_user_id", user.id);
 
   const interestRows = (interests as InterestSummary[] | null) ?? [];
-  const activeInterestCount = interestRows.filter(
-    (interest) => interest.status !== "closed",
+
+  const newInterestCount = interestRows.filter(
+    (interest) => normaliseInterestStatus(interest.status) === "new",
   ).length;
+
+  const contactedInterestCount = interestRows.filter(
+    (interest) => normaliseInterestStatus(interest.status) === "contacted",
+  ).length;
+
+  const acceptedInterestCount = interestRows.filter(
+    (interest) => normaliseInterestStatus(interest.status) === "accepted",
+  ).length;
+
+  const closedInterestCount = interestRows.filter(
+    (interest) => normaliseInterestStatus(interest.status) === "closed",
+  ).length;
+
+  const activeInterestCount =
+    newInterestCount + contactedInterestCount + acceptedInterestCount;
 
   const viewMode = normaliseViewMode(preferences?.view_mode);
   const colourTheme = normaliseColourTheme(preferences?.colour_theme);
@@ -297,8 +330,8 @@ export default async function DashboardPage() {
   const detailedView = viewMode === "detailed";
 
   const listenText = simpleView
-    ? "You are on your SO Volunteering dashboard. This is your home page. First, check your progress. Then use the main button to continue. You can open your Positive Pathway CV, find roles, check your saved roles, view your profile, change your app settings, or get help using the app."
-    : "You are on your SO Volunteering dashboard. This is your home base. First, check the Profile progress card on the right to see how many setup steps are complete. Use the main button near the top to continue your next step, or to find opportunities if your setup is complete. Open Positive Pathway CV shows your strengths-based volunteering CV. Use the Roles I am interested in button to track roles where you clicked I’m interested. The cards below give quick links. View my profile opens your saved details. See my pathway shows all setup steps and positive reviews. Wellbeing and support lets you review what helps you feel comfortable. Find opportunities opens published volunteering roles. Roles I am interested in shows roles you have saved and their current status. Personalise my app lets you choose view mode, colour theme, text size, avatar and Listen preference. Help using the app is for getting help if you are stuck, something is not working, or you want to report a problem with SO Volunteering.";
+    ? "You are on your SO Volunteering dashboard. This is your home page. First, check your progress. Then use the main button to continue. You can open your Positive Pathway CV, find your best roles, check your saved roles, view your profile, change your app settings, or get help using the app."
+    : "You are on your SO Volunteering dashboard. This is your home base. First, check the Profile progress card on the right to see how many setup steps are complete. Use the main button near the top to continue your next step, or to open Best roles for me if your setup is complete. Open Positive Pathway CV shows your strengths-based volunteering CV. Use the Roles I am interested in button to track roles where you clicked I’m interested. The cards below give quick links. Best roles for me opens published volunteering roles sorted by match. View my profile opens your saved details. See my pathway shows all setup steps and positive reviews. Wellbeing and support lets you review what helps you feel comfortable. Roles I am interested in shows roles you have saved and their current status. Personalise my app lets you choose view mode, colour theme, text size, avatar and Listen preference. Help using the app is for getting help if you are stuck, something is not working, or you want to report a problem with SO Volunteering.";
 
   const shellClassName = [
     "dashboard-bg",
@@ -364,7 +397,7 @@ export default async function DashboardPage() {
             <p className="dashboard-lead">
               {simpleView
                 ? "Choose what you want to do next."
-                : "Your volunteering journey is ready. Use this dashboard to continue your pathway, open your Positive Pathway CV, view your profile and browse opportunities."}
+                : "Your volunteering journey is ready. Use this dashboard to continue your pathway, open your Positive Pathway CV, track your interests and browse your best-matching opportunities."}
             </p>
 
             <div className="dashboard-primary-actions">
@@ -437,9 +470,20 @@ export default async function DashboardPage() {
             </div>
 
             <p className="dashboard-progress-note">{progress.nextStepText}</p>
-            <p className="dashboard-progress-note">
-              Active interested roles: <strong>{activeInterestCount}</strong>
-            </p>
+
+            <div className="dashboard-interest-status-mini">
+              <p className="dashboard-progress-note">
+                Active interests: <strong>{activeInterestCount}</strong>
+              </p>
+              <p className="dashboard-progress-note">
+                New: <strong>{newInterestCount}</strong> · Contacted:{" "}
+                <strong>{contactedInterestCount}</strong>
+              </p>
+              <p className="dashboard-progress-note">
+                Accepted: <strong>{acceptedInterestCount}</strong> · Closed:{" "}
+                <strong>{closedInterestCount}</strong>
+              </p>
+            </div>
 
             {detailedView ? (
               <p className="dashboard-progress-note">
@@ -451,6 +495,27 @@ export default async function DashboardPage() {
         </section>
 
         <section className="dashboard-grid" aria-label="Dashboard actions">
+          <Link
+            href="/opportunities"
+            className="info-card dashboard-pathway-card best-roles-card"
+          >
+            <div className="dashboard-card-icon" aria-hidden="true">
+              🔎
+            </div>
+            <div className="dashboard-card-copy">
+              <div className="dashboard-card-main">
+                <p className="dashboard-card-label">Matched roles</p>
+                <h2>Best roles for me</h2>
+                <p>
+                  {simpleView
+                    ? "Find volunteering roles."
+                    : "Browse published volunteering roles sorted by the strongest links to your profile, interests, skills and preferences."}
+                </p>
+              </div>
+              <span className="dashboard-card-action-pill">Open best roles</span>
+            </div>
+          </Link>
+
           <Link
             href="/pathway/cv"
             className="info-card dashboard-pathway-card positive-cv-card"
@@ -469,6 +534,26 @@ export default async function DashboardPage() {
                 </p>
               </div>
               <span className="dashboard-card-action-pill">Open CV</span>
+            </div>
+          </Link>
+
+          <Link href="/my-interests" className="info-card dashboard-pathway-card">
+            <div className="dashboard-card-icon" aria-hidden="true">
+              📬
+            </div>
+            <div className="dashboard-card-copy">
+              <div className="dashboard-card-main">
+                <p className="dashboard-card-label">Track roles</p>
+                <h2>Roles I am interested in</h2>
+                <p>
+                  {simpleView
+                    ? "Track roles you saved."
+                    : "See roles where you clicked “I’m interested” and track whether they are new, contacted, accepted or closed."}
+                </p>
+              </div>
+              <span className="dashboard-card-action-pill">
+                Open interested roles
+              </span>
             </div>
           </Link>
 
@@ -529,44 +614,6 @@ export default async function DashboardPage() {
             </div>
           </Link>
 
-          <Link href="/opportunities" className="info-card dashboard-pathway-card">
-            <div className="dashboard-card-icon" aria-hidden="true">
-              🔎
-            </div>
-            <div className="dashboard-card-copy">
-              <div className="dashboard-card-main">
-                <p className="dashboard-card-label">Browse roles</p>
-                <h2>Find opportunities</h2>
-                <p>
-                  {simpleView
-                    ? "Find volunteering roles."
-                    : "Browse published volunteering roles and read what support is available."}
-                </p>
-              </div>
-              <span className="dashboard-card-action-pill">Open opportunities</span>
-            </div>
-          </Link>
-
-          <Link href="/my-interests" className="info-card dashboard-pathway-card">
-            <div className="dashboard-card-icon" aria-hidden="true">
-              📬
-            </div>
-            <div className="dashboard-card-copy">
-              <div className="dashboard-card-main">
-                <p className="dashboard-card-label">Track roles</p>
-                <h2>Roles I am interested in</h2>
-                <p>
-                  {simpleView
-                    ? "Track roles you saved."
-                    : "See roles where you clicked “I’m interested” and track their current status."}
-                </p>
-              </div>
-              <span className="dashboard-card-action-pill">
-                Open interested roles
-              </span>
-            </div>
-          </Link>
-
           <Link
             href="/settings/personalise"
             className="info-card dashboard-pathway-card"
@@ -618,10 +665,23 @@ export default async function DashboardPage() {
           align-items: stretch;
         }
 
+        .best-roles-card,
         .positive-cv-card {
           border-color: rgba(143, 178, 158, 0.3);
           background:
             linear-gradient(135deg, rgba(244, 255, 249, 0.82), rgba(255, 255, 255, 0.94));
+        }
+
+        .dashboard-interest-status-mini {
+          display: grid;
+          gap: 6px;
+          margin-top: 4px;
+          padding-top: 10px;
+          border-top: 1px solid rgba(83, 111, 99, 0.12);
+        }
+
+        .dashboard-interest-status-mini .dashboard-progress-note {
+          margin: 0;
         }
 
         .dashboard-card-copy {
@@ -803,11 +863,16 @@ export default async function DashboardPage() {
             0 0 0 1px rgba(217, 70, 239, 0.12);
         }
 
+        .preference-theme-neon_arcade .best-roles-card,
         .preference-theme-neon_arcade .positive-cv-card {
           border-color: rgba(167, 243, 208, 0.5);
           background:
             radial-gradient(circle at top left, rgba(34, 211, 238, 0.18), transparent 55%),
             linear-gradient(135deg, rgba(15, 23, 42, 0.92), rgba(49, 46, 129, 0.88));
+        }
+
+        .preference-theme-neon_arcade .dashboard-interest-status-mini {
+          border-top-color: rgba(34, 211, 238, 0.28);
         }
 
         .preference-theme-neon_arcade .dashboard-title,
