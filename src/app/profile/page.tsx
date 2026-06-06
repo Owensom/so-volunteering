@@ -33,6 +33,20 @@ type VolunteerPreferences = {
   listen_mode: string | null;
 };
 
+type EducationEntry = {
+  id: string;
+  entry_type: string;
+  institution_name: string | null;
+  qualification_name: string;
+  qualification_level: string | null;
+  subject_or_area: string | null;
+  year_started: string | null;
+  year_completed: string | null;
+  is_current: boolean;
+  notes: string | null;
+  display_order: number;
+};
+
 function normaliseUserType(value: string | null | undefined) {
   return value?.trim().toLowerCase() === "organisation"
     ? "organisation"
@@ -99,7 +113,7 @@ function getThemeLabel(colourTheme: string) {
 
 function SummaryList({
   values,
-  emptyText
+  emptyText,
 }: {
   values: string[] | null;
   emptyText: string;
@@ -121,7 +135,7 @@ function SummaryList({
 
 function TextSummary({
   value,
-  emptyText
+  emptyText,
 }: {
   value: string | null;
   emptyText: string;
@@ -138,12 +152,14 @@ function ProfileSection({
   label,
   title,
   href,
-  children
+  actionLabel = "Edit this section",
+  children,
 }: {
   icon: string;
   label: string;
   title: string;
   href: string;
+  actionLabel?: string;
   children: React.ReactNode;
 }) {
   return (
@@ -161,7 +177,7 @@ function ProfileSection({
         </div>
 
         <Link href={href} className="dashboard-card-action-pill">
-          Edit this section
+          {actionLabel}
         </Link>
       </div>
     </article>
@@ -178,11 +194,90 @@ function formatContactMethod(value: string | null) {
   return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
+function formatEntryType(value: string) {
+  if (value === "school") return "School";
+  if (value === "college") return "College";
+  if (value === "university") return "University";
+  if (value === "training_course") return "Training course";
+  if (value === "online_course") return "Online course";
+  if (value === "certificate") return "Certificate";
+  if (value === "work_related_training") return "Work-related training";
+  return "Other";
+}
+
+function formatStudyDates(entry: EducationEntry) {
+  if (entry.is_current && entry.year_started) {
+    return `${entry.year_started} – Present`;
+  }
+
+  if (entry.is_current) {
+    return "Currently studying";
+  }
+
+  if (entry.year_started && entry.year_completed) {
+    return `${entry.year_started} – ${entry.year_completed}`;
+  }
+
+  if (entry.year_completed) {
+    return entry.year_completed;
+  }
+
+  if (entry.year_started) {
+    return `Started ${entry.year_started}`;
+  }
+
+  return "";
+}
+
+function EducationSummary({
+  entries,
+  simpleView,
+}: {
+  entries: EducationEntry[];
+  simpleView: boolean;
+}) {
+  if (entries.length === 0) {
+    return (
+      <p className="dashboard-muted-action">
+        No education, training or qualifications added yet.
+      </p>
+    );
+  }
+
+  const visibleEntries = simpleView ? entries.slice(0, 2) : entries.slice(0, 3);
+  const remainingCount = entries.length - visibleEntries.length;
+
+  return (
+    <div className="education-summary-list">
+      {visibleEntries.map((entry) => {
+        const dateText = formatStudyDates(entry);
+
+        return (
+          <div key={entry.id} className="education-summary-entry">
+            <strong>{entry.qualification_name}</strong>
+            <span>
+              {formatEntryType(entry.entry_type)}
+              {entry.institution_name ? ` · ${entry.institution_name}` : ""}
+              {dateText ? ` · ${dateText}` : ""}
+            </span>
+          </div>
+        );
+      })}
+
+      {remainingCount > 0 ? (
+        <p className="dashboard-muted-action">
+          + {remainingCount} more entr{remainingCount === 1 ? "y" : "ies"}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
 export default async function ProfilePage() {
   const supabase = await createClient();
 
   const {
-    data: { user }
+    data: { user },
   } = await supabase.auth.getUser();
 
   if (!user) {
@@ -209,7 +304,7 @@ export default async function ProfilePage() {
   const { data: volunteerProfile } = await supabase
     .from("volunteer_profiles")
     .select(
-      "city,goals,interests,skills,bio,support_needs,share_accessibility_needs,wants_wellbeing_support,availability_notes,preferred_contact_method,onboarding_completed"
+      "city,goals,interests,skills,bio,support_needs,share_accessibility_needs,wants_wellbeing_support,availability_notes,preferred_contact_method,onboarding_completed",
     )
     .eq("user_id", user.id)
     .maybeSingle<VolunteerProfile>();
@@ -219,6 +314,17 @@ export default async function ProfilePage() {
     .select("view_mode,colour_theme,text_size,avatar_icon,listen_mode")
     .eq("user_id", user.id)
     .maybeSingle<VolunteerPreferences>();
+
+  const { data: educationEntries } = await supabase
+    .from("volunteer_education_entries")
+    .select(
+      "id,entry_type,institution_name,qualification_name,qualification_level,subject_or_area,year_started,year_completed,is_current,notes,display_order",
+    )
+    .eq("volunteer_user_id", user.id)
+    .order("display_order", { ascending: true })
+    .order("created_at", { ascending: false });
+
+  const educationRows = (educationEntries as EducationEntry[] | null) ?? [];
 
   const viewMode = normaliseViewMode(preferences?.view_mode);
   const colourTheme = normaliseColourTheme(preferences?.colour_theme);
@@ -233,14 +339,14 @@ export default async function ProfilePage() {
   const emailAddress = profile?.email?.trim() || user.email || "";
 
   const listenText = simpleView
-    ? "You are on your profile summary page. This page shows your saved details. Use Edit this section to change a part of your profile. Use Dashboard to go back."
-    : "You are on your SO Volunteering profile summary. It shows the information you have added during setup. First, check your account card on the right. The cards below show your goals, interests, skills, support preferences and availability. Each card has an Edit this section button. Use that button if you want to change your answers. Use Back to dashboard when you are finished.";
+    ? "You are on your profile summary page. This page shows your saved details. It now includes Education and Qualifications if you want to add them. Use Edit this section to change a part of your profile. Use Dashboard to go back."
+    : "You are on your SO Volunteering profile summary. It shows the information you have added during setup. First, check your account card on the right. The cards below show your goals, interests, skills, education and qualifications, support preferences and availability. Each card has an Edit this section button. Use that button if you want to change your answers. Use Back to dashboard when you are finished.";
 
   const shellClassName = [
     "dashboard-bg",
     getThemeClass(colourTheme),
     getTextClass(textSize),
-    getViewClass(viewMode)
+    getViewClass(viewMode),
   ].join(" ");
 
   return (
@@ -313,6 +419,16 @@ export default async function ProfilePage() {
               </Link>
 
               <Link
+                href="/profile/education"
+                className="secondary-button dashboard-main-action"
+              >
+                <span className="dashboard-button-inner">
+                  <span aria-hidden="true">📚</span>
+                  <span>Education & qualifications</span>
+                </span>
+              </Link>
+
+              <Link
                 href="/dashboard"
                 className="secondary-button dashboard-main-action"
               >
@@ -350,6 +466,10 @@ export default async function ProfilePage() {
                   ? "Complete"
                   : "In progress"}
               </strong>
+            </p>
+
+            <p className="dashboard-progress-note">
+              Education entries: <strong>{educationRows.length}</strong>
             </p>
 
             {detailedView ? (
@@ -422,6 +542,16 @@ export default async function ProfilePage() {
           </ProfileSection>
 
           <ProfileSection
+            icon="📚"
+            label="CV section"
+            title="Education & qualifications"
+            href="/profile/education"
+            actionLabel={educationRows.length > 0 ? "Edit education" : "Add education"}
+          >
+            <EducationSummary entries={educationRows} simpleView={simpleView} />
+          </ProfileSection>
+
+          <ProfileSection
             icon="💛"
             label="Support"
             title={simpleView ? "What helps you" : "What helps you feel comfortable"}
@@ -464,7 +594,7 @@ export default async function ProfilePage() {
               Preferred contact:{" "}
               <strong>
                 {formatContactMethod(
-                  volunteerProfile?.preferred_contact_method ?? null
+                  volunteerProfile?.preferred_contact_method ?? null,
                 )}
               </strong>
             </p>
@@ -627,6 +757,33 @@ export default async function ProfilePage() {
           white-space: normal;
         }
 
+        .education-summary-list {
+          display: grid;
+          gap: 9px;
+        }
+
+        .education-summary-entry {
+          display: grid;
+          gap: 3px;
+          padding: 10px 12px;
+          border: 1px solid rgba(143, 178, 158, 0.18);
+          border-radius: 16px;
+          background: rgba(255, 255, 255, 0.74);
+        }
+
+        .education-summary-entry strong {
+          color: #315f48;
+          overflow-wrap: anywhere;
+        }
+
+        .education-summary-entry span {
+          color: #60706a;
+          font-size: 0.9rem;
+          font-weight: 750;
+          line-height: 1.35;
+          overflow-wrap: anywhere;
+        }
+
         .preference-text-large {
           font-size: 1.06rem;
         }
@@ -721,13 +878,15 @@ export default async function ProfilePage() {
 
         .preference-theme-high_contrast .dashboard-title,
         .preference-theme-high_contrast .dashboard-card-copy h2,
-        .preference-theme-high_contrast .dashboard-progress-card h2 {
+        .preference-theme-high_contrast .dashboard-progress-card h2,
+        .preference-theme-high_contrast .education-summary-entry strong {
           color: #111827;
         }
 
         .preference-theme-high_contrast .dashboard-lead,
         .preference-theme-high_contrast .profile-section-body,
-        .preference-theme-high_contrast .dashboard-progress-note {
+        .preference-theme-high_contrast .dashboard-progress-note,
+        .preference-theme-high_contrast .education-summary-entry span {
           color: #1f2937;
         }
 
@@ -738,7 +897,8 @@ export default async function ProfilePage() {
           color: #111827;
         }
 
-        .preference-theme-high_contrast .dashboard-card-action-pill {
+        .preference-theme-high_contrast .dashboard-card-action-pill,
+        .preference-theme-high_contrast .education-summary-entry {
           border: 2px solid #1f2937;
           background: #ffffff;
           color: #111827;
