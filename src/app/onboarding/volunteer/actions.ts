@@ -3,6 +3,22 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
+function normalisePreferredContactMethod(value: string | null | undefined) {
+  if (value === "email" || value === "phone" || value === "sms" || value === "not_sure") {
+    return value;
+  }
+
+  return "email";
+}
+
+function normaliseVolunteeringPreference(value: string | null | undefined) {
+  if (value === "in_person" || value === "remote" || value === "both") {
+    return value;
+  }
+
+  return "both";
+}
+
 export async function saveVolunteerOnboarding(formData: FormData) {
   const supabase = await createClient();
 
@@ -16,8 +32,11 @@ export async function saveVolunteerOnboarding(formData: FormData) {
 
   const goals = formData.getAll("goals").map(String);
   const city = String(formData.get("city") || "").trim();
-  const volunteeringPreference = String(
-    formData.get("volunteering_preference") || "both"
+  const volunteeringPreference = normaliseVolunteeringPreference(
+    String(formData.get("volunteering_preference") || "both")
+  );
+  const preferredContactMethod = normalisePreferredContactMethod(
+    String(formData.get("preferred_contact_method") || "email")
   );
 
   if (!city) {
@@ -42,7 +61,7 @@ export async function saveVolunteerOnboarding(formData: FormData) {
       city,
       goals,
       volunteering_preference: volunteeringPreference,
-      preferred_contact_method: "email",
+      preferred_contact_method: preferredContactMethod,
       onboarding_completed: false,
       updated_at: new Date().toISOString()
     },
