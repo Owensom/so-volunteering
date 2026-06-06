@@ -244,7 +244,7 @@ export default async function OrganisationDashboardPage() {
   const totalInterestCount = interestRows.length;
 
   const listenText =
-    "You are on the organisation dashboard. This is your workspace for creating volunteering roles, reviewing volunteer interest, accepting or contacting volunteers, and adding positive skills evidence. First, check the compact Workspace status card. Below that, the summary cards show role, interest and skills review counts. Use Create role to make a new inclusive volunteering role. Use Interest inbox to review volunteers who clicked I’m interested. Use Opportunity list to edit roles and open volunteers and reviews for each role. Help using the app is for getting support if you are stuck, something is not working, or you want to report a problem with SO Volunteering.";
+    "You are on the organisation dashboard. This is your workspace for creating volunteering roles, reviewing volunteer interest, accepting or contacting volunteers, and adding positive skills evidence. First, check the compact Workspace status card. Below that, the summary cards show role, interest and skills review counts. Use Create role to make a new inclusive volunteering role. Use Interest inbox to review volunteers who clicked I’m interested. Use Roles and reviews to edit roles and open volunteers and reviews for each role. Help using the app is for getting support if you are stuck, something is not working, or you want to report a problem with SO Volunteering.";
 
   return (
     <main className="dashboard-bg organisation-dashboard-page">
@@ -569,6 +569,25 @@ export default async function OrganisationDashboardPage() {
           display: none;
         }
 
+        .organisation-hero-actions {
+          display: grid !important;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 12px;
+          width: min(100%, 560px);
+          align-items: stretch;
+        }
+
+        .organisation-hero-actions .dashboard-main-action {
+          width: 100%;
+          min-height: 54px;
+          justify-content: center;
+          text-align: center;
+        }
+
+        .organisation-hero-actions .dashboard-button-inner {
+          justify-content: center;
+        }
+
         .organisation-card-grid {
           align-items: stretch;
         }
@@ -865,6 +884,7 @@ export default async function OrganisationDashboardPage() {
 
           .organisation-hero-actions {
             width: 100%;
+            grid-template-columns: 1fr;
             gap: 12px;
           }
 
