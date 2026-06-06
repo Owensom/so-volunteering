@@ -2,6 +2,11 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { InclusiveAudioButton } from "@/components/InclusiveSupport";
+import {
+  getOpportunityMatch,
+  getOpportunityMatchCardIcon,
+  getOpportunityMatchToneClass,
+} from "@/lib/opportunity-matching";
 
 export const dynamic = "force-dynamic";
 
@@ -10,10 +15,12 @@ type Profile = {
 };
 
 type VolunteerProfile = {
+  goals: string[] | null;
   interests: string[] | null;
   skills: string[] | null;
   support_needs: string | null;
   availability_notes: string | null;
+  volunteering_preference: string | null;
 };
 
 type VolunteerPreferences = {
@@ -111,24 +118,7 @@ function formatLocationType(value: string | null | undefined) {
   return "In-person";
 }
 
-function countMatches(
-  volunteerValues: string[] | null | undefined,
-  opportunityValues: string[] | null | undefined,
-) {
-  if (!Array.isArray(volunteerValues) || !Array.isArray(opportunityValues)) {
-    return 0;
-  }
-
-  const volunteerSet = new Set(
-    volunteerValues.map((value) => value.trim().toLowerCase()),
-  );
-
-  return opportunityValues.filter((value) =>
-    volunteerSet.has(value.trim().toLowerCase()),
-  ).length;
-}
-
-function OpportunityMatchBadges({
+function OpportunityMatchPanel({
   volunteerProfile,
   opportunity,
   simpleView,
@@ -137,60 +127,32 @@ function OpportunityMatchBadges({
   opportunity: Opportunity;
   simpleView: boolean;
 }) {
-  const interestMatches = countMatches(
-    volunteerProfile?.interests,
-    opportunity.interests,
-  );
-
-  const skillMatches = countMatches(volunteerProfile?.skills, opportunity.skills);
-
-  const hasSupportInfo =
-    Array.isArray(opportunity.support_offered) &&
-    opportunity.support_offered.length > 0;
-
-  if (simpleView) {
-    if (interestMatches > 0 || skillMatches > 0) {
-      return (
-        <div className="profile-chip-list" aria-label="Opportunity match details">
-          <span className="profile-chip">✨ May suit you</span>
-        </div>
-      );
-    }
-
-    if (hasSupportInfo) {
-      return (
-        <div className="profile-chip-list" aria-label="Opportunity match details">
-          <span className="profile-chip">💛 Support listed</span>
-        </div>
-      );
-    }
-
-    return (
-      <div className="profile-chip-list" aria-label="Opportunity match details">
-        <span className="profile-chip">🌈 Explore this role</span>
-      </div>
-    );
-  }
+  const match = getOpportunityMatch(volunteerProfile, opportunity);
+  const toneClass = getOpportunityMatchToneClass(match.tone);
+  const icon = getOpportunityMatchCardIcon(match.tone);
+  const visibleReasons = simpleView ? match.reasons.slice(0, 1) : match.reasons;
 
   return (
-    <div className="profile-chip-list" aria-label="Opportunity match details">
-      {interestMatches > 0 ? (
-        <span className="profile-chip">
-          💚 {interestMatches} interest match
-          {interestMatches === 1 ? "" : "es"}
+    <div className={`opportunity-match-panel ${toneClass}`}>
+      <div className="opportunity-match-header">
+        <span className="opportunity-match-icon" aria-hidden="true">
+          {icon}
         </span>
-      ) : null}
 
-      {skillMatches > 0 ? (
-        <span className="profile-chip">
-          ⭐ {skillMatches} skill match{skillMatches === 1 ? "" : "es"}
-        </span>
-      ) : null}
+        <div>
+          <p className="opportunity-match-label">
+            {simpleView ? match.shortLabel : match.label}
+          </p>
+          {!simpleView ? <p>{match.summary}</p> : null}
+        </div>
+      </div>
 
-      {hasSupportInfo ? <span className="profile-chip">💛 Support listed</span> : null}
-
-      {interestMatches === 0 && skillMatches === 0 && !hasSupportInfo ? (
-        <span className="profile-chip">🌈 Explore this role</span>
+      {visibleReasons.length > 0 ? (
+        <div className="opportunity-match-reasons">
+          {visibleReasons.map((reason) => (
+            <span key={reason}>{reason}</span>
+          ))}
+        </div>
       ) : null}
     </div>
   );
@@ -226,7 +188,9 @@ export default async function OpportunitiesPage() {
 
   const { data: volunteerProfile } = await supabase
     .from("volunteer_profiles")
-    .select("interests,skills,support_needs,availability_notes")
+    .select(
+      "goals,interests,skills,support_needs,availability_notes,volunteering_preference",
+    )
     .eq("user_id", user.id)
     .maybeSingle<VolunteerProfile>();
 
@@ -256,8 +220,8 @@ export default async function OpportunitiesPage() {
   const detailedView = viewMode === "detailed";
 
   const listenText = simpleView
-    ? "You are on the Find opportunities page. This page shows volunteering roles. Read each card. Choose Read more when a role sounds right. Use Dashboard to go back."
-    : "You are on the Find opportunities page. This page shows published volunteering roles. First, look at the Available now card on the right to see how many roles are open. Then move through the role cards below. Each card shows the role title, short description, location type, time commitment and support labels. If a role sounds right, select the card or the Read more link to open the full opportunity details page. Use the View my profile button to check your saved interests and skills. Use the See my pathway button to go back to your setup progress.";
+    ? "You are on the Find opportunities page. This page shows volunteering roles. Read each card. The match label helps you see if a role may suit you. Choose Read more when a role sounds right. Use Dashboard to go back."
+    : "You are on the Find opportunities page. This page shows published volunteering roles. Each card now includes a gentle match summary based on your interests, skills, volunteering preference and support information. The match is only a guide. You can still explore any role that feels right. Select Read more to open the full opportunity details page. Use View my profile to check your saved interests and skills. Use See my pathway to go back to your setup progress.";
 
   const shellClassName = [
     "dashboard-bg",
@@ -322,7 +286,7 @@ export default async function OpportunitiesPage() {
             <p className="dashboard-lead">
               {simpleView
                 ? "Look through available roles and open any that feel right."
-                : "Browse published opportunities from organisations. Start by reading what the role involves, what support is available, and whether it feels right for you."}
+                : "Browse published opportunities from organisations. Match labels are only a guide — you can explore any role that interests you."}
             </p>
 
             <div className="dashboard-primary-actions">
@@ -364,7 +328,7 @@ export default async function OpportunitiesPage() {
             <p className="dashboard-progress-note">
               {simpleView
                 ? "Open a role to read more."
-                : "Open a role card to read the full details and decide if it feels right."}
+                : "Match labels use your profile details to explain why a role may suit you."}
             </p>
 
             {detailedView ? (
@@ -421,7 +385,7 @@ export default async function OpportunitiesPage() {
 
                     <p>{opportunity.summary}</p>
 
-                    <OpportunityMatchBadges
+                    <OpportunityMatchPanel
                       volunteerProfile={volunteerProfile}
                       opportunity={opportunity}
                       simpleView={simpleView}
@@ -467,7 +431,7 @@ export default async function OpportunitiesPage() {
 
         .opportunities-page .dashboard-card-main {
           display: grid;
-          gap: 8px;
+          gap: 10px;
         }
 
         .opportunities-page .dashboard-card-main h2 {
@@ -478,6 +442,82 @@ export default async function OpportunitiesPage() {
         .opportunities-page .dashboard-card-main p {
           margin: 0;
           overflow-wrap: anywhere;
+        }
+
+        .opportunity-match-panel {
+          display: grid;
+          gap: 10px;
+          padding: 12px;
+          border: 1px solid rgba(108, 92, 160, 0.14);
+          border-radius: 18px;
+          background: rgba(255, 255, 255, 0.76);
+        }
+
+        .opportunity-match-header {
+          display: grid;
+          grid-template-columns: auto 1fr;
+          gap: 10px;
+          align-items: start;
+        }
+
+        .opportunity-match-icon {
+          display: inline-flex;
+          width: 40px;
+          height: 40px;
+          align-items: center;
+          justify-content: center;
+          border-radius: 14px;
+          background: rgba(143, 178, 158, 0.14);
+          font-size: 1.28rem;
+        }
+
+        .opportunity-match-label {
+          margin: 0 0 3px !important;
+          color: #315f48;
+          font-weight: 950;
+        }
+
+        .opportunity-match-header p:not(.opportunity-match-label) {
+          color: #60706a;
+          font-size: 0.92rem;
+          font-weight: 750;
+          line-height: 1.35;
+        }
+
+        .opportunity-match-reasons {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 7px;
+        }
+
+        .opportunity-match-reasons span {
+          display: inline-flex;
+          min-height: 30px;
+          align-items: center;
+          justify-content: center;
+          padding: 6px 9px;
+          border: 1px solid rgba(83, 111, 99, 0.16);
+          border-radius: 999px;
+          background: rgba(244, 255, 249, 0.86);
+          color: #536f63;
+          font-size: 0.78rem;
+          font-weight: 900;
+          line-height: 1.15;
+        }
+
+        .match-tone-strong {
+          border-color: rgba(83, 111, 99, 0.28);
+          background: rgba(244, 255, 249, 0.96);
+        }
+
+        .match-tone-good {
+          border-color: rgba(74, 112, 160, 0.22);
+          background: rgba(243, 249, 255, 0.9);
+        }
+
+        .match-tone-explore {
+          border-color: rgba(108, 92, 160, 0.16);
+          background: rgba(248, 245, 255, 0.82);
         }
 
         .opportunities-page .dashboard-card-action-pill {
@@ -505,24 +545,14 @@ export default async function OpportunitiesPage() {
           background: rgba(244, 255, 249, 0.96);
         }
 
-        .opportunities-page .profile-chip-list {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 8px;
-        }
-
-        .opportunities-page .profile-chip {
-          max-width: 100%;
-          overflow-wrap: anywhere;
-        }
-
         .preference-text-large {
           font-size: 1.06rem;
         }
 
         .preference-text-large .dashboard-lead,
         .preference-text-large .dashboard-card-copy p,
-        .preference-text-large .dashboard-progress-note {
+        .preference-text-large .dashboard-progress-note,
+        .preference-text-large .opportunity-match-header p {
           font-size: 1.04em;
         }
 
@@ -542,8 +572,12 @@ export default async function OpportunitiesPage() {
           font-size: 2rem;
         }
 
-        .preference-view-simple .profile-chip-list .profile-chip:not(:first-child) {
-          display: none;
+        .preference-view-simple .opportunity-match-panel {
+          gap: 8px;
+        }
+
+        .preference-view-simple .opportunity-match-header {
+          align-items: center;
         }
 
         .preference-view-detailed .dashboard-pathway-card {
@@ -558,12 +592,14 @@ export default async function OpportunitiesPage() {
 
         .preference-theme-calm_green .dashboard-welcome-card,
         .preference-theme-calm_green .info-card,
-        .preference-theme-calm_green .dashboard-progress-card {
+        .preference-theme-calm_green .dashboard-progress-card,
+        .preference-theme-calm_green .opportunity-match-panel {
           border-color: rgba(83, 111, 99, 0.2);
         }
 
         .preference-theme-calm_green .dashboard-card-icon,
-        .preference-theme-calm_green .dashboard-progress-icon {
+        .preference-theme-calm_green .dashboard-progress-icon,
+        .preference-theme-calm_green .opportunity-match-icon {
           background: rgba(226, 255, 239, 0.86);
         }
 
@@ -575,12 +611,14 @@ export default async function OpportunitiesPage() {
 
         .preference-theme-soft_blue .dashboard-welcome-card,
         .preference-theme-soft_blue .info-card,
-        .preference-theme-soft_blue .dashboard-progress-card {
+        .preference-theme-soft_blue .dashboard-progress-card,
+        .preference-theme-soft_blue .opportunity-match-panel {
           border-color: rgba(74, 112, 160, 0.2);
         }
 
         .preference-theme-soft_blue .dashboard-card-icon,
-        .preference-theme-soft_blue .dashboard-progress-icon {
+        .preference-theme-soft_blue .dashboard-progress-icon,
+        .preference-theme-soft_blue .opportunity-match-icon {
           background: rgba(231, 244, 255, 0.92);
         }
 
@@ -592,12 +630,14 @@ export default async function OpportunitiesPage() {
 
         .preference-theme-warm_peach .dashboard-welcome-card,
         .preference-theme-warm_peach .info-card,
-        .preference-theme-warm_peach .dashboard-progress-card {
+        .preference-theme-warm_peach .dashboard-progress-card,
+        .preference-theme-warm_peach .opportunity-match-panel {
           border-color: rgba(190, 118, 76, 0.2);
         }
 
         .preference-theme-warm_peach .dashboard-card-icon,
-        .preference-theme-warm_peach .dashboard-progress-icon {
+        .preference-theme-warm_peach .dashboard-progress-icon,
+        .preference-theme-warm_peach .opportunity-match-icon {
           background: rgba(255, 239, 226, 0.92);
         }
 
@@ -608,14 +648,16 @@ export default async function OpportunitiesPage() {
         .preference-theme-high_contrast .dashboard-welcome-card,
         .preference-theme-high_contrast .info-card,
         .preference-theme-high_contrast .dashboard-progress-card,
-        .preference-theme-high_contrast .profile-chip {
+        .preference-theme-high_contrast .opportunity-match-panel,
+        .preference-theme-high_contrast .opportunity-match-reasons span {
           border: 2px solid #1f2937;
           background: rgba(255, 255, 255, 0.98);
         }
 
         .preference-theme-high_contrast .dashboard-title,
         .preference-theme-high_contrast .dashboard-card-copy h2,
-        .preference-theme-high_contrast .dashboard-progress-card h2 {
+        .preference-theme-high_contrast .dashboard-progress-card h2,
+        .preference-theme-high_contrast .opportunity-match-label {
           color: #111827;
         }
 
@@ -623,12 +665,14 @@ export default async function OpportunitiesPage() {
         .preference-theme-high_contrast .dashboard-card-copy p,
         .preference-theme-high_contrast .dashboard-progress-note,
         .preference-theme-high_contrast .dashboard-muted-action,
-        .preference-theme-high_contrast .profile-chip {
+        .preference-theme-high_contrast .opportunity-match-header p,
+        .preference-theme-high_contrast .opportunity-match-reasons span {
           color: #1f2937;
         }
 
         .preference-theme-high_contrast .dashboard-card-icon,
-        .preference-theme-high_contrast .dashboard-progress-icon {
+        .preference-theme-high_contrast .dashboard-progress-icon,
+        .preference-theme-high_contrast .opportunity-match-icon {
           border: 2px solid #1f2937;
           background: #ffffff;
           color: #111827;
@@ -649,7 +693,8 @@ export default async function OpportunitiesPage() {
 
         .preference-theme-neon_arcade .dashboard-welcome-card,
         .preference-theme-neon_arcade .dashboard-progress-card,
-        .preference-theme-neon_arcade .info-card {
+        .preference-theme-neon_arcade .info-card,
+        .preference-theme-neon_arcade .opportunity-match-panel {
           border-color: rgba(34, 211, 238, 0.42);
           background: rgba(15, 23, 42, 0.86);
           box-shadow:
@@ -660,7 +705,8 @@ export default async function OpportunitiesPage() {
         .preference-theme-neon_arcade .dashboard-title,
         .preference-theme-neon_arcade .dashboard-card-copy h2,
         .preference-theme-neon_arcade .dashboard-progress-card h2,
-        .preference-theme-neon_arcade .dashboard-progress-note strong {
+        .preference-theme-neon_arcade .dashboard-progress-note strong,
+        .preference-theme-neon_arcade .opportunity-match-label {
           color: #e0f2fe;
         }
 
@@ -669,19 +715,21 @@ export default async function OpportunitiesPage() {
         .preference-theme-neon_arcade .dashboard-card-label,
         .preference-theme-neon_arcade .dashboard-card-copy p,
         .preference-theme-neon_arcade .dashboard-progress-note,
-        .preference-theme-neon_arcade .dashboard-muted-action {
+        .preference-theme-neon_arcade .dashboard-muted-action,
+        .preference-theme-neon_arcade .opportunity-match-header p {
           color: #dbeafe;
         }
 
         .preference-theme-neon_arcade .dashboard-card-icon,
-        .preference-theme-neon_arcade .dashboard-progress-icon {
+        .preference-theme-neon_arcade .dashboard-progress-icon,
+        .preference-theme-neon_arcade .opportunity-match-icon {
           border: 1px solid rgba(34, 211, 238, 0.42);
           background: rgba(34, 211, 238, 0.12);
           color: #a7f3d0;
           box-shadow: inset 0 0 0 1px rgba(217, 70, 239, 0.14);
         }
 
-        .preference-theme-neon_arcade .profile-chip,
+        .preference-theme-neon_arcade .opportunity-match-reasons span,
         .preference-theme-neon_arcade .dashboard-card-action-pill {
           border-color: rgba(34, 211, 238, 0.42);
           background: rgba(34, 211, 238, 0.12);
@@ -714,11 +762,11 @@ export default async function OpportunitiesPage() {
             width: 100%;
           }
 
-          .opportunities-page .profile-chip-list {
-            width: 100%;
+          .opportunity-match-panel {
+            border-radius: 16px;
           }
 
-          .opportunities-page .profile-chip {
+          .opportunity-match-reasons span {
             width: 100%;
             justify-content: center;
             text-align: center;
