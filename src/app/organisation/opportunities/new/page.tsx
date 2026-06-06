@@ -37,62 +37,62 @@ const interestOptions: ChoiceOption[] = [
     value: "Helping people",
     label: "Helping people",
     icon: "🤝",
-    helpText: "Welcoming, supporting or helping community members."
+    helpText: "Welcoming, supporting or helping community members.",
   },
   {
     value: "Animals and nature",
     label: "Animals and nature",
     icon: "🌿",
-    helpText: "Gardens, green spaces, animals or outdoor roles."
+    helpText: "Gardens, green spaces, animals or outdoor roles.",
   },
   {
     value: "Events and activities",
     label: "Events and activities",
     icon: "🎪",
-    helpText: "Events, groups, clubs, fundraisers or activities."
+    helpText: "Events, groups, clubs, fundraisers or activities.",
   },
   {
     value: "Creative tasks",
     label: "Creative tasks",
     icon: "🎨",
-    helpText: "Music, art, design, photography, writing or making."
+    helpText: "Music, art, design, photography, writing or making.",
   },
   {
     value: "Practical tasks",
     label: "Practical tasks",
     icon: "🧰",
-    helpText: "Set up, sort items, pack things or hands-on help."
+    helpText: "Set up, sort items, pack things or hands-on help.",
   },
   {
     value: "Digital or admin",
     label: "Digital or admin",
     icon: "💻",
-    helpText: "Simple forms, emails, organising or computer tasks."
+    helpText: "Simple forms, emails, organising or computer tasks.",
   },
   {
     value: "Food and hospitality",
     label: "Food and hospitality",
     icon: "☕",
-    helpText: "Refreshments, café support, kitchen help or hosting."
+    helpText: "Refreshments, café support, kitchen help or hosting.",
   },
   {
     value: "Sport and wellbeing",
     label: "Sport and wellbeing",
     icon: "⚽",
-    helpText: "Active roles, walking groups or wellbeing activities."
+    helpText: "Active roles, walking groups or wellbeing activities.",
   },
   {
     value: "Shops and donations",
     label: "Shops and donations",
     icon: "🛍️",
-    helpText: "Shop support, stock sorting, donations or customers."
+    helpText: "Shop support, stock sorting, donations or customers.",
   },
   {
     value: "Open to ideas",
     label: "Open to ideas",
     icon: "🌈",
-    helpText: "Good for volunteers exploring what suits them."
-  }
+    helpText: "Good for volunteers exploring what suits them.",
+  },
 ];
 
 const skillOptions: ChoiceOption[] = [
@@ -100,62 +100,62 @@ const skillOptions: ChoiceOption[] = [
     value: "Being friendly and welcoming",
     label: "Friendly and welcoming",
     icon: "😊",
-    helpText: "Helping people feel comfortable and included."
+    helpText: "Helping people feel comfortable and included.",
   },
   {
     value: "Listening to people",
     label: "Listening",
     icon: "👂",
-    helpText: "Giving people time, patience and attention."
+    helpText: "Giving people time, patience and attention.",
   },
   {
     value: "Following instructions",
     label: "Following instructions",
     icon: "✅",
-    helpText: "Working through clear steps safely and carefully."
+    helpText: "Working through clear steps safely and carefully.",
   },
   {
     value: "Teamwork",
     label: "Teamwork",
     icon: "👥",
-    helpText: "Working with others towards a shared goal."
+    helpText: "Working with others towards a shared goal.",
   },
   {
     value: "Organising things",
     label: "Organising things",
     icon: "🗂️",
-    helpText: "Sorting, planning, arranging or keeping tasks on track."
+    helpText: "Sorting, planning, arranging or keeping tasks on track.",
   },
   {
     value: "Using a phone or computer",
     label: "Phone or computer",
     icon: "📱",
-    helpText: "Using messages, forms or simple digital tools."
+    helpText: "Using messages, forms or simple digital tools.",
   },
   {
     value: "Practical hands-on help",
     label: "Hands-on help",
     icon: "🛠️",
-    helpText: "Moving, carrying, preparing, tidying or setting up."
+    helpText: "Moving, carrying, preparing, tidying or setting up.",
   },
   {
     value: "Problem solving",
     label: "Problem solving",
     icon: "🧩",
-    helpText: "Finding practical ways to help when things change."
+    helpText: "Finding practical ways to help when things change.",
   },
   {
     value: "Staying calm",
     label: "Staying calm",
     icon: "🌤️",
-    helpText: "Taking things one step at a time."
+    helpText: "Taking things one step at a time.",
   },
   {
     value: "No experience needed",
     label: "No experience needed",
     icon: "🌱",
-    helpText: "A gentle role where people can learn as they go."
-  }
+    helpText: "A gentle role where people can learn as they go.",
+  },
 ];
 
 const supportOptions: ChoiceOption[] = [
@@ -163,44 +163,44 @@ const supportOptions: ChoiceOption[] = [
     value: "Clear written instructions",
     label: "Clear instructions",
     icon: "📝",
-    helpText: "Volunteers know what to expect before starting."
+    helpText: "Volunteers know what to expect before starting.",
   },
   {
     value: "Named contact person",
     label: "Named contact",
     icon: "👋",
-    helpText: "A clear person volunteers can ask for help."
+    helpText: "A clear person volunteers can ask for help.",
   },
   {
     value: "Shorter starter shifts",
     label: "Shorter shifts",
     icon: "🌱",
-    helpText: "People can start gently and build confidence."
+    helpText: "People can start gently and build confidence.",
   },
   {
     value: "Flexible timings where possible",
     label: "Flexible timings",
     icon: "🕒",
-    helpText: "Times can be adjusted where the role allows."
+    helpText: "Times can be adjusted where the role allows.",
   },
   {
     value: "Quiet space or calmer option",
     label: "Quiet option",
     icon: "🌙",
-    helpText: "A quieter space or lower-pressure task where possible."
+    helpText: "A quieter space or lower-pressure task where possible.",
   },
   {
     value: "Check-ins and encouragement",
     label: "Check-ins",
     icon: "💛",
-    helpText: "Regular supportive check-ins from the organisation."
-  }
+    helpText: "Regular supportive check-ins from the organisation.",
+  },
 ];
 
 function ChoiceGrid({
   name,
   options,
-  defaultValues = []
+  defaultValues = [],
 }: {
   name: string;
   options: ChoiceOption[];
@@ -232,7 +232,7 @@ function ChoiceGrid({
 }
 
 export default async function NewOpportunityPage({
-  searchParams
+  searchParams,
 }: {
   searchParams: Promise<{ error?: string }>;
 }) {
@@ -242,7 +242,7 @@ export default async function NewOpportunityPage({
   const supabase = await createClient();
 
   const {
-    data: { user }
+    data: { user },
   } = await supabase.auth.getUser();
 
   if (!user) {
@@ -275,7 +275,7 @@ export default async function NewOpportunityPage({
   const profileCompleted = organisationProfile?.profile_completed === true;
 
   const listenText =
-    "This is the create opportunity page. Add a clear title, plain language description, location type, time commitment, interests, skills, support available, contact details, safety notes and status. You can save as draft or publish if your organisation profile is complete.";
+    "This is the create opportunity page. Add a clear title, plain language description, location type, detailed location information, time commitment, interests, skills, support available, contact details, safety notes and status. For safety, you can choose to hide the exact venue or postcode until a volunteer has been contacted or accepted. You can save as draft or publish if your organisation profile is complete.";
 
   return (
     <main className="onboarding-shell">
@@ -311,8 +311,8 @@ export default async function NewOpportunityPage({
                 <h1 className="onboarding-title">Create a volunteering role</h1>
                 <p className="onboarding-lead">
                   Keep the role clear, supportive and realistic. Volunteers
-                  should understand what they will do, when it happens, and what
-                  help is available before they apply.
+                  should understand what they will do, where it happens, when it
+                  happens, and what help is available before they apply.
                 </p>
               </div>
             </div>
@@ -370,52 +370,165 @@ export default async function NewOpportunityPage({
             />
           </label>
 
-          <div className="dashboard-grid">
-            <label className="field-label">
-              <span className="field-label-row">
-                <span className="field-label-icon" aria-hidden="true">
-                  📍
-                </span>
-                <span>Location type</span>
+          <section className="location-details-panel" aria-labelledby="location-details-title">
+            <div className="location-details-heading">
+              <span className="location-details-icon" aria-hidden="true">
+                📍
               </span>
-              <select name="location_type" defaultValue="in_person">
-                <option value="in_person">In-person</option>
-                <option value="remote">Remote / online</option>
-                <option value="hybrid">Hybrid</option>
-              </select>
+              <div>
+                <p className="brand-eyebrow">Location details</p>
+                <h2 id="location-details-title">Help volunteers decide if the role is realistic</h2>
+                <p>
+                  Add enough location information to help people plan safely. You
+                  can hide the exact venue or postcode from the public page until
+                  you have contacted or accepted a volunteer.
+                </p>
+              </div>
+            </div>
+
+            <div className="dashboard-grid">
+              <label className="field-label">
+                <span className="field-label-row">
+                  <span className="field-label-icon" aria-hidden="true">
+                    📍
+                  </span>
+                  <span>Location type</span>
+                </span>
+                <select name="location_type" defaultValue="in_person">
+                  <option value="in_person">In-person</option>
+                  <option value="remote">Remote / online</option>
+                  <option value="hybrid">Hybrid</option>
+                </select>
+              </label>
+
+              <label className="field-label">
+                <span className="field-label-row">
+                  <span className="field-label-icon" aria-hidden="true">
+                    🏙️
+                  </span>
+                  <span>Town or city</span>
+                </span>
+                <input
+                  name="location_town_city"
+                  type="text"
+                  placeholder="Example: Aberdeen"
+                />
+              </label>
+
+              <label className="field-label">
+                <span className="field-label-row">
+                  <span className="field-label-icon" aria-hidden="true">
+                    🗺️
+                  </span>
+                  <span>Area or neighbourhood optional</span>
+                </span>
+                <input
+                  name="location_area"
+                  type="text"
+                  placeholder="Example: City centre, Torry, Rosemount"
+                />
+              </label>
+            </div>
+
+            <div className="dashboard-grid">
+              <label className="field-label">
+                <span className="field-label-row">
+                  <span className="field-label-icon" aria-hidden="true">
+                    🏢
+                  </span>
+                  <span>Venue or meeting place optional</span>
+                </span>
+                <input
+                  name="location_venue"
+                  type="text"
+                  placeholder="Example: Community hub reception"
+                />
+              </label>
+
+              <label className="field-label">
+                <span className="field-label-row">
+                  <span className="field-label-icon" aria-hidden="true">
+                    📮
+                  </span>
+                  <span>Postcode optional</span>
+                </span>
+                <input
+                  name="location_postcode"
+                  type="text"
+                  placeholder="Example: AB10"
+                />
+              </label>
+
+              <label className="field-label legacy-location-field">
+                <span className="field-label-row">
+                  <span className="field-label-icon" aria-hidden="true">
+                    🗺️
+                  </span>
+                  <span>Public location summary fallback</span>
+                </span>
+                <input
+                  name="location"
+                  type="text"
+                  placeholder="Example: Aberdeen city centre"
+                />
+              </label>
+            </div>
+
+            <label className="field-label privacy-check-row">
+              <input name="hide_exact_location" type="checkbox" />
+              <span>
+                Hide exact venue and postcode from the public page until the
+                volunteer has been contacted or accepted.
+              </span>
             </label>
 
-            <label className="field-label">
-              <span className="field-label-row">
-                <span className="field-label-icon" aria-hidden="true">
-                  🗺️
+            <div className="dashboard-grid">
+              <label className="field-label">
+                <span className="field-label-row">
+                  <span className="field-label-icon" aria-hidden="true">
+                    🚌
+                  </span>
+                  <span>Travel notes optional</span>
                 </span>
-                <span>Town, city or area</span>
-              </span>
-              <input
-                name="location"
-                type="text"
-                placeholder="Example: Aberdeen"
-              />
-            </label>
+                <textarea
+                  name="travel_notes"
+                  rows={4}
+                  placeholder="Example: Close to bus routes. Parking nearby. Volunteers can ask for help planning the first visit."
+                />
+              </label>
 
-            <label className="field-label">
-              <span className="field-label-row">
-                <span className="field-label-icon" aria-hidden="true">
-                  🕒
+              <label className="field-label">
+                <span className="field-label-row">
+                  <span className="field-label-icon" aria-hidden="true">
+                    ♿
+                  </span>
+                  <span>Accessibility or building notes optional</span>
                 </span>
-                <span>Time commitment</span>
+                <textarea
+                  name="accessibility_notes"
+                  rows={4}
+                  placeholder="Example: Step-free entrance, quiet waiting area, accessible toilet, lift access, or any barriers volunteers should know about."
+                />
+              </label>
+            </div>
+          </section>
+
+          <label className="field-label">
+            <span className="field-label-row">
+              <span className="field-label-icon" aria-hidden="true">
+                🕒
               </span>
-              <select name="time_commitment" defaultValue="">
-                <option value="">Choose one</option>
-                <option value="One-off">One-off</option>
-                <option value="Weekly">Weekly</option>
-                <option value="Monthly">Monthly</option>
-                <option value="Flexible">Flexible</option>
-                <option value="Short shifts to start">Short shifts to start</option>
-              </select>
-            </label>
-          </div>
+              <span>Time commitment</span>
+            </span>
+            <select name="time_commitment" defaultValue="">
+              <option value="">Choose one</option>
+              <option value="One-off">One-off</option>
+              <option value="Weekly">Weekly</option>
+              <option value="Monthly">Monthly</option>
+              <option value="Flexible">Flexible</option>
+              <option value="Short shifts to start">Short shifts to start</option>
+            </select>
+          </label>
 
           <fieldset className="choice-group">
             <legend>
@@ -533,6 +646,97 @@ export default async function NewOpportunityPage({
           </button>
         </form>
       </section>
+
+      <style>{`
+        .location-details-panel {
+          display: grid;
+          gap: 18px;
+          padding: clamp(18px, 4vw, 24px);
+          border: 1px solid rgba(143, 178, 158, 0.22);
+          border-radius: 28px;
+          background:
+            linear-gradient(135deg, rgba(244, 255, 249, 0.72), rgba(255, 255, 255, 0.86)),
+            rgba(255, 255, 255, 0.82);
+          box-shadow: 0 18px 48px rgba(33, 56, 48, 0.07);
+        }
+
+        .location-details-heading {
+          display: grid;
+          grid-template-columns: auto 1fr;
+          gap: 14px;
+          align-items: start;
+        }
+
+        .location-details-icon {
+          display: inline-flex;
+          width: 58px;
+          height: 58px;
+          align-items: center;
+          justify-content: center;
+          border-radius: 20px;
+          background: rgba(143, 178, 158, 0.14);
+          font-size: 1.8rem;
+        }
+
+        .location-details-heading h2 {
+          margin: 0 0 8px;
+          color: #315f48;
+          font-size: clamp(1.25rem, 3vw, 1.65rem);
+          letter-spacing: -0.035em;
+          line-height: 1.12;
+        }
+
+        .location-details-heading p {
+          margin: 0;
+          color: #60706a;
+          font-weight: 750;
+          line-height: 1.5;
+        }
+
+        .legacy-location-field {
+          border-style: dashed;
+        }
+
+        .privacy-check-row {
+          display: grid;
+          grid-template-columns: auto 1fr;
+          gap: 12px;
+          align-items: start;
+          padding: 14px 16px;
+          border: 1px solid rgba(108, 92, 160, 0.14);
+          border-radius: 20px;
+          background: rgba(255, 255, 255, 0.78);
+          color: #4d5566;
+          font-weight: 850;
+          line-height: 1.45;
+        }
+
+        .privacy-check-row input {
+          width: 22px;
+          height: 22px;
+          margin-top: 2px;
+          accent-color: #536f63;
+        }
+
+        @media (max-width: 640px) {
+          .location-details-heading {
+            grid-template-columns: 1fr;
+          }
+
+          .location-details-panel {
+            border-radius: 24px;
+          }
+
+          .location-details-icon {
+            width: 54px;
+            height: 54px;
+          }
+
+          .privacy-check-row {
+            grid-template-columns: 1fr;
+          }
+        }
+      `}</style>
     </main>
   );
 }
