@@ -54,9 +54,9 @@ export async function saveVolunteerContactOptions(formData: FormData) {
     String(formData.get("preferred_contact_method") || "email"),
   );
 
-  const phone = String(formData.get("phone") || "").trim();
+  const phoneNumber = String(formData.get("phone_number") || "").trim();
 
-  if (phone.length > 40) {
+  if (phoneNumber.length > 40) {
     redirect(
       `/profile/contact?error=${encodeURIComponent(
         "Please check the phone or text number. It looks too long.",
@@ -68,7 +68,7 @@ export async function saveVolunteerContactOptions(formData: FormData) {
     {
       user_id: user.id,
       preferred_contact_method: preferredContactMethod,
-      phone,
+      phone_number: phoneNumber,
       updated_at: new Date().toISOString(),
     },
     { onConflict: "user_id" },
