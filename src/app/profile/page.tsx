@@ -22,6 +22,7 @@ type VolunteerProfile = {
   wants_wellbeing_support: boolean | null;
   availability_notes: string | null;
   preferred_contact_method: string | null;
+  phone: string | null;
   onboarding_completed: boolean | null;
 };
 
@@ -306,7 +307,7 @@ export default async function ProfilePage() {
   const { data: volunteerProfile } = await supabase
     .from("volunteer_profiles")
     .select(
-      "city,goals,interests,skills,bio,support_needs,share_accessibility_needs,wants_wellbeing_support,availability_notes,preferred_contact_method,onboarding_completed",
+      "city,goals,interests,skills,bio,support_needs,share_accessibility_needs,wants_wellbeing_support,availability_notes,preferred_contact_method,phone,onboarding_completed",
     )
     .eq("user_id", user.id)
     .maybeSingle<VolunteerProfile>();
@@ -339,10 +340,14 @@ export default async function ProfilePage() {
 
   const displayName = profile?.full_name?.trim() || "there";
   const emailAddress = profile?.email?.trim() || user.email || "";
+  const preferredContactLabel = formatContactMethod(
+    volunteerProfile?.preferred_contact_method ?? null,
+  );
+  const hasPhoneNumber = Boolean(volunteerProfile?.phone?.trim());
 
   const listenText = simpleView
-    ? "You are on your profile summary page. This page shows your saved details. It now includes Education and Qualifications if you want to add them. Use Edit this section to change a part of your profile. Use Dashboard to go back."
-    : "You are on your SO Volunteering profile summary. It shows the information you have added during setup. First, check your account card on the right. The cards below show your goals, interests, skills, education and qualifications, support preferences and availability. Each card has an Edit this section button. Use that button if you want to change your answers. Use Back to dashboard when you are finished.";
+    ? "You are on your profile summary page. This page shows your saved details. Contact options has its own button and card. Use Contact options to choose how organisations should contact you. Use Dashboard to go back."
+    : "You are on your SO Volunteering profile summary. It shows the information you have added during setup. At the top, there is now a clear Contact options button. The cards below show your goals, interests, skills, education and qualifications, contact options, support preferences and availability. Each card has an Edit this section button. Use Contact options to choose email, phone call, text message, or not sure yet. Use Back to dashboard when you are finished.";
 
   const shellClassName = [
     "dashboard-bg",
@@ -411,12 +416,22 @@ export default async function ProfilePage() {
 
             <div className="dashboard-primary-actions">
               <Link
-                href="/onboarding/volunteer"
+                href="/profile/contact"
                 className="primary-button dashboard-main-action"
               >
                 <span className="dashboard-button-inner">
-                  <span aria-hidden="true">✏️</span>
-                  <span>Edit setup</span>
+                  <span aria-hidden="true">📞</span>
+                  <span>Contact options</span>
+                </span>
+              </Link>
+
+              <Link
+                href="/onboarding/volunteer"
+                className="secondary-button dashboard-main-action"
+              >
+                <span className="dashboard-button-inner">
+                  <span aria-hidden="true">🌱</span>
+                  <span>Goals & location</span>
                 </span>
               </Link>
 
@@ -471,6 +486,10 @@ export default async function ProfilePage() {
             </p>
 
             <p className="dashboard-progress-note">
+              Contact: <strong>{preferredContactLabel}</strong>
+            </p>
+
+            <p className="dashboard-progress-note">
               Education entries: <strong>{educationRows.length}</strong>
             </p>
 
@@ -492,6 +511,7 @@ export default async function ProfilePage() {
             label="Goals"
             title="What you want to achieve"
             href="/onboarding/volunteer"
+            actionLabel="Edit goals & location"
           >
             {volunteerProfile?.city ? (
               <p>
@@ -510,9 +530,35 @@ export default async function ProfilePage() {
           </ProfileSection>
 
           <ProfileSection
+            icon="📞"
+            label="Contact"
+            title="Contact options"
+            href="/profile/contact"
+            actionLabel="Edit contact options"
+          >
+            <p>
+              Preferred contact: <strong>{preferredContactLabel}</strong>
+            </p>
+
+            <p>
+              Phone/text number:{" "}
+              <strong>{hasPhoneNumber ? "Added" : "Not added"}</strong>
+            </p>
+
+            {!simpleView ? (
+              <p className="dashboard-muted-action">
+                Organisations can use this after you express interest in one of
+                their roles.
+              </p>
+            ) : null}
+          </ProfileSection>
+
+          <ProfileSection
             icon="💚"
             label="Interests"
-            title={simpleView ? "What you enjoy" : "What you enjoy or might like to try"}
+            title={
+              simpleView ? "What you enjoy" : "What you enjoy or might like to try"
+            }
             href="/onboarding/volunteer/interests"
           >
             <SummaryList
@@ -548,7 +594,9 @@ export default async function ProfilePage() {
             label="CV section"
             title="Education & qualifications"
             href="/profile/education"
-            actionLabel={educationRows.length > 0 ? "Edit education" : "Add education"}
+            actionLabel={
+              educationRows.length > 0 ? "Edit education" : "Add education"
+            }
           >
             <EducationSummary entries={educationRows} simpleView={simpleView} />
           </ProfileSection>
@@ -556,7 +604,9 @@ export default async function ProfilePage() {
           <ProfileSection
             icon="💛"
             label="Support"
-            title={simpleView ? "What helps you" : "What helps you feel comfortable"}
+            title={
+              simpleView ? "What helps you" : "What helps you feel comfortable"
+            }
             href="/onboarding/volunteer/accessibility"
           >
             <TextSummary
@@ -584,7 +634,9 @@ export default async function ProfilePage() {
           <ProfileSection
             icon="📅"
             label="Availability"
-            title={simpleView ? "When you can help" : "When volunteering might work"}
+            title={
+              simpleView ? "When you can help" : "When volunteering might work"
+            }
             href="/onboarding/volunteer/availability"
           >
             <TextSummary
@@ -592,13 +644,8 @@ export default async function ProfilePage() {
               emptyText="No availability added yet."
             />
 
-            <p>
-              Preferred contact:{" "}
-              <strong>
-                {formatContactMethod(
-                  volunteerProfile?.preferred_contact_method ?? null,
-                )}
-              </strong>
+            <p className="dashboard-muted-action">
+              Contact preferences now have their own Contact options card.
             </p>
           </ProfileSection>
 
@@ -640,19 +687,19 @@ export default async function ProfilePage() {
 
               <div className="dashboard-card-copy profile-summary-copy">
                 <div className="profile-summary-main">
-                  <p className="dashboard-card-label">Coming soon</p>
-                  <h2>Opportunity matching</h2>
+                  <p className="dashboard-card-label">Matching</p>
+                  <h2>Best roles for me</h2>
                   <div className="profile-section-body">
                     <p>
-                      Your profile will help match you with inclusive volunteering
-                      opportunities when the opportunity system is expanded.
+                      Your profile helps suggest inclusive volunteering
+                      opportunities that match your goals, interests and skills.
                     </p>
                   </div>
                 </div>
 
-                <p className="dashboard-muted-action profile-summary-action">
-                  Not live yet
-                </p>
+                <Link href="/opportunities" className="dashboard-card-action-pill">
+                  See best roles
+                </Link>
               </div>
             </article>
           ) : null}
