@@ -476,13 +476,21 @@ export default async function PositivePathwayCvPage() {
               />
               <SummaryPill
                 icon="🌱"
-                label={simpleView ? "skills" : `recognised skill area${recognisedSkills.length === 1 ? "" : "s"}`}
+                label={
+                  simpleView
+                    ? "skills"
+                    : `recognised skill area${
+                        recognisedSkills.length === 1 ? "" : "s"
+                      }`
+                }
                 value={recognisedSkills.length}
               />
             </div>
 
             <div className="positive-cv-hero-actions no-print">
-              <PrintButton label={simpleView ? "Print / PDF" : "Print / Save as PDF"} />
+              <PrintButton
+                label={simpleView ? "Print / PDF" : "Print / Save as PDF"}
+              />
             </div>
           </div>
 
@@ -558,11 +566,17 @@ export default async function PositivePathwayCvPage() {
             </CvSection>
           ) : null}
 
-          <CvSection icon="⭐" title={simpleView ? "Skills" : "Skills I have or want to build"}>
+          <CvSection
+            icon="⭐"
+            title={simpleView ? "Skills" : "Skills I have or want to build"}
+          >
             <p className="cv-body-text">{formatList(volunteerProfile?.skills)}</p>
           </CvSection>
 
-          <CvSection icon="📚" title={simpleView ? "Education" : "Education & Qualifications"}>
+          <CvSection
+            icon="📚"
+            title={simpleView ? "Education" : "Education & Qualifications"}
+          >
             {educationRows.length > 0 ? (
               <div className="education-cv-list">
                 {educationRows.map((entry) => {
@@ -573,7 +587,8 @@ export default async function PositivePathwayCvPage() {
                       <div>
                         <h3>{entry.qualification_name}</h3>
                         <p>
-                          {entry.institution_name || formatEducationType(entry.entry_type)}
+                          {entry.institution_name ||
+                            formatEducationType(entry.entry_type)}
                           {dateText ? ` · ${dateText}` : ""}
                         </p>
                       </div>
@@ -629,7 +644,10 @@ export default async function PositivePathwayCvPage() {
             </CvSection>
           ) : null}
 
-          <CvSection icon="🏅" title={simpleView ? "Strengths" : "Recognised strengths"}>
+          <CvSection
+            icon="🏅"
+            title={simpleView ? "Strengths" : "Recognised strengths"}
+          >
             {recognisedSkills.length > 0 ? (
               <div className="recognised-skill-grid">
                 {recognisedSkills.map((skill) => (
@@ -638,7 +656,8 @@ export default async function PositivePathwayCvPage() {
                     <span>{skill.label}</span>
                     {!simpleView ? (
                       <small>
-                        recognised {skill.count} time{skill.count === 1 ? "" : "s"}
+                        recognised {skill.count} time
+                        {skill.count === 1 ? "" : "s"}
                       </small>
                     ) : null}
                   </span>
@@ -653,7 +672,10 @@ export default async function PositivePathwayCvPage() {
             )}
           </CvSection>
 
-          <CvSection icon="💬" title={simpleView ? "Feedback" : "Positive feedback"}>
+          <CvSection
+            icon="💬"
+            title={simpleView ? "Feedback" : "Positive feedback"}
+          >
             {reviews.length > 0 ? (
               <div className="feedback-list">
                 {reviews.map((review) => {
@@ -774,6 +796,8 @@ export default async function PositivePathwayCvPage() {
           background: rgba(244, 255, 249, 0.9);
           color: #536f63;
           font-weight: 900;
+          max-width: 100%;
+          overflow-wrap: anywhere;
         }
 
         .positive-cv-hero-actions {
@@ -791,6 +815,7 @@ export default async function PositivePathwayCvPage() {
           box-shadow: 0 24px 70px rgba(38, 50, 56, 0.08);
           display: grid;
           gap: 18px;
+          min-width: 0;
         }
 
         .cv-section {
@@ -801,17 +826,20 @@ export default async function PositivePathwayCvPage() {
             linear-gradient(135deg, rgba(244, 255, 249, 0.42), rgba(255, 255, 255, 0.9));
           display: grid;
           gap: 14px;
+          min-width: 0;
         }
 
         .cv-section-heading {
           display: flex;
           gap: 10px;
           align-items: center;
+          min-width: 0;
         }
 
         .cv-section-heading > span {
           width: 42px;
           height: 42px;
+          flex: 0 0 auto;
           display: inline-flex;
           align-items: center;
           justify-content: center;
@@ -825,21 +853,29 @@ export default async function PositivePathwayCvPage() {
           color: #315f48;
           font-size: 1.2rem;
           letter-spacing: -0.02em;
+          overflow-wrap: anywhere;
         }
 
         .cv-detail-grid {
           display: grid;
           grid-template-columns: repeat(2, minmax(0, 1fr));
           gap: 10px 16px;
+          min-width: 0;
         }
 
         .cv-detail-grid p,
+        .cv-detail-grid strong,
         .cv-body-text,
-        .cv-note-box p {
+        .cv-note-box p,
+        .dashboard-progress-note,
+        .dashboard-progress-note strong {
+          min-width: 0;
+          max-width: 100%;
           margin: 0;
           color: #4f625b;
           line-height: 1.55;
           overflow-wrap: anywhere;
+          word-break: break-word;
         }
 
         .cv-note-box {
@@ -847,11 +883,13 @@ export default async function PositivePathwayCvPage() {
           border: 1px solid rgba(143, 178, 158, 0.18);
           border-radius: 18px;
           background: rgba(255, 255, 255, 0.78);
+          min-width: 0;
         }
 
         .education-cv-list {
           display: grid;
           gap: 12px;
+          min-width: 0;
         }
 
         .education-cv-entry {
@@ -861,6 +899,7 @@ export default async function PositivePathwayCvPage() {
           background: rgba(255, 255, 255, 0.82);
           display: grid;
           gap: 12px;
+          min-width: 0;
         }
 
         .education-cv-entry h3 {
@@ -881,6 +920,7 @@ export default async function PositivePathwayCvPage() {
           display: flex;
           flex-wrap: wrap;
           gap: 8px;
+          min-width: 0;
         }
 
         .education-cv-meta span,
@@ -896,6 +936,8 @@ export default async function PositivePathwayCvPage() {
           color: #315f48;
           font-weight: 900;
           line-height: 1.1;
+          max-width: 100%;
+          overflow-wrap: anywhere;
         }
 
         .education-cv-note,
@@ -905,12 +947,14 @@ export default async function PositivePathwayCvPage() {
           background: rgba(248, 245, 255, 0.72);
           color: #4f625b !important;
           font-weight: 750;
+          overflow-wrap: anywhere;
         }
 
         .recognised-skill-grid {
           display: grid;
           grid-template-columns: repeat(3, minmax(0, 1fr));
           gap: 10px;
+          min-width: 0;
         }
 
         .recognised-skill-card {
@@ -924,6 +968,7 @@ export default async function PositivePathwayCvPage() {
           align-content: start;
           color: #315f48;
           font-weight: 950;
+          overflow-wrap: anywhere;
         }
 
         .recognised-skill-card > span:first-child {
@@ -939,6 +984,7 @@ export default async function PositivePathwayCvPage() {
         .feedback-list {
           display: grid;
           gap: 12px;
+          min-width: 0;
         }
 
         .feedback-card {
@@ -948,6 +994,7 @@ export default async function PositivePathwayCvPage() {
           background: rgba(255, 255, 255, 0.82);
           display: grid;
           gap: 12px;
+          min-width: 0;
         }
 
         .feedback-card h3 {
@@ -960,6 +1007,7 @@ export default async function PositivePathwayCvPage() {
           margin: 0;
           color: #60706a;
           line-height: 1.5;
+          overflow-wrap: anywhere;
         }
 
         .feedback-comment.muted {
@@ -1134,13 +1182,16 @@ export default async function PositivePathwayCvPage() {
         .preference-theme-neon_arcade .education-cv-entry h3,
         .preference-theme-neon_arcade .feedback-card h3,
         .preference-theme-neon_arcade .recognised-skill-card,
-        .preference-theme-neon_arcade .summary-pill strong {
+        .preference-theme-neon_arcade .summary-pill strong,
+        .preference-theme-neon_arcade .dashboard-progress-card h2,
+        .preference-theme-neon_arcade .dashboard-progress-note strong {
           color: #e0f2fe;
         }
 
         .preference-theme-neon_arcade .dashboard-kicker,
         .preference-theme-neon_arcade .dashboard-lead,
         .preference-theme-neon_arcade .dashboard-progress-note,
+        .preference-theme-neon_arcade .dashboard-progress-header p,
         .preference-theme-neon_arcade .cv-body-text,
         .preference-theme-neon_arcade .cv-detail-grid p,
         .preference-theme-neon_arcade .education-cv-entry p,
@@ -1158,6 +1209,23 @@ export default async function PositivePathwayCvPage() {
           border-color: rgba(34, 211, 238, 0.42);
           background: rgba(34, 211, 238, 0.12);
           color: #a7f3d0;
+        }
+
+        .preference-theme-neon_arcade .print-button,
+        .preference-theme-neon_arcade .secondary-button {
+          border-color: rgba(34, 211, 238, 0.42);
+          background: rgba(34, 211, 238, 0.12);
+          color: #e0f2fe;
+          box-shadow:
+            0 10px 24px rgba(0, 0, 0, 0.22),
+            inset 0 0 0 1px rgba(217, 70, 239, 0.12);
+        }
+
+        .preference-theme-neon_arcade .primary-button {
+          border-color: rgba(167, 243, 208, 0.58);
+          box-shadow:
+            0 10px 26px rgba(0, 0, 0, 0.26),
+            0 0 0 1px rgba(34, 211, 238, 0.16);
         }
 
         @media (max-width: 900px) {
@@ -1207,6 +1275,123 @@ export default async function PositivePathwayCvPage() {
           .positive-cv-footer-actions .primary-button,
           .positive-cv-footer-actions .secondary-button {
             width: 100%;
+          }
+        }
+
+        @media (max-width: 560px) {
+          .positive-cv-page .dashboard-shell {
+            width: 100%;
+            padding-left: 12px;
+            padding-right: 12px;
+          }
+
+          .positive-cv-page .dashboard-welcome-card,
+          .positive-cv-page .dashboard-progress-card,
+          .positive-cv-document,
+          .cv-section {
+            border-radius: 24px;
+          }
+
+          .positive-cv-page .dashboard-progress-card {
+            padding: 18px;
+          }
+
+          .positive-cv-page .dashboard-progress-header {
+            grid-template-columns: 1fr;
+            gap: 12px;
+          }
+
+          .positive-cv-page .dashboard-progress-header p,
+          .positive-cv-page .dashboard-progress-note {
+            font-size: 1rem;
+            line-height: 1.45;
+          }
+
+          .positive-cv-document {
+            padding: 12px;
+            gap: 12px;
+          }
+
+          .cv-section {
+            padding: 14px;
+            gap: 12px;
+          }
+
+          .cv-section-heading {
+            align-items: flex-start;
+          }
+
+          .cv-section-heading > span {
+            width: 46px;
+            height: 46px;
+            border-radius: 16px;
+          }
+
+          .cv-section-heading h2 {
+            font-size: 1.2rem;
+            line-height: 1.2;
+          }
+
+          .education-cv-entry,
+          .feedback-card,
+          .recognised-skill-card {
+            padding: 13px;
+            border-radius: 18px;
+          }
+
+          .preference-view-simple .cv-section {
+            padding: 14px;
+          }
+
+          .preference-view-simple .cv-section-heading > span {
+            width: 46px;
+            height: 46px;
+            font-size: 1.35rem;
+          }
+
+          .preference-view-simple .cv-section-heading h2 {
+            font-size: 1.2rem;
+          }
+
+          .positive-cv-summary-pills {
+            gap: 8px;
+          }
+
+          .summary-pill {
+            justify-content: flex-start;
+            text-align: left;
+            border-radius: 18px;
+          }
+        }
+
+        @media (max-width: 430px) {
+          .positive-cv-page .dashboard-shell {
+            padding-left: 10px;
+            padding-right: 10px;
+          }
+
+          .positive-cv-page .dashboard-welcome-card,
+          .positive-cv-page .dashboard-progress-card {
+            padding-left: 16px;
+            padding-right: 16px;
+          }
+
+          .positive-cv-document {
+            padding: 10px;
+          }
+
+          .cv-section {
+            padding: 12px;
+          }
+
+          .positive-cv-page .dashboard-title {
+            font-size: 2rem !important;
+          }
+
+          .preference-theme-neon_arcade .dashboard-progress-card,
+          .preference-theme-neon_arcade .cv-section,
+          .preference-theme-neon_arcade .positive-cv-document {
+            border-color: rgba(34, 211, 238, 0.36);
           }
         }
 
