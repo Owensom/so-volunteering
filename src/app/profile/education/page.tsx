@@ -109,7 +109,8 @@ function normaliseColourTheme(value: string | null | undefined) {
     value === "calm_green" ||
     value === "soft_blue" ||
     value === "warm_peach" ||
-    value === "high_contrast"
+    value === "high_contrast" ||
+    value === "neon_arcade"
   ) {
     return value;
   }
@@ -250,7 +251,9 @@ function EducationEntryForm({
             <span className="field-label-icon" aria-hidden="true">
               ⭐
             </span>
-            <span>{simpleView ? "Name" : "Qualification, course or training name"}</span>
+            <span>
+              {simpleView ? "Name" : "Qualification, course or training name"}
+            </span>
           </span>
           <input
             name="qualification_name"
@@ -270,7 +273,9 @@ function EducationEntryForm({
             <span className="field-label-icon" aria-hidden="true">
               🏫
             </span>
-            <span>{simpleView ? "Place optional" : "School, college or provider optional"}</span>
+            <span>
+              {simpleView ? "Place optional" : "School, college or provider optional"}
+            </span>
           </span>
           <input
             name="institution_name"
@@ -356,7 +361,9 @@ function EducationEntryForm({
         <span aria-hidden="true">🌱</span>
         <span>
           <strong>Still studying</strong>
-          {!simpleView ? <small>This will show as “Present” on the CV.</small> : null}
+          {!simpleView ? (
+            <small>This will show as “Present” on the CV.</small>
+          ) : null}
         </span>
       </label>
 
@@ -600,7 +607,10 @@ export default async function EducationPage({
           <div className="alert alert-error">{errorMessage}</div>
         ) : null}
 
-        <section className="education-existing-section" aria-label="Saved education entries">
+        <section
+          className="education-existing-section"
+          aria-label="Saved education entries"
+        >
           <div className="education-section-heading">
             <p className="dashboard-kicker">Saved</p>
             <h2>{simpleView ? "Your entries" : "Your education and training"}</h2>
@@ -1102,6 +1112,103 @@ export default async function EducationPage({
           border: 2px solid #1f2937;
           background: #ffffff;
           color: #111827;
+        }
+
+        .preference-theme-neon_arcade {
+          background:
+            radial-gradient(circle at top left, rgba(34, 211, 238, 0.28), transparent 34%),
+            radial-gradient(circle at top right, rgba(217, 70, 239, 0.24), transparent 30%),
+            linear-gradient(135deg, #101827 0%, #15132c 46%, #071827 100%);
+        }
+
+        .preference-theme-neon_arcade .dashboard-welcome-card,
+        .preference-theme-neon_arcade .dashboard-progress-card,
+        .preference-theme-neon_arcade .info-card,
+        .preference-theme-neon_arcade .education-choice-card,
+        .preference-theme-neon_arcade .education-note-box,
+        .preference-theme-neon_arcade .education-checkbox-card {
+          border-color: rgba(34, 211, 238, 0.42);
+          background: rgba(15, 23, 42, 0.86);
+          box-shadow:
+            0 24px 70px rgba(0, 0, 0, 0.28),
+            0 0 0 1px rgba(217, 70, 239, 0.12);
+        }
+
+        .preference-theme-neon_arcade .dashboard-title,
+        .preference-theme-neon_arcade .dashboard-progress-card h2,
+        .preference-theme-neon_arcade .dashboard-progress-note strong,
+        .preference-theme-neon_arcade .education-section-heading h2,
+        .preference-theme-neon_arcade .education-entry-header h2,
+        .preference-theme-neon_arcade .education-choice-title,
+        .preference-theme-neon_arcade .education-checkbox-card strong,
+        .preference-theme-neon_arcade .field-label,
+        .preference-theme-neon_arcade .education-fieldset legend {
+          color: #e0f2fe;
+        }
+
+        .preference-theme-neon_arcade .dashboard-kicker,
+        .preference-theme-neon_arcade .dashboard-lead,
+        .preference-theme-neon_arcade .dashboard-card-label,
+        .preference-theme-neon_arcade .dashboard-progress-note,
+        .preference-theme-neon_arcade .education-section-heading p,
+        .preference-theme-neon_arcade .education-entry-header p,
+        .preference-theme-neon_arcade .education-choice-description,
+        .preference-theme-neon_arcade .education-note-box p,
+        .preference-theme-neon_arcade .education-checkbox-card small,
+        .preference-theme-neon_arcade .education-choice-copy {
+          color: #dbeafe;
+        }
+
+        .preference-theme-neon_arcade .dashboard-card-icon,
+        .preference-theme-neon_arcade .dashboard-progress-icon,
+        .preference-theme-neon_arcade .education-choice-icon,
+        .preference-theme-neon_arcade .field-label-icon {
+          border: 1px solid rgba(34, 211, 238, 0.42);
+          background: rgba(34, 211, 238, 0.12);
+          color: #a7f3d0;
+          box-shadow: inset 0 0 0 1px rgba(217, 70, 239, 0.14);
+        }
+
+        .preference-theme-neon_arcade .education-entry-details span,
+        .preference-theme-neon_arcade .education-edit-details summary {
+          border-color: rgba(34, 211, 238, 0.42);
+          background: rgba(34, 211, 238, 0.12);
+          color: #a7f3d0;
+          box-shadow:
+            0 10px 24px rgba(0, 0, 0, 0.24),
+            inset 0 0 0 1px rgba(217, 70, 239, 0.14);
+        }
+
+        .preference-theme-neon_arcade .education-choice-card:has(input:checked) {
+          border-color: rgba(167, 243, 208, 0.76);
+          background: rgba(30, 41, 59, 0.96);
+          box-shadow:
+            0 20px 54px rgba(0, 0, 0, 0.34),
+            0 0 0 4px rgba(34, 211, 238, 0.16);
+        }
+
+        .preference-theme-neon_arcade input,
+        .preference-theme-neon_arcade textarea {
+          border-color: rgba(34, 211, 238, 0.34);
+          background: rgba(15, 23, 42, 0.76);
+          color: #e0f2fe;
+        }
+
+        .preference-theme-neon_arcade input::placeholder,
+        .preference-theme-neon_arcade textarea::placeholder {
+          color: rgba(219, 234, 254, 0.72);
+        }
+
+        .preference-theme-neon_arcade input:focus,
+        .preference-theme-neon_arcade textarea:focus {
+          outline: 3px solid rgba(34, 211, 238, 0.24);
+          border-color: rgba(167, 243, 208, 0.7);
+        }
+
+        .preference-theme-neon_arcade .danger-button {
+          border-color: rgba(248, 113, 113, 0.5);
+          background: rgba(127, 29, 29, 0.32);
+          color: #fecaca;
         }
 
         @media (max-width: 980px) {
