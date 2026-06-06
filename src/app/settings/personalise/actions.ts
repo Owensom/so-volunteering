@@ -26,7 +26,8 @@ function normaliseColourTheme(value: string) {
     value === "calm_green" ||
     value === "soft_blue" ||
     value === "warm_peach" ||
-    value === "high_contrast"
+    value === "high_contrast" ||
+    value === "neon_arcade"
   ) {
     return value;
   }
@@ -55,7 +56,10 @@ function normaliseAvatarIcon(value: string) {
     "🎵",
     "🤝",
     "📚",
-    "⚽"
+    "⚽",
+    "🎮",
+    "🕹️",
+    "🚀",
   ]);
 
   return allowedAvatars.has(value) ? value : "🌱";
@@ -65,7 +69,7 @@ export async function saveVolunteerPreferences(formData: FormData) {
   const supabase = await createClient();
 
   const {
-    data: { user }
+    data: { user },
   } = await supabase.auth.getUser();
 
   if (!user) {
@@ -91,11 +95,15 @@ export async function saveVolunteerPreferences(formData: FormData) {
 
   const viewMode = normaliseViewMode(String(formData.get("view_mode") || ""));
   const colourTheme = normaliseColourTheme(
-    String(formData.get("colour_theme") || "")
+    String(formData.get("colour_theme") || ""),
   );
   const textSize = normaliseTextSize(String(formData.get("text_size") || ""));
-  const avatarIcon = normaliseAvatarIcon(String(formData.get("avatar_icon") || ""));
-  const listenMode = normaliseListenMode(String(formData.get("listen_mode") || ""));
+  const avatarIcon = normaliseAvatarIcon(
+    String(formData.get("avatar_icon") || ""),
+  );
+  const listenMode = normaliseListenMode(
+    String(formData.get("listen_mode") || ""),
+  );
 
   const { error } = await supabase.from("volunteer_preferences").upsert(
     {
@@ -105,22 +113,20 @@ export async function saveVolunteerPreferences(formData: FormData) {
       text_size: textSize,
       avatar_icon: avatarIcon,
       listen_mode: listenMode,
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
     },
     {
-      onConflict: "user_id"
-    }
+      onConflict: "user_id",
+    },
   );
 
   if (error) {
-    redirect(
-      `/settings/personalise?error=${encodeURIComponent(error.message)}`
-    );
+    redirect(`/settings/personalise?error=${encodeURIComponent(error.message)}`);
   }
 
   redirect(
     `/settings/personalise?message=${encodeURIComponent(
-      "Your app preferences have been saved."
-    )}`
+      "Your app preferences have been saved.",
+    )}`,
   );
 }
