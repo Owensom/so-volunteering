@@ -1,29 +1,18 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { saveVolunteerContactOptions } from "./actions";
 import { createClient } from "@/lib/supabase/server";
 import { InclusiveAudioButton } from "@/components/InclusiveSupport";
 
 export const dynamic = "force-dynamic";
 
 type Profile = {
-  full_name: string | null;
-  email: string | null;
   user_type: string | null;
 };
 
 type VolunteerProfile = {
-  city: string | null;
-  goals: string[] | null;
-  interests: string[] | null;
-  skills: string[] | null;
-  bio: string | null;
-  support_needs: string | null;
-  share_accessibility_needs: boolean | null;
-  wants_wellbeing_support: boolean | null;
-  availability_notes: string | null;
   preferred_contact_method: string | null;
-  phone: string | null;
-  onboarding_completed: boolean | null;
+  phone_number: string | null;
 };
 
 type VolunteerPreferences = {
@@ -34,19 +23,39 @@ type VolunteerPreferences = {
   listen_mode: string | null;
 };
 
-type EducationEntry = {
-  id: string;
-  entry_type: string;
-  institution_name: string | null;
-  qualification_name: string;
-  qualification_level: string | null;
-  subject_or_area: string | null;
-  year_started: string | null;
-  year_completed: string | null;
-  is_current: boolean;
-  notes: string | null;
-  display_order: number;
+type ContactOption = {
+  value: string;
+  label: string;
+  icon: string;
+  helpText: string;
 };
+
+const contactOptions: ContactOption[] = [
+  {
+    value: "email",
+    label: "Email",
+    icon: "✉️",
+    helpText: "Best if you like to read and reply in your own time.",
+  },
+  {
+    value: "phone",
+    label: "Phone call",
+    icon: "📞",
+    helpText: "Best if talking things through feels easier.",
+  },
+  {
+    value: "sms",
+    label: "Text message",
+    icon: "💬",
+    helpText: "Best if short messages feel easier than email.",
+  },
+  {
+    value: "not_sure",
+    label: "Not sure yet",
+    icon: "🌈",
+    helpText: "That is okay. You can change this later.",
+  },
+];
 
 function normaliseUserType(value: string | null | undefined) {
   return value?.trim().toLowerCase() === "organisation"
@@ -85,6 +94,19 @@ function normaliseListenMode(value: string | null | undefined) {
   return value === "context" ? "context" : "always";
 }
 
+function normalisePreferredContactMethod(value: string | null | undefined) {
+  if (
+    value === "email" ||
+    value === "phone" ||
+    value === "sms" ||
+    value === "not_sure"
+  ) {
+    return value;
+  }
+
+  return "email";
+}
+
 function getThemeClass(colourTheme: string) {
   return `preference-theme-${colourTheme}`;
 }
@@ -114,169 +136,22 @@ function getThemeLabel(colourTheme: string) {
   return "SO default";
 }
 
-function SummaryList({
-  values,
-  emptyText,
-}: {
-  values: string[] | null;
-  emptyText: string;
-}) {
-  if (!Array.isArray(values) || values.length === 0) {
-    return <p className="dashboard-muted-action">{emptyText}</p>;
-  }
-
-  return (
-    <div className="profile-summary-chip-list">
-      {values.map((value) => (
-        <span key={value} className="profile-summary-chip">
-          {value}
-        </span>
-      ))}
-    </div>
-  );
-}
-
-function TextSummary({
-  value,
-  emptyText,
-}: {
-  value: string | null;
-  emptyText: string;
-}) {
-  if (!value || !value.trim()) {
-    return <p className="dashboard-muted-action">{emptyText}</p>;
-  }
-
-  return <p className="profile-summary-text">{value}</p>;
-}
-
-function ProfileSection({
-  icon,
-  label,
-  title,
-  href,
-  actionLabel = "Edit this section",
-  children,
-}: {
-  icon: string;
-  label: string;
-  title: string;
-  href: string;
-  actionLabel?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <article className="info-card dashboard-pathway-card profile-summary-card">
-      <div className="dashboard-card-icon profile-summary-icon" aria-hidden="true">
-        {icon}
-      </div>
-
-      <div className="dashboard-card-copy profile-summary-copy">
-        <div className="profile-summary-main">
-          <p className="dashboard-card-label">{label}</p>
-          <h2>{title}</h2>
-
-          <div className="profile-section-body">{children}</div>
-        </div>
-
-        <Link href={href} className="dashboard-card-action-pill">
-          {actionLabel}
-        </Link>
-      </div>
-    </article>
-  );
-}
-
-function formatContactMethod(value: string | null) {
-  if (!value) return "Not chosen yet";
+function formatContactMethod(value: string | null | undefined) {
   if (value === "sms") return "Text message";
   if (value === "phone") return "Phone call";
-  if (value === "email") return "Email";
   if (value === "not_sure") return "Not sure yet";
-
-  return value.charAt(0).toUpperCase() + value.slice(1);
+  return "Email";
 }
 
-function formatEntryType(value: string) {
-  if (value === "school") return "School";
-  if (value === "college") return "College";
-  if (value === "university") return "University";
-  if (value === "training_course") return "Training course";
-  if (value === "online_course") return "Online course";
-  if (value === "certificate") return "Certificate";
-  if (value === "work_related_training") return "Work-related training";
-  return "Other";
-}
-
-function formatStudyDates(entry: EducationEntry) {
-  if (entry.is_current && entry.year_started) {
-    return `${entry.year_started} – Present`;
-  }
-
-  if (entry.is_current) {
-    return "Currently studying";
-  }
-
-  if (entry.year_started && entry.year_completed) {
-    return `${entry.year_started} – ${entry.year_completed}`;
-  }
-
-  if (entry.year_completed) {
-    return entry.year_completed;
-  }
-
-  if (entry.year_started) {
-    return `Started ${entry.year_started}`;
-  }
-
-  return "";
-}
-
-function EducationSummary({
-  entries,
-  simpleView,
+export default async function VolunteerContactPage({
+  searchParams,
 }: {
-  entries: EducationEntry[];
-  simpleView: boolean;
+  searchParams: Promise<{ error?: string; message?: string }>;
 }) {
-  if (entries.length === 0) {
-    return (
-      <p className="dashboard-muted-action">
-        No education, training or qualifications added yet.
-      </p>
-    );
-  }
+  const params = await searchParams;
+  const errorMessage = params.error ? decodeURIComponent(params.error) : "";
+  const successMessage = params.message ? decodeURIComponent(params.message) : "";
 
-  const visibleEntries = simpleView ? entries.slice(0, 2) : entries.slice(0, 3);
-  const remainingCount = entries.length - visibleEntries.length;
-
-  return (
-    <div className="education-summary-list">
-      {visibleEntries.map((entry) => {
-        const dateText = formatStudyDates(entry);
-
-        return (
-          <div key={entry.id} className="education-summary-entry">
-            <strong>{entry.qualification_name}</strong>
-            <span>
-              {formatEntryType(entry.entry_type)}
-              {entry.institution_name ? ` · ${entry.institution_name}` : ""}
-              {dateText ? ` · ${dateText}` : ""}
-            </span>
-          </div>
-        );
-      })}
-
-      {remainingCount > 0 ? (
-        <p className="dashboard-muted-action">
-          + {remainingCount} more entr{remainingCount === 1 ? "y" : "ies"}
-        </p>
-      ) : null}
-    </div>
-  );
-}
-
-export default async function ProfilePage() {
   const supabase = await createClient();
 
   const {
@@ -289,9 +164,9 @@ export default async function ProfilePage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("full_name,email,user_type")
+    .select("user_type")
     .eq("id", user.id)
-    .single<Profile>();
+    .maybeSingle<Profile>();
 
   const metadataUserType =
     typeof user.user_metadata?.user_type === "string"
@@ -306,9 +181,7 @@ export default async function ProfilePage() {
 
   const { data: volunteerProfile } = await supabase
     .from("volunteer_profiles")
-    .select(
-      "city,goals,interests,skills,bio,support_needs,share_accessibility_needs,wants_wellbeing_support,availability_notes,preferred_contact_method,phone,onboarding_completed",
-    )
+    .select("preferred_contact_method,phone_number")
     .eq("user_id", user.id)
     .maybeSingle<VolunteerProfile>();
 
@@ -318,39 +191,25 @@ export default async function ProfilePage() {
     .eq("user_id", user.id)
     .maybeSingle<VolunteerPreferences>();
 
-  const { data: educationEntries } = await supabase
-    .from("volunteer_education_entries")
-    .select(
-      "id,entry_type,institution_name,qualification_name,qualification_level,subject_or_area,year_started,year_completed,is_current,notes,display_order",
-    )
-    .eq("volunteer_user_id", user.id)
-    .order("display_order", { ascending: true })
-    .order("created_at", { ascending: false });
-
-  const educationRows = (educationEntries as EducationEntry[] | null) ?? [];
-
   const viewMode = normaliseViewMode(preferences?.view_mode);
   const colourTheme = normaliseColourTheme(preferences?.colour_theme);
   const textSize = normaliseTextSize(preferences?.text_size);
   const avatarIcon = normaliseAvatarIcon(preferences?.avatar_icon);
   const listenMode = normaliseListenMode(preferences?.listen_mode);
-
   const simpleView = viewMode === "simple";
   const detailedView = viewMode === "detailed";
 
-  const displayName = profile?.full_name?.trim() || "there";
-  const emailAddress = profile?.email?.trim() || user.email || "";
-  const preferredContactLabel = formatContactMethod(
-    volunteerProfile?.preferred_contact_method ?? null,
+  const preferredContactMethod = normalisePreferredContactMethod(
+    volunteerProfile?.preferred_contact_method,
   );
-  const hasPhoneNumber = Boolean(volunteerProfile?.phone?.trim());
 
   const listenText = simpleView
-    ? "You are on your profile summary page. This page shows your saved details. Contact options has its own button and card. Use Contact options to choose how organisations should contact you. Use Dashboard to go back."
-    : "You are on your SO Volunteering profile summary. It shows the information you have added during setup. At the top, there is now a clear Contact options button. The cards below show your goals, interests, skills, education and qualifications, contact options, support preferences and availability. Each card has an Edit this section button. Use Contact options to choose email, phone call, text message, or not sure yet. Use Back to dashboard when you are finished.";
+    ? "This is your contact options page. Choose how organisations should contact you. You can add a phone or text number if you want to. Press Save contact options."
+    : "This is your contact options page. Choose how organisations should contact you after you express interest in one of their roles. You can choose email, phone call, text message, or not sure yet. You can also add a phone or text number. This is optional. Use Save contact options when you are finished.";
 
   const shellClassName = [
     "dashboard-bg",
+    "volunteer-contact-page",
     getThemeClass(colourTheme),
     getTextClass(textSize),
     getViewClass(viewMode),
@@ -385,12 +244,12 @@ export default async function ProfilePage() {
             ) : null}
 
             <Link
-              href="/dashboard"
+              href="/profile"
               className="secondary-button dashboard-signout-button"
             >
               <span className="dashboard-button-inner">
                 <span aria-hidden="true">←</span>
-                <span>Dashboard</span>
+                <span>Profile</span>
               </span>
             </Link>
           </div>
@@ -398,50 +257,26 @@ export default async function ProfilePage() {
 
         <section
           className="dashboard-welcome-card"
-          aria-labelledby="profile-title"
+          aria-labelledby="contact-title"
         >
           <div className="dashboard-welcome-copy">
-            <p className="dashboard-kicker">Your profile summary</p>
+            <p className="dashboard-kicker">Your profile</p>
 
-            <h1 id="profile-title" className="dashboard-title">
-              <span aria-hidden="true">{avatarIcon}</span>
-              <span>{displayName}</span>
+            <h1 id="contact-title" className="dashboard-title">
+              <span aria-hidden="true">📞</span>
+              <span>Contact options</span>
             </h1>
 
             <p className="dashboard-lead">
-              {simpleView
-                ? "This is your saved volunteering profile."
-                : "This is the information you have added so far. You can review it, change it, and keep building your volunteering pathway over time."}
+              Choose how organisations should contact you when you express
+              interest in a role. You stay in control and can change this later.
             </p>
 
             <div className="dashboard-primary-actions">
-              <Link
-                href="/profile/contact"
-                className="primary-button dashboard-main-action"
-              >
+              <Link href="/profile" className="secondary-button dashboard-main-action">
                 <span className="dashboard-button-inner">
-                  <span aria-hidden="true">📞</span>
-                  <span>Contact options</span>
-                </span>
-              </Link>
-
-              <Link
-                href="/onboarding/volunteer"
-                className="secondary-button dashboard-main-action"
-              >
-                <span className="dashboard-button-inner">
-                  <span aria-hidden="true">🌱</span>
-                  <span>Goals & location</span>
-                </span>
-              </Link>
-
-              <Link
-                href="/profile/education"
-                className="secondary-button dashboard-main-action"
-              >
-                <span className="dashboard-button-inner">
-                  <span aria-hidden="true">📚</span>
-                  <span>Education & qualifications</span>
+                  <span aria-hidden="true">←</span>
+                  <span>Back to profile</span>
                 </span>
               </Link>
 
@@ -450,47 +285,31 @@ export default async function ProfilePage() {
                 className="secondary-button dashboard-main-action"
               >
                 <span className="dashboard-button-inner">
-                  <span aria-hidden="true">🧭</span>
-                  <span>Back to dashboard</span>
+                  <span aria-hidden="true">🏠</span>
+                  <span>Dashboard</span>
                 </span>
               </Link>
             </div>
           </div>
 
-          <aside className="dashboard-progress-card" aria-label="Account details">
+          <aside className="dashboard-progress-card" aria-label="Current contact choice">
             <div className="dashboard-progress-header">
               <span className="dashboard-progress-icon" aria-hidden="true">
                 {avatarIcon}
               </span>
               <div>
-                <h2>Account</h2>
+                <h2>Current choice</h2>
                 <p>
-                  Type: <strong>{userType}</strong>
+                  <strong>{formatContactMethod(preferredContactMethod)}</strong>
                 </p>
               </div>
             </div>
 
-            {emailAddress ? (
-              <p className="dashboard-progress-note">{emailAddress}</p>
-            ) : (
-              <p className="dashboard-progress-note">Email not available.</p>
-            )}
-
             <p className="dashboard-progress-note">
-              Setup status:{" "}
+              Phone/text number:{" "}
               <strong>
-                {volunteerProfile?.onboarding_completed
-                  ? "Complete"
-                  : "In progress"}
+                {volunteerProfile?.phone_number?.trim() ? "Added" : "Not added"}
               </strong>
-            </p>
-
-            <p className="dashboard-progress-note">
-              Contact: <strong>{preferredContactLabel}</strong>
-            </p>
-
-            <p className="dashboard-progress-note">
-              Education entries: <strong>{educationRows.length}</strong>
             </p>
 
             {detailedView ? (
@@ -502,327 +321,300 @@ export default async function ProfilePage() {
           </aside>
         </section>
 
-        <section
-          className="dashboard-grid profile-summary-grid"
-          aria-label="Volunteer profile summary sections"
-        >
-          <ProfileSection
-            icon="🌱"
-            label="Goals"
-            title="What you want to achieve"
-            href="/onboarding/volunteer"
-            actionLabel="Edit goals & location"
-          >
-            {volunteerProfile?.city ? (
-              <p>
-                Nearest town or city: <strong>{volunteerProfile.city}</strong>
-              </p>
-            ) : (
-              <p className="dashboard-muted-action">
-                Nearest town or city not added yet.
-              </p>
-            )}
+        {successMessage ? (
+          <div className="alert alert-success">{successMessage}</div>
+        ) : null}
 
-            <SummaryList
-              values={volunteerProfile?.goals ?? null}
-              emptyText="No goals added yet."
-            />
-          </ProfileSection>
+        {errorMessage ? (
+          <div className="alert alert-error">{errorMessage}</div>
+        ) : null}
 
-          <ProfileSection
-            icon="📞"
-            label="Contact"
-            title="Contact options"
-            href="/profile/contact"
-            actionLabel="Edit contact options"
-          >
-            <p>
-              Preferred contact: <strong>{preferredContactLabel}</strong>
-            </p>
-
-            <p>
-              Phone/text number:{" "}
-              <strong>{hasPhoneNumber ? "Added" : "Not added"}</strong>
-            </p>
-
-            {!simpleView ? (
-              <p className="dashboard-muted-action">
-                Organisations can use this after you express interest in one of
-                their roles.
-              </p>
-            ) : null}
-          </ProfileSection>
-
-          <ProfileSection
-            icon="💚"
-            label="Interests"
-            title={simpleView ? "What you enjoy" : "What you enjoy or might like to try"}
-            href="/onboarding/volunteer/interests"
-          >
-            <SummaryList
-              values={volunteerProfile?.interests ?? null}
-              emptyText="No interests added yet."
-            />
-          </ProfileSection>
-
-          <ProfileSection
-            icon="⭐"
-            label="Skills"
-            title={simpleView ? "Your skills" : "What you can do or want to build"}
-            href="/onboarding/volunteer/skills"
-          >
-            <SummaryList
-              values={volunteerProfile?.skills ?? null}
-              emptyText="No skills added yet."
-            />
-
-            {!simpleView && volunteerProfile?.bio ? (
-              <div className="profile-note-block">
-                <p className="dashboard-card-label">Your notes</p>
-                <TextSummary
-                  value={volunteerProfile.bio}
-                  emptyText="No extra notes added."
-                />
+        <form action={saveVolunteerContactOptions} className="contact-form">
+          <section className="contact-panel">
+            <div className="contact-panel-heading">
+              <span className="contact-panel-icon" aria-hidden="true">
+                💬
+              </span>
+              <div>
+                <h2>How should organisations contact you?</h2>
+                <p>
+                  Choose what feels easiest. This can be shared with an
+                  organisation after you express interest in their role.
+                </p>
               </div>
-            ) : null}
-          </ProfileSection>
-
-          <ProfileSection
-            icon="📚"
-            label="CV section"
-            title="Education & qualifications"
-            href="/profile/education"
-            actionLabel={educationRows.length > 0 ? "Edit education" : "Add education"}
-          >
-            <EducationSummary entries={educationRows} simpleView={simpleView} />
-          </ProfileSection>
-
-          <ProfileSection
-            icon="💛"
-            label="Support"
-            title={simpleView ? "What helps you" : "What helps you feel comfortable"}
-            href="/onboarding/volunteer/accessibility"
-          >
-            <TextSummary
-              value={volunteerProfile?.support_needs ?? null}
-              emptyText="No support preferences added yet."
-            />
-
-            {!simpleView ? (
-              <div className="profile-summary-chip-list">
-                <span className="profile-summary-chip">
-                  {volunteerProfile?.share_accessibility_needs
-                    ? "Can share with organisations"
-                    : "Private for now"}
-                </span>
-
-                <span className="profile-summary-chip">
-                  {volunteerProfile?.wants_wellbeing_support
-                    ? "Wellbeing reminders wanted"
-                    : "No wellbeing reminders"}
-                </span>
-              </div>
-            ) : null}
-          </ProfileSection>
-
-          <ProfileSection
-            icon="📅"
-            label="Availability"
-            title={simpleView ? "When you can help" : "When volunteering might work"}
-            href="/onboarding/volunteer/availability"
-          >
-            <TextSummary
-              value={volunteerProfile?.availability_notes ?? null}
-              emptyText="No availability added yet."
-            />
-
-            <p className="dashboard-muted-action">
-              Contact preferences now have their own Contact options card.
-            </p>
-          </ProfileSection>
-
-          <article className="info-card dashboard-pathway-card profile-summary-card">
-            <div
-              className="dashboard-card-icon profile-summary-icon"
-              aria-hidden="true"
-            >
-              {avatarIcon}
             </div>
 
-            <div className="dashboard-card-copy profile-summary-copy">
-              <div className="profile-summary-main">
-                <p className="dashboard-card-label">App settings</p>
-                <h2>Personalise my app</h2>
-                <div className="profile-section-body">
-                  <p>
-                    {simpleView
-                      ? "Change how your app looks and feels."
-                      : "Choose your view mode, colour theme, text size, avatar and Listen preference."}
-                  </p>
-                </div>
-              </div>
+            <fieldset className="contact-choice-section">
+              <legend className="sr-only">Preferred contact method</legend>
 
-              <Link href="/settings/personalise" className="dashboard-card-action-pill">
-                Open settings
+              <div className="contact-choice-grid">
+                {contactOptions.map((option) => (
+                  <label key={option.value} className="contact-choice-card">
+                    <input
+                      type="radio"
+                      name="preferred_contact_method"
+                      value={option.value}
+                      defaultChecked={preferredContactMethod === option.value}
+                    />
+
+                    <span className="contact-choice-icon" aria-hidden="true">
+                      {option.icon}
+                    </span>
+
+                    <span className="contact-choice-copy">
+                      <span className="contact-choice-title">
+                        {option.label}
+                      </span>
+                      {!simpleView ? (
+                        <span className="contact-choice-description">
+                          {option.helpText}
+                        </span>
+                      ) : null}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+
+            <label className="field-label contact-phone-field">
+              <span className="field-label-row">
+                <span className="field-label-icon" aria-hidden="true">
+                  📱
+                </span>
+                <span>Phone or text number</span>
+              </span>
+              <input
+                name="phone_number"
+                type="tel"
+                inputMode="tel"
+                autoComplete="tel"
+                placeholder="Optional"
+                defaultValue={volunteerProfile?.phone_number || ""}
+              />
+            </label>
+
+            <p className="contact-privacy-note">
+              <span aria-hidden="true">💛</span>
+              <span>
+                You can leave this blank. It is only used to help organisations
+                contact you after you choose to express interest in a role.
+              </span>
+            </p>
+
+            <div className="contact-actions">
+              <Link href="/profile" className="secondary-button">
+                <span className="dashboard-button-inner">
+                  <span aria-hidden="true">←</span>
+                  <span>Cancel</span>
+                </span>
               </Link>
+
+              <button type="submit" className="primary-button">
+                <span className="button-balanced-inner">
+                  <span aria-hidden="true">✅</span>
+                  <span>Save contact options</span>
+                </span>
+              </button>
             </div>
-          </article>
-
-          {!simpleView ? (
-            <article className="info-card dashboard-pathway-card profile-summary-card">
-              <div
-                className="dashboard-card-icon profile-summary-icon"
-                aria-hidden="true"
-              >
-                🔎
-              </div>
-
-              <div className="dashboard-card-copy profile-summary-copy">
-                <div className="profile-summary-main">
-                  <p className="dashboard-card-label">Matching</p>
-                  <h2>Best roles for me</h2>
-                  <div className="profile-section-body">
-                    <p>
-                      Your profile helps suggest inclusive volunteering
-                      opportunities that match your goals, interests and skills.
-                    </p>
-                  </div>
-                </div>
-
-                <Link href="/opportunities" className="dashboard-card-action-pill">
-                  See best roles
-                </Link>
-              </div>
-            </article>
-          ) : null}
-        </section>
+          </section>
+        </form>
       </section>
 
       <style>{`
-        .dashboard-grid,
-        .profile-summary-grid {
-          align-items: stretch;
+        .volunteer-contact-page,
+        .volunteer-contact-page * {
+          box-sizing: border-box;
         }
 
-        .dashboard-pathway-card,
-        .profile-summary-card {
-          height: 100%;
-          align-items: stretch;
-        }
-
-        .profile-summary-card {
-          min-height: 244px;
-        }
-
-        .dashboard-card-copy,
-        .profile-summary-copy {
-          display: flex;
-          min-height: 100%;
-          flex-direction: column;
-          justify-content: space-between;
-          gap: 18px;
-        }
-
-        .profile-summary-main {
+        .contact-form {
           display: grid;
-          gap: 10px;
+          gap: 22px;
         }
 
-        .profile-summary-main h2 {
-          margin-bottom: 0;
-        }
-
-        .profile-section-body {
+        .contact-panel {
           display: grid;
-          gap: 10px;
-          color: #5d6677;
-          line-height: 1.5;
-          overflow-wrap: anywhere;
-          word-break: normal;
+          gap: 22px;
+          padding: 24px;
+          border: 1px solid rgba(108, 92, 160, 0.14);
+          border-radius: 30px;
+          background: rgba(255, 255, 255, 0.72);
+          box-shadow: 0 18px 42px rgba(33, 56, 48, 0.07);
         }
 
-        .profile-section-body p {
-          margin: 0;
+        .contact-panel-heading {
+          display: grid;
+          grid-template-columns: auto 1fr;
+          gap: 14px;
+          align-items: start;
         }
 
-        .profile-summary-action {
-          margin-top: auto !important;
-        }
-
-        .dashboard-card-action-pill {
+        .contact-panel-icon {
           display: inline-flex;
-          width: fit-content;
-          max-width: 100%;
-          min-height: 42px;
+          width: 62px;
+          height: 62px;
           align-items: center;
           justify-content: center;
-          margin-top: auto;
-          padding: 10px 16px;
-          border: 1px solid rgba(83, 111, 99, 0.2);
+          border-radius: 22px;
+          background: rgba(244, 255, 249, 0.9);
+          box-shadow: inset 0 0 0 1px rgba(83, 111, 99, 0.12);
+          font-size: 1.9rem;
+        }
+
+        .contact-panel-heading h2 {
+          margin: 0;
+          color: #24352f;
+          font-size: 1.35rem;
+          font-weight: 950;
+          line-height: 1.1;
+        }
+
+        .contact-panel-heading p {
+          margin: 7px 0 0;
+          color: #5d6677;
+          font-weight: 750;
+          line-height: 1.45;
+        }
+
+        .contact-choice-section {
+          min-width: 0;
+          margin: 0;
+          padding: 0;
+          border: 0;
+        }
+
+        .sr-only {
+          position: absolute;
+          width: 1px;
+          height: 1px;
+          overflow: hidden;
+          clip: rect(0, 0, 0, 0);
+          white-space: nowrap;
+        }
+
+        .contact-choice-grid {
+          display: grid;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 14px;
+        }
+
+        .contact-choice-card {
+          position: relative;
+          display: grid;
+          min-height: 162px;
+          grid-template-columns: auto 1fr;
+          gap: 16px;
+          align-items: start;
+          border: 1px solid rgba(108, 92, 160, 0.14);
+          border-radius: 24px;
+          background: rgba(255, 255, 255, 0.82);
+          box-shadow: 0 18px 42px rgba(33, 56, 48, 0.08);
+          cursor: pointer;
+          padding: 18px;
+          transition:
+            transform 160ms ease,
+            border-color 160ms ease,
+            background 160ms ease,
+            box-shadow 160ms ease;
+        }
+
+        .contact-choice-card:hover {
+          transform: translateY(-1px);
+          border-color: rgba(83, 111, 99, 0.28);
+          background: rgba(255, 255, 255, 0.96);
+        }
+
+        .contact-choice-card input {
+          position: absolute;
+          inline-size: 1px;
+          block-size: 1px;
+          opacity: 0;
+          pointer-events: none;
+        }
+
+        .contact-choice-card:has(input:checked) {
+          border-color: rgba(83, 111, 99, 0.58);
+          background: rgba(244, 255, 249, 0.98);
+          box-shadow:
+            0 18px 42px rgba(33, 56, 48, 0.1),
+            0 0 0 4px rgba(83, 111, 99, 0.1);
+        }
+
+        .contact-choice-card:has(input:checked)::after {
+          content: "Selected";
+          position: absolute;
+          top: 12px;
+          right: 12px;
+          display: inline-flex;
+          min-height: 28px;
+          align-items: center;
+          justify-content: center;
+          padding: 6px 9px;
           border-radius: 999px;
-          background: rgba(255, 255, 255, 0.88);
-          color: #536f63;
-          font-size: 0.94rem;
-          font-weight: 900;
-          line-height: 1.15;
-          text-decoration: none;
-          box-shadow: 0 10px 24px rgba(33, 56, 48, 0.07);
+          background: rgba(83, 111, 99, 0.12);
+          color: #315f48;
+          font-size: 0.75rem;
+          font-weight: 950;
+          line-height: 1;
         }
 
-        .dashboard-card-action-pill:hover {
-          border-color: rgba(83, 111, 99, 0.34);
-          background: rgba(244, 255, 249, 0.96);
+        .contact-choice-icon {
+          display: inline-flex;
+          width: 64px;
+          height: 64px;
+          align-items: center;
+          justify-content: center;
+          border-radius: 22px;
+          background: rgba(248, 248, 252, 0.94);
+          box-shadow: inset 0 0 0 1px rgba(108, 92, 160, 0.1);
+          font-size: 2rem;
         }
 
-        .profile-summary-chip-list {
+        .contact-choice-copy {
+          display: grid;
+          gap: 8px;
+          padding-top: 8px;
+          padding-right: 76px;
+        }
+
+        .contact-choice-title {
+          color: #24352f;
+          font-size: 1.08rem;
+          font-weight: 950;
+          line-height: 1.2;
+        }
+
+        .contact-choice-description {
+          color: #5d6677;
+          font-weight: 700;
+          line-height: 1.45;
+        }
+
+        .contact-phone-field {
+          max-width: 38rem;
+        }
+
+        .contact-privacy-note {
+          display: grid;
+          grid-template-columns: auto 1fr;
+          gap: 10px;
+          align-items: start;
+          margin: 0;
+          padding: 14px 16px;
+          border: 1px solid rgba(191, 146, 72, 0.18);
+          border-radius: 20px;
+          background: rgba(255, 250, 241, 0.86);
+          color: #6d5b38;
+          font-size: 0.96rem;
+          font-weight: 800;
+          line-height: 1.45;
+        }
+
+        .contact-actions {
           display: flex;
           flex-wrap: wrap;
-          gap: 10px;
-          align-items: flex-start;
-        }
-
-        .profile-summary-chip {
-          display: inline-flex;
+          gap: 14px;
           align-items: center;
-          width: fit-content;
-          max-width: 100%;
-          padding: 9px 12px;
-          border: 1px solid rgba(108, 92, 160, 0.16);
-          border-radius: 999px;
-          background: rgba(255, 255, 255, 0.82);
-          color: #536f63;
-          font-size: 0.88rem;
-          font-weight: 800;
-          line-height: 1.2;
-          box-shadow: 0 10px 22px rgba(33, 56, 48, 0.06);
-          white-space: normal;
-        }
-
-        .education-summary-list {
-          display: grid;
-          gap: 9px;
-        }
-
-        .education-summary-entry {
-          display: grid;
-          gap: 3px;
-          padding: 10px 12px;
-          border: 1px solid rgba(143, 178, 158, 0.18);
-          border-radius: 16px;
-          background: rgba(255, 255, 255, 0.74);
-        }
-
-        .education-summary-entry strong {
-          color: #315f48;
-          overflow-wrap: anywhere;
-        }
-
-        .education-summary-entry span {
-          color: #60706a;
-          font-size: 0.9rem;
-          font-weight: 750;
-          line-height: 1.35;
-          overflow-wrap: anywhere;
+          justify-content: space-between;
         }
 
         .preference-text-large {
@@ -830,29 +622,33 @@ export default async function ProfilePage() {
         }
 
         .preference-text-large .dashboard-lead,
-        .preference-text-large .profile-section-body,
-        .preference-text-large .dashboard-progress-note {
+        .preference-text-large .dashboard-progress-note,
+        .preference-text-large .contact-choice-description,
+        .preference-text-large .contact-panel-heading p,
+        .preference-text-large .contact-privacy-note {
           font-size: 1.04em;
         }
 
-        .preference-text-large .dashboard-title {
-          letter-spacing: -0.035em;
+        .preference-view-simple .contact-choice-grid {
+          grid-template-columns: repeat(4, minmax(0, 1fr));
         }
 
-        .preference-view-simple .dashboard-grid {
-          gap: 18px;
+        .preference-view-simple .contact-choice-card {
+          min-height: 142px;
+          grid-template-columns: 1fr;
+          justify-items: start;
+          gap: 12px;
         }
 
-        .preference-view-simple .profile-summary-card {
-          min-height: 210px;
+        .preference-view-simple .contact-choice-icon {
+          width: 68px;
+          height: 68px;
+          font-size: 2.15rem;
         }
 
-        .preference-view-simple .dashboard-card-icon {
-          font-size: 2rem;
-        }
-
-        .preference-view-detailed .profile-summary-card {
-          min-height: 260px;
+        .preference-view-simple .contact-choice-copy {
+          padding-top: 0;
+          padding-right: 0;
         }
 
         .preference-theme-calm_green {
@@ -862,13 +658,15 @@ export default async function ProfilePage() {
         }
 
         .preference-theme-calm_green .dashboard-welcome-card,
-        .preference-theme-calm_green .info-card,
-        .preference-theme-calm_green .dashboard-progress-card {
+        .preference-theme-calm_green .dashboard-progress-card,
+        .preference-theme-calm_green .contact-panel,
+        .preference-theme-calm_green .contact-choice-card {
           border-color: rgba(83, 111, 99, 0.2);
         }
 
-        .preference-theme-calm_green .dashboard-card-icon,
-        .preference-theme-calm_green .dashboard-progress-icon {
+        .preference-theme-calm_green .dashboard-progress-icon,
+        .preference-theme-calm_green .contact-panel-icon,
+        .preference-theme-calm_green .contact-choice-icon {
           background: rgba(226, 255, 239, 0.86);
         }
 
@@ -879,13 +677,15 @@ export default async function ProfilePage() {
         }
 
         .preference-theme-soft_blue .dashboard-welcome-card,
-        .preference-theme-soft_blue .info-card,
-        .preference-theme-soft_blue .dashboard-progress-card {
+        .preference-theme-soft_blue .dashboard-progress-card,
+        .preference-theme-soft_blue .contact-panel,
+        .preference-theme-soft_blue .contact-choice-card {
           border-color: rgba(74, 112, 160, 0.2);
         }
 
-        .preference-theme-soft_blue .dashboard-card-icon,
-        .preference-theme-soft_blue .dashboard-progress-icon {
+        .preference-theme-soft_blue .dashboard-progress-icon,
+        .preference-theme-soft_blue .contact-panel-icon,
+        .preference-theme-soft_blue .contact-choice-icon {
           background: rgba(231, 244, 255, 0.92);
         }
 
@@ -896,13 +696,15 @@ export default async function ProfilePage() {
         }
 
         .preference-theme-warm_peach .dashboard-welcome-card,
-        .preference-theme-warm_peach .info-card,
-        .preference-theme-warm_peach .dashboard-progress-card {
+        .preference-theme-warm_peach .dashboard-progress-card,
+        .preference-theme-warm_peach .contact-panel,
+        .preference-theme-warm_peach .contact-choice-card {
           border-color: rgba(190, 118, 76, 0.2);
         }
 
-        .preference-theme-warm_peach .dashboard-card-icon,
-        .preference-theme-warm_peach .dashboard-progress-icon {
+        .preference-theme-warm_peach .dashboard-progress-icon,
+        .preference-theme-warm_peach .contact-panel-icon,
+        .preference-theme-warm_peach .contact-choice-icon {
           background: rgba(255, 239, 226, 0.92);
         }
 
@@ -911,38 +713,40 @@ export default async function ProfilePage() {
         }
 
         .preference-theme-high_contrast .dashboard-welcome-card,
-        .preference-theme-high_contrast .info-card,
-        .preference-theme-high_contrast .dashboard-progress-card {
+        .preference-theme-high_contrast .dashboard-progress-card,
+        .preference-theme-high_contrast .contact-panel,
+        .preference-theme-high_contrast .contact-choice-card,
+        .preference-theme-high_contrast .contact-privacy-note {
           border: 2px solid #1f2937;
           background: rgba(255, 255, 255, 0.98);
         }
 
         .preference-theme-high_contrast .dashboard-title,
-        .preference-theme-high_contrast .dashboard-card-copy h2,
         .preference-theme-high_contrast .dashboard-progress-card h2,
-        .preference-theme-high_contrast .education-summary-entry strong {
+        .preference-theme-high_contrast .contact-panel-heading h2,
+        .preference-theme-high_contrast .contact-choice-title {
           color: #111827;
         }
 
         .preference-theme-high_contrast .dashboard-lead,
-        .preference-theme-high_contrast .profile-section-body,
         .preference-theme-high_contrast .dashboard-progress-note,
-        .preference-theme-high_contrast .education-summary-entry span {
+        .preference-theme-high_contrast .contact-panel-heading p,
+        .preference-theme-high_contrast .contact-choice-description,
+        .preference-theme-high_contrast .contact-privacy-note {
           color: #1f2937;
         }
 
-        .preference-theme-high_contrast .dashboard-card-icon,
-        .preference-theme-high_contrast .dashboard-progress-icon {
+        .preference-theme-high_contrast .dashboard-progress-icon,
+        .preference-theme-high_contrast .contact-panel-icon,
+        .preference-theme-high_contrast .contact-choice-icon {
           border: 2px solid #1f2937;
           background: #ffffff;
           color: #111827;
         }
 
-        .preference-theme-high_contrast .dashboard-card-action-pill,
-        .preference-theme-high_contrast .education-summary-entry {
-          border: 2px solid #1f2937;
-          background: #ffffff;
-          color: #111827;
+        .preference-theme-high_contrast .contact-choice-card:has(input:checked) {
+          border-color: #111827;
+          box-shadow: 0 0 0 4px rgba(17, 24, 39, 0.14);
         }
 
         .preference-theme-neon_arcade {
@@ -954,8 +758,9 @@ export default async function ProfilePage() {
 
         .preference-theme-neon_arcade .dashboard-welcome-card,
         .preference-theme-neon_arcade .dashboard-progress-card,
-        .preference-theme-neon_arcade .info-card,
-        .preference-theme-neon_arcade .education-summary-entry {
+        .preference-theme-neon_arcade .contact-panel,
+        .preference-theme-neon_arcade .contact-choice-card,
+        .preference-theme-neon_arcade .contact-privacy-note {
           border-color: rgba(34, 211, 238, 0.42);
           background: rgba(15, 23, 42, 0.86);
           box-shadow:
@@ -964,69 +769,103 @@ export default async function ProfilePage() {
         }
 
         .preference-theme-neon_arcade .dashboard-title,
-        .preference-theme-neon_arcade .dashboard-card-copy h2,
         .preference-theme-neon_arcade .dashboard-progress-card h2,
         .preference-theme-neon_arcade .dashboard-progress-note strong,
-        .preference-theme-neon_arcade .education-summary-entry strong,
-        .preference-theme-neon_arcade .profile-section-body strong {
+        .preference-theme-neon_arcade .contact-panel-heading h2,
+        .preference-theme-neon_arcade .contact-choice-title {
           color: #e0f2fe;
         }
 
         .preference-theme-neon_arcade .dashboard-kicker,
         .preference-theme-neon_arcade .dashboard-lead,
-        .preference-theme-neon_arcade .dashboard-card-label,
-        .preference-theme-neon_arcade .profile-section-body,
-        .preference-theme-neon_arcade .profile-section-body p,
         .preference-theme-neon_arcade .dashboard-progress-note,
-        .preference-theme-neon_arcade .education-summary-entry span,
-        .preference-theme-neon_arcade .dashboard-muted-action {
+        .preference-theme-neon_arcade .contact-panel-heading p,
+        .preference-theme-neon_arcade .contact-choice-description,
+        .preference-theme-neon_arcade .contact-privacy-note {
           color: #dbeafe;
         }
 
-        .preference-theme-neon_arcade .dashboard-card-icon,
-        .preference-theme-neon_arcade .dashboard-progress-icon {
+        .preference-theme-neon_arcade .dashboard-progress-icon,
+        .preference-theme-neon_arcade .contact-panel-icon,
+        .preference-theme-neon_arcade .contact-choice-icon {
           border: 1px solid rgba(34, 211, 238, 0.42);
           background: rgba(34, 211, 238, 0.12);
           color: #a7f3d0;
           box-shadow: inset 0 0 0 1px rgba(217, 70, 239, 0.14);
         }
 
-        .preference-theme-neon_arcade .profile-summary-chip,
-        .preference-theme-neon_arcade .dashboard-card-action-pill {
-          border-color: rgba(34, 211, 238, 0.42);
-          background: rgba(34, 211, 238, 0.12);
-          color: #a7f3d0;
-          box-shadow:
-            0 10px 24px rgba(0, 0, 0, 0.24),
-            inset 0 0 0 1px rgba(217, 70, 239, 0.14);
+        .preference-theme-neon_arcade .contact-choice-card:hover {
+          border-color: rgba(167, 243, 208, 0.58);
+          background: rgba(30, 41, 59, 0.92);
         }
 
-        .preference-theme-neon_arcade .dashboard-card-action-pill:hover {
+        .preference-theme-neon_arcade .contact-choice-card:has(input:checked) {
           border-color: rgba(167, 243, 208, 0.76);
-          background: rgba(34, 211, 238, 0.18);
+          background: rgba(30, 41, 59, 0.96);
+          box-shadow:
+            0 20px 54px rgba(0, 0, 0, 0.34),
+            0 0 0 4px rgba(34, 211, 238, 0.16);
+        }
+
+        .preference-theme-neon_arcade .contact-choice-card:has(input:checked)::after {
+          background: rgba(34, 211, 238, 0.16);
+          color: #a7f3d0;
+          border: 1px solid rgba(34, 211, 238, 0.3);
+        }
+
+        @media (max-width: 1200px) {
+          .contact-choice-grid,
+          .preference-view-simple .contact-choice-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
         }
 
         @media (max-width: 640px) {
-          .profile-summary-card,
-          .preference-view-simple .profile-summary-card,
-          .preference-view-detailed .profile-summary-card {
+          .contact-panel {
+            padding: 18px;
+            border-radius: 26px;
+          }
+
+          .contact-panel-heading {
+            grid-template-columns: 1fr;
+          }
+
+          .contact-choice-grid,
+          .preference-view-simple .contact-choice-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .contact-choice-card,
+          .preference-view-simple .contact-choice-card {
             min-height: 0;
+            grid-template-columns: 1fr;
           }
 
-          .profile-summary-copy {
-            gap: 14px;
+          .contact-choice-icon,
+          .preference-view-simple .contact-choice-icon {
+            width: 58px;
+            height: 58px;
+            font-size: 1.9rem;
           }
 
-          .profile-summary-chip-list {
-            gap: 8px;
+          .contact-choice-copy,
+          .preference-view-simple .contact-choice-copy {
+            padding-top: 0;
+            padding-right: 0;
           }
 
-          .profile-summary-chip {
-            border-radius: 18px;
-            font-size: 0.86rem;
+          .contact-choice-card:has(input:checked)::after {
+            top: 14px;
+            right: 14px;
           }
 
-          .dashboard-card-action-pill {
+          .contact-actions {
+            align-items: stretch;
+            flex-direction: column-reverse;
+          }
+
+          .contact-actions .primary-button,
+          .contact-actions .secondary-button {
             width: 100%;
           }
 
