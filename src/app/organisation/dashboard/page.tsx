@@ -47,6 +47,15 @@ type StatCardProps = {
   helper: string;
 };
 
+type ReadinessItemProps = {
+  icon: string;
+  title: string;
+  description: string;
+  href: string;
+  action: string;
+  isReady: boolean;
+};
+
 function normaliseUserType(value: string | null | undefined) {
   return value?.trim().toLowerCase() === "organisation"
     ? "organisation"
@@ -77,7 +86,7 @@ function OrganisationCard({
   title,
   description,
   action,
-  muted = false
+  muted = false,
 }: OrganisationCardProps) {
   const content = (
     <>
@@ -136,11 +145,50 @@ function StatCard({ icon, label, value, helper }: StatCardProps) {
   );
 }
 
+function ReadinessItem({
+  icon,
+  title,
+  description,
+  href,
+  action,
+  isReady,
+}: ReadinessItemProps) {
+  return (
+    <article
+      className={
+        isReady
+          ? "organisation-readiness-item organisation-readiness-ready"
+          : "organisation-readiness-item organisation-readiness-action"
+      }
+    >
+      <div className="organisation-readiness-item-icon" aria-hidden="true">
+        {icon}
+      </div>
+
+      <div className="organisation-readiness-item-copy">
+        <div className="organisation-readiness-item-heading">
+          <h3>{title}</h3>
+          <span>
+            <span aria-hidden="true">{isReady ? "✅" : "⚠️"}</span>
+            {isReady ? "Ready" : "Needs action"}
+          </span>
+        </div>
+
+        <p>{description}</p>
+
+        <Link href={href} className="organisation-readiness-action-link">
+          {action}
+        </Link>
+      </div>
+    </article>
+  );
+}
+
 export default async function OrganisationDashboardPage() {
   const supabase = await createClient();
 
   const {
-    data: { user }
+    data: { user },
   } = await supabase.auth.getUser();
 
   if (!user) {
@@ -190,39 +238,39 @@ export default async function OrganisationDashboardPage() {
   const reviewRows = (reviews as ReviewSummary[] | null) ?? [];
 
   const publishedCount = opportunityRows.filter(
-    (opportunity) => opportunity.status === "published"
+    (opportunity) => opportunity.status === "published",
   ).length;
 
   const draftCount = opportunityRows.filter(
-    (opportunity) => opportunity.status === "draft"
+    (opportunity) => opportunity.status === "draft",
   ).length;
 
   const closedRoleCount = opportunityRows.filter(
-    (opportunity) => opportunity.status === "closed"
+    (opportunity) => opportunity.status === "closed",
   ).length;
 
   const newInterestCount = interestRows.filter(
-    (interest) => normaliseInterestStatus(interest.status) === "new"
+    (interest) => normaliseInterestStatus(interest.status) === "new",
   ).length;
 
   const contactedInterestCount = interestRows.filter(
-    (interest) => normaliseInterestStatus(interest.status) === "contacted"
+    (interest) => normaliseInterestStatus(interest.status) === "contacted",
   ).length;
 
   const acceptedInterestCount = interestRows.filter(
-    (interest) => normaliseInterestStatus(interest.status) === "accepted"
+    (interest) => normaliseInterestStatus(interest.status) === "accepted",
   ).length;
 
   const closedInterestCount = interestRows.filter(
-    (interest) => normaliseInterestStatus(interest.status) === "closed"
+    (interest) => normaliseInterestStatus(interest.status) === "closed",
   ).length;
 
   const sharedReviewCount = reviewRows.filter(
-    (review) => review.status === "shared"
+    (review) => review.status === "shared",
   ).length;
 
   const draftReviewCount = reviewRows.filter(
-    (review) => review.status === "draft"
+    (review) => review.status === "draft",
   ).length;
 
   const displayName =
@@ -243,8 +291,39 @@ export default async function OrganisationDashboardPage() {
   const totalRoleCount = opportunityRows.length;
   const totalInterestCount = interestRows.length;
 
+  const hasOrganisationIdentity = Boolean(
+    organisationProfile?.organisation_name?.trim() ||
+      profile?.full_name?.trim() ||
+      emailAddress,
+  );
+  const hasAnyRole = totalRoleCount > 0;
+  const hasPublishedRole = publishedCount > 0;
+  const hasInterestFlow = totalInterestCount > 0;
+  const hasContactFlow =
+    contactedInterestCount > 0 ||
+    acceptedInterestCount > 0 ||
+    closedInterestCount > 0;
+  const hasAcceptedVolunteer = acceptedInterestCount > 0;
+  const hasPathwayEvidence = sharedReviewCount > 0;
+
+  const readinessItems = [
+    profileCompleted,
+    hasAnyRole,
+    hasPublishedRole,
+    true,
+    hasContactFlow,
+    hasAcceptedVolunteer,
+    hasPathwayEvidence,
+  ];
+
+  const readinessReadyCount = readinessItems.filter(Boolean).length;
+  const readinessTotalCount = readinessItems.length;
+  const readinessPercent = Math.round(
+    (readinessReadyCount / readinessTotalCount) * 100,
+  );
+
   const listenText =
-    "You are on the organisation dashboard. This is your workspace for creating volunteering roles, reviewing volunteer interest, accepting or contacting volunteers, and adding positive skills evidence. First, check the compact Workspace status card. Below that, the summary cards show role, interest and skills review counts. Use Create role to make a new inclusive volunteering role. Use Interest inbox to review volunteers who clicked I’m interested. Use Roles and reviews to edit roles and open volunteers and reviews for each role. Help using the app is for getting support if you are stuck, something is not working, or you want to report a problem with SO Volunteering.";
+    "You are on the organisation dashboard. This is your workspace for creating volunteering roles, reviewing volunteer interest, accepting or contacting volunteers, and adding positive skills evidence. First, check the Workspace status card. Then use the Organisation readiness checklist to see what is ready and what needs action. Below that, the summary cards show role, interest and skills review counts. Use Create role to make a new inclusive volunteering role. Use Interest inbox to review volunteers who clicked I’m interested. Use Roles and reviews to edit roles and open volunteers and reviews for each role. Help using the app is for getting support if you are stuck, something is not working, or you want to report a problem with SO Volunteering.";
 
   return (
     <main className="dashboard-bg organisation-dashboard-page">
@@ -364,10 +443,16 @@ export default async function OrganisationDashboardPage() {
               <div>
                 <h2>Workspace status</h2>
                 <p>
-                  Profile:{" "}
-                  <strong>{profileCompleted ? "Complete" : "Needs setup"}</strong>
+                  Readiness:{" "}
+                  <strong>
+                    {readinessReadyCount}/{readinessTotalCount} ready
+                  </strong>
                 </p>
               </div>
+            </div>
+
+            <div className="organisation-readiness-meter" aria-hidden="true">
+              <span style={{ width: `${readinessPercent}%` }} />
             </div>
 
             {emailAddress ? (
@@ -382,6 +467,10 @@ export default async function OrganisationDashboardPage() {
 
             <div className="organisation-compact-status-list">
               <p className="dashboard-progress-note organisation-status-note">
+                Profile:{" "}
+                <strong>{profileCompleted ? "Complete" : "Needs setup"}</strong>
+              </p>
+              <p className="dashboard-progress-note organisation-status-note">
                 Roles: <strong>{totalRoleCount}</strong>
               </p>
               <p className="dashboard-progress-note organisation-status-note">
@@ -395,6 +484,129 @@ export default async function OrganisationDashboardPage() {
               </p>
             </div>
           </aside>
+        </section>
+
+        <section
+          className="organisation-readiness-panel"
+          aria-labelledby="organisation-readiness-title"
+        >
+          <div className="organisation-readiness-heading">
+            <span className="organisation-readiness-icon" aria-hidden="true">
+              ✅
+            </span>
+
+            <div>
+              <p className="dashboard-kicker">Organisation readiness</p>
+              <h2 id="organisation-readiness-title">
+                Set up your volunteer workflow
+              </h2>
+              <p>
+                Use this checklist to make sure your organisation is ready to
+                publish roles, review interest, contact volunteers kindly and add
+                positive pathway evidence.
+              </p>
+            </div>
+
+            <div className="organisation-readiness-score" aria-label="Readiness score">
+              <strong>{readinessPercent}%</strong>
+              <span>
+                {readinessReadyCount}/{readinessTotalCount} ready
+              </span>
+            </div>
+          </div>
+
+          <div className="organisation-readiness-list">
+            <ReadinessItem
+              icon="🏢"
+              title="Organisation profile"
+              description={
+                profileCompleted
+                  ? "Your organisation profile is marked as complete."
+                  : hasOrganisationIdentity
+                    ? "Your organisation has basic details. Finish the profile so volunteers understand who you are."
+                    : "Add your organisation name, contact details and support approach."
+              }
+              href="/organisation/profile"
+              action={profileCompleted ? "Review profile" : "Complete profile"}
+              isReady={profileCompleted}
+            />
+
+            <ReadinessItem
+              icon="📣"
+              title="First role created"
+              description={
+                hasAnyRole
+                  ? "You have started creating volunteering roles."
+                  : "Create your first plain-language volunteering role."
+              }
+              href={hasAnyRole ? "/organisation/opportunities" : "/organisation/opportunities/new"}
+              action={hasAnyRole ? "View roles" : "Create first role"}
+              isReady={hasAnyRole}
+            />
+
+            <ReadinessItem
+              icon="🌍"
+              title="Published role live"
+              description={
+                hasPublishedRole
+                  ? "At least one role is published and ready for volunteers."
+                  : "Publish a role so volunteers can find it and express interest."
+              }
+              href="/organisation/opportunities"
+              action={hasPublishedRole ? "View published roles" : "Open roles"}
+              isReady={hasPublishedRole}
+            />
+
+            <ReadinessItem
+              icon="📬"
+              title="Interest inbox ready"
+              description="The inbox is available for reviewing volunteer interest and profile snapshots."
+              href="/organisation/interests"
+              action="Open interest inbox"
+              isReady={true}
+            />
+
+            <ReadinessItem
+              icon="💬"
+              title="Contact flow tested"
+              description={
+                hasContactFlow
+                  ? "At least one volunteer has moved beyond new interest."
+                  : hasInterestFlow
+                    ? "Review a volunteer and mark them as Contacted, Accepted or Closed."
+                    : "Once a volunteer expresses interest, use the contact helper and update their status."
+              }
+              href="/organisation/interests"
+              action="Review interest"
+              isReady={hasContactFlow}
+            />
+
+            <ReadinessItem
+              icon="✅"
+              title="Accepted volunteer"
+              description={
+                hasAcceptedVolunteer
+                  ? "At least one volunteer has been accepted and is ready to move forward."
+                  : "Accepted volunteers unlock the clearest pathway next-step guidance."
+              }
+              href="/organisation/interests"
+              action="Open interests"
+              isReady={hasAcceptedVolunteer}
+            />
+
+            <ReadinessItem
+              icon="⭐"
+              title="Positive pathway evidence"
+              description={
+                hasPathwayEvidence
+                  ? "You have shared positive skills evidence for volunteers."
+                  : "After a volunteer completes a task, add a positive skills review."
+              }
+              href="/organisation/opportunities"
+              action={hasPathwayEvidence ? "View roles & reviews" : "Open reviews"}
+              isReady={hasPathwayEvidence}
+            />
+          </div>
         </section>
 
         <section
@@ -627,13 +839,16 @@ export default async function OrganisationDashboardPage() {
         }
 
         .organisation-hero-card,
-        .organisation-status-card {
+        .organisation-status-card,
+        .organisation-readiness-panel {
           overflow: hidden;
         }
 
         .organisation-hero-copy,
         .organisation-status-card,
-        .organisation-status-card * {
+        .organisation-status-card *,
+        .organisation-readiness-panel,
+        .organisation-readiness-panel * {
           min-width: 0;
         }
 
@@ -646,6 +861,22 @@ export default async function OrganisationDashboardPage() {
           word-break: break-word;
         }
 
+        .organisation-readiness-meter {
+          width: 100%;
+          height: 11px;
+          margin: 14px 0 12px;
+          overflow: hidden;
+          border-radius: 999px;
+          background: rgba(108, 92, 160, 0.12);
+        }
+
+        .organisation-readiness-meter span {
+          display: block;
+          height: 100%;
+          border-radius: inherit;
+          background: linear-gradient(90deg, #8fb29e, #4f8d68);
+        }
+
         .organisation-compact-status-list {
           display: grid;
           grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -655,6 +886,190 @@ export default async function OrganisationDashboardPage() {
 
         .organisation-compact-status-list .organisation-status-note {
           margin: 0;
+        }
+
+        .organisation-readiness-panel {
+          display: grid;
+          gap: 18px;
+          padding: clamp(18px, 4vw, 24px);
+          border: 1px solid rgba(83, 111, 99, 0.2);
+          border-radius: 30px;
+          background:
+            radial-gradient(circle at top left, rgba(200, 243, 221, 0.46), transparent 35%),
+            linear-gradient(135deg, rgba(244, 255, 249, 0.88), rgba(255, 255, 255, 0.92));
+          box-shadow: 0 18px 48px rgba(33, 56, 48, 0.08);
+        }
+
+        .organisation-readiness-heading {
+          display: grid;
+          grid-template-columns: auto 1fr auto;
+          gap: 14px;
+          align-items: start;
+        }
+
+        .organisation-readiness-icon {
+          display: inline-flex;
+          width: 62px;
+          height: 62px;
+          align-items: center;
+          justify-content: center;
+          border-radius: 22px;
+          background: rgba(143, 178, 158, 0.18);
+          box-shadow: inset 0 0 0 1px rgba(83, 111, 99, 0.12);
+          font-size: 1.85rem;
+        }
+
+        .organisation-readiness-heading h2 {
+          margin: 0 0 8px;
+          color: #315f48;
+          font-size: clamp(1.35rem, 3vw, 1.8rem);
+          font-weight: 950;
+          letter-spacing: -0.04em;
+          line-height: 1.1;
+        }
+
+        .organisation-readiness-heading p {
+          margin: 0;
+          color: #60706a;
+          font-weight: 750;
+          line-height: 1.5;
+        }
+
+        .organisation-readiness-score {
+          display: grid;
+          gap: 3px;
+          min-width: 116px;
+          padding: 13px 14px;
+          border: 1px solid rgba(83, 111, 99, 0.18);
+          border-radius: 20px;
+          background: rgba(255, 255, 255, 0.8);
+          text-align: center;
+        }
+
+        .organisation-readiness-score strong {
+          color: #315f48;
+          font-size: 1.8rem;
+          font-weight: 950;
+          line-height: 1;
+        }
+
+        .organisation-readiness-score span {
+          color: #60706a;
+          font-size: 0.8rem;
+          font-weight: 850;
+          line-height: 1.2;
+        }
+
+        .organisation-readiness-list {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 12px;
+        }
+
+        .organisation-readiness-item {
+          display: grid;
+          grid-template-columns: auto 1fr;
+          gap: 12px;
+          align-items: start;
+          min-height: 150px;
+          padding: 15px;
+          border-radius: 22px;
+          box-shadow: 0 14px 34px rgba(33, 56, 48, 0.06);
+        }
+
+        .organisation-readiness-ready {
+          border: 1px solid rgba(34, 124, 78, 0.24);
+          background: rgba(244, 255, 249, 0.92);
+        }
+
+        .organisation-readiness-action {
+          border: 1px solid rgba(191, 146, 72, 0.24);
+          background: rgba(255, 250, 241, 0.92);
+        }
+
+        .organisation-readiness-item-icon {
+          display: inline-flex;
+          width: 48px;
+          height: 48px;
+          align-items: center;
+          justify-content: center;
+          border-radius: 18px;
+          background: rgba(255, 255, 255, 0.78);
+          box-shadow: inset 0 0 0 1px rgba(83, 111, 99, 0.1);
+          font-size: 1.45rem;
+        }
+
+        .organisation-readiness-item-copy {
+          display: grid;
+          gap: 8px;
+        }
+
+        .organisation-readiness-item-heading {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+          align-items: center;
+          justify-content: space-between;
+        }
+
+        .organisation-readiness-item-heading h3 {
+          margin: 0;
+          color: #315f48;
+          font-size: 1rem;
+          font-weight: 950;
+          line-height: 1.15;
+        }
+
+        .organisation-readiness-item-heading span {
+          display: inline-flex;
+          min-height: 28px;
+          align-items: center;
+          justify-content: center;
+          gap: 5px;
+          padding: 6px 9px;
+          border-radius: 999px;
+          background: rgba(255, 255, 255, 0.82);
+          color: #536f63;
+          font-size: 0.74rem;
+          font-weight: 950;
+          line-height: 1;
+        }
+
+        .organisation-readiness-action .organisation-readiness-item-heading span {
+          color: #8a6630;
+        }
+
+        .organisation-readiness-item-copy p {
+          margin: 0;
+          color: #60706a;
+          font-size: 0.92rem;
+          font-weight: 750;
+          line-height: 1.42;
+        }
+
+        .organisation-readiness-action-link {
+          display: inline-flex;
+          width: fit-content;
+          max-width: 100%;
+          min-height: 38px;
+          align-items: center;
+          justify-content: center;
+          margin-top: auto;
+          padding: 9px 13px;
+          border: 1px solid rgba(83, 111, 99, 0.18);
+          border-radius: 999px;
+          background: rgba(255, 255, 255, 0.88);
+          color: #536f63;
+          font-size: 0.88rem;
+          font-weight: 950;
+          line-height: 1.1;
+          text-decoration: none;
+          box-shadow: 0 10px 22px rgba(33, 56, 48, 0.06);
+        }
+
+        .organisation-readiness-action-link:hover {
+          border-color: rgba(83, 111, 99, 0.32);
+          background: rgba(244, 255, 249, 0.96);
         }
 
         .organisation-stat-grid {
@@ -805,8 +1220,18 @@ export default async function OrganisationDashboardPage() {
         }
 
         @media (max-width: 980px) {
-          .organisation-workflow-steps {
+          .organisation-workflow-steps,
+          .organisation-readiness-list {
             grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+
+          .organisation-readiness-heading {
+            grid-template-columns: auto 1fr;
+          }
+
+          .organisation-readiness-score {
+            grid-column: 1 / -1;
+            width: fit-content;
           }
         }
 
@@ -926,12 +1351,42 @@ export default async function OrganisationDashboardPage() {
             grid-template-columns: 1fr;
           }
 
-          .organisation-stat-grid {
+          .organisation-stat-grid,
+          .organisation-readiness-list {
             grid-template-columns: repeat(2, minmax(0, 1fr));
           }
 
           .organisation-stat-card {
             min-height: 112px;
+          }
+
+          .organisation-readiness-panel {
+            border-radius: 26px;
+            padding: 18px;
+          }
+
+          .organisation-readiness-heading {
+            grid-template-columns: 1fr;
+          }
+
+          .organisation-readiness-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 20px;
+          }
+
+          .organisation-readiness-score {
+            width: 100%;
+            text-align: left;
+          }
+
+          .organisation-readiness-item {
+            min-height: 0;
+            grid-template-columns: 1fr;
+          }
+
+          .organisation-readiness-action-link {
+            width: 100%;
           }
 
           .organisation-card {
@@ -969,7 +1424,8 @@ export default async function OrganisationDashboardPage() {
 
         @media (max-width: 560px) {
           .organisation-stat-grid,
-          .organisation-workflow-steps {
+          .organisation-workflow-steps,
+          .organisation-readiness-list {
             grid-template-columns: 1fr;
           }
 
