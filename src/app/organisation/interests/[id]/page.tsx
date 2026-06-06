@@ -475,7 +475,7 @@ export default async function OrganisationInterestDetailPage({
     goalsCount > 0 || interestsCount > 0 || skillsCount > 0;
 
   const listenText =
-    "You are on a volunteer interest detail page. This page helps an organisation review one volunteer interest. The top section shows the volunteer, current status, preferred contact method and next step. The contact helper prepares an email, text or call notes depending on the volunteer’s preferred contact method. If the volunteer is accepted, the Volunteer pathway panel explains how to add positive skills evidence after they complete a task. Use Update status to mark the interest as New interest, Contacted, Accepted or Closed.";
+    "You are on a volunteer interest detail page. This page helps an organisation review one volunteer interest. The top section shows the volunteer, current status, preferred contact method and next step. The contact helper prepares an email, text or call notes depending on the volunteer’s preferred contact method. If the volunteer is accepted, the green pathway panel explains how to add positive skills evidence after they complete a task. Use Update status to mark the interest as New interest, Contacted, Accepted or Closed.";
 
   return (
     <main className="dashboard-bg organisation-interest-page">
@@ -659,12 +659,13 @@ export default async function OrganisationInterestDetailPage({
             <div className="accepted-pathway-copy">
               <p className="dashboard-kicker">Volunteer pathway</p>
               <h2 id="accepted-pathway-title">
-                Help this volunteer build positive evidence
+                Ready for positive pathway evidence
               </h2>
               <p>
-                This interest is marked as accepted. After the volunteer
-                completes a task or takes part in the role, add a positive skills
-                review. Shared reviews can support their Positive Pathway CV.
+                This volunteer has been accepted and is ready to move forward.
+                After they complete a task or take part in the role, add a
+                positive skills review. Shared reviews can support their
+                Positive Pathway CV.
               </p>
 
               <div className="accepted-pathway-steps">
@@ -994,7 +995,7 @@ export default async function OrganisationInterestDetailPage({
             label={hasAcceptedVolunteer ? "Pathway" : "Next steps"}
             title={
               hasAcceptedVolunteer
-                ? "Accepted volunteer next step"
+                ? "Ready for positive pathway evidence"
                 : "What happens next?"
             }
           >
@@ -1217,12 +1218,14 @@ export default async function OrganisationInterestDetailPage({
           align-items: start;
           margin: 22px 0;
           padding: 24px;
-          border: 1px solid rgba(83, 111, 99, 0.22);
+          border: 1px solid rgba(34, 124, 78, 0.34);
           border-radius: 30px;
           background:
-            radial-gradient(circle at top left, rgba(200, 243, 221, 0.42), transparent 34%),
-            rgba(244, 255, 249, 0.92);
-          box-shadow: 0 18px 42px rgba(33, 56, 48, 0.08);
+            radial-gradient(circle at top left, rgba(155, 232, 190, 0.62), transparent 34%),
+            linear-gradient(135deg, rgba(229, 255, 238, 0.98), rgba(244, 255, 249, 0.94));
+          box-shadow:
+            0 20px 48px rgba(33, 96, 61, 0.13),
+            inset 0 0 0 1px rgba(255, 255, 255, 0.52);
         }
 
         .accepted-pathway-icon {
@@ -1232,8 +1235,11 @@ export default async function OrganisationInterestDetailPage({
           align-items: center;
           justify-content: center;
           border-radius: 24px;
-          background: rgba(255, 255, 255, 0.82);
-          box-shadow: inset 0 0 0 1px rgba(83, 111, 99, 0.12);
+          background: rgba(34, 124, 78, 0.14);
+          color: #1f6f46;
+          box-shadow:
+            inset 0 0 0 1px rgba(34, 124, 78, 0.18),
+            0 12px 26px rgba(33, 96, 61, 0.12);
           font-size: 2.05rem;
         }
 
@@ -1244,7 +1250,7 @@ export default async function OrganisationInterestDetailPage({
 
         .accepted-pathway-copy h2 {
           margin: 0;
-          color: #24352f;
+          color: #145c38;
           font-size: clamp(1.55rem, 3vw, 2.1rem);
           font-weight: 950;
           line-height: 1.08;
@@ -1253,7 +1259,7 @@ export default async function OrganisationInterestDetailPage({
 
         .accepted-pathway-copy p {
           margin: 0;
-          color: #4f625b;
+          color: #275f45;
           font-size: 1rem;
           font-weight: 750;
           line-height: 1.52;
@@ -1272,10 +1278,10 @@ export default async function OrganisationInterestDetailPage({
           gap: 5px;
           min-height: 86px;
           padding: 12px;
-          border: 1px solid rgba(83, 111, 99, 0.14);
+          border: 1px solid rgba(34, 124, 78, 0.2);
           border-radius: 18px;
-          background: rgba(255, 255, 255, 0.72);
-          color: #536f63;
+          background: rgba(255, 255, 255, 0.78);
+          color: #275f45;
           font-size: 0.9rem;
           font-weight: 850;
           line-height: 1.25;
@@ -1288,8 +1294,8 @@ export default async function OrganisationInterestDetailPage({
           align-items: center;
           justify-content: center;
           border-radius: 999px;
-          background: rgba(83, 111, 99, 0.12);
-          color: #315f48;
+          background: rgba(34, 124, 78, 0.14);
+          color: #145c38;
           font-size: 0.84rem;
           font-weight: 950;
         }
