@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { InclusiveAudioButton } from "@/components/InclusiveSupport";
+import { getOpportunityMatch } from "@/lib/opportunity-matching";
 import {
   saveVolunteerSkillReview,
   updateOpportunityInterestStatus,
@@ -18,6 +19,11 @@ type Opportunity = {
   title: string;
   summary: string;
   status: string;
+  location_type: string;
+  time_commitment: string | null;
+  interests: string[] | null;
+  skills: string[] | null;
+  support_offered: string[] | null;
 };
 
 type OpportunityInterest = {
@@ -57,6 +63,12 @@ type SkillReview = {
   private_organisation_note: string | null;
   status: string;
   updated_at: string;
+};
+
+type SharedReviewHistory = {
+  id: string;
+  volunteer_user_id: string;
+  status: string;
 };
 
 type SkillKey =
@@ -225,6 +237,34 @@ function formatList(values: string[] | null) {
   return values.join(", ");
 }
 
+function normaliseText(value: string) {
+  return value.trim().toLowerCase();
+}
+
+function normaliseList(values: string[] | null | undefined) {
+  if (!Array.isArray(values)) {
+    return [];
+  }
+
+  return values.map((value) => value.trim()).filter(Boolean);
+}
+
+function getSharedValues(
+  volunteerValues: string[] | null | undefined,
+  opportunityValues: string[] | null | undefined,
+) {
+  const volunteerList = normaliseList(volunteerValues);
+  const opportunityList = normaliseList(opportunityValues);
+
+  if (!volunteerList.length || !opportunityList.length) {
+    return [];
+  }
+
+  const volunteerSet = new Set(volunteerList.map(normaliseText));
+
+  return opportunityList.filter((value) => volunteerSet.has(normaliseText(value)));
+}
+
 function getReviewStatusClass(status: string | null | undefined) {
   if (status === "draft") return "review-status status-draft";
   if (status === "hidden") return "review-status status-hidden";
@@ -279,6 +319,128 @@ function CountCard({
   );
 }
 
+function VolunteerFitSummary({
+  opportunity,
+  interest,
+  sharedReviewHistoryCount,
+}: {
+  opportunity: Opportunity;
+  interest: OpportunityInterest;
+  sharedReviewHistoryCount: number;
+}) {
+  const sharedInterests = getSharedValues(
+    interest.volunteer_interests,
+    opportunity.interests,
+  );
+
+  const sharedSkills = getSharedValues(interest.volunteer_skills, opportunity.skills);
+
+  const match = getOpportunityMatch(
+    {
+      goals: interest.volunteer_goals,
+      interests: interest.volunteer_interests,
+      skills: interest.volunteer_skills,
+      volunteering_preference: null,
+      support_needs: null,
+      availability_notes: null,
+    },
+    opportunity,
+  );
+
+  const hasVolunteerProfileData =
+    normaliseList(interest.volunteer_goals).length > 0 ||
+    normaliseList(interest.volunteer_interests).length > 0 ||
+    normaliseList(interest.volunteer_skills).length > 0 ||
+    Boolean(interest.volunteer_city?.trim()) ||
+    Boolean(interest.message?.trim());
+
+  const summary =
+    sharedInterests.length > 0 || sharedSkills.length > 0
+      ? "This volunteer has profile links to this role. Use this as a supportive guide, not a ranking."
+      : hasVolunteerProfileData
+        ? "This volunteer has shared some profile information. There may still be a good fit even if there are no direct matches yet."
+        : "This volunteer has limited profile information available. You can still contact them to learn more.";
+
+  const fitItems = [
+    {
+      icon: "💚",
+      label: "Shared interests",
+      value:
+        sharedInterests.length > 0
+          ? sharedInterests.join(", ")
+          : "No direct interest match listed",
+      tone: sharedInterests.length > 0 ? "ready" : "neutral",
+    },
+    {
+      icon: "⭐",
+      label: "Relevant skills",
+      value:
+        sharedSkills.length > 0
+          ? sharedSkills.join(", ")
+          : "No direct skill match listed",
+      tone: sharedSkills.length > 0 ? "ready" : "neutral",
+    },
+    {
+      icon: "🧭",
+      label: "Profile signal",
+      value: match.hasVolunteerProfileData
+        ? match.reasons.slice(0, 2).join(" · ")
+        : "Profile still developing",
+      tone: match.hasVolunteerProfileData ? "ready" : "neutral",
+    },
+    {
+      icon: "📍",
+      label: "Location clue",
+      value: interest.volunteer_city || "City not supplied",
+      tone: interest.volunteer_city ? "ready" : "neutral",
+    },
+    {
+      icon: "📄",
+      label: "Positive review history",
+      value:
+        sharedReviewHistoryCount > 0
+          ? `${sharedReviewHistoryCount} shared review${
+              sharedReviewHistoryCount === 1 ? "" : "s"
+            } recorded`
+          : "No shared review history yet",
+      tone: sharedReviewHistoryCount > 0 ? "ready" : "neutral",
+    },
+  ];
+
+  return (
+    <section className="volunteer-fit-panel" aria-label="Volunteer fit summary">
+      <div className="volunteer-fit-heading">
+        <span className="volunteer-fit-icon" aria-hidden="true">
+          🌈
+        </span>
+
+        <div>
+          <p className="dashboard-card-label">Volunteer fit summary</p>
+          <h3>Supportive match notes</h3>
+          <p>{summary}</p>
+        </div>
+      </div>
+
+      <div className="volunteer-fit-grid">
+        {fitItems.map((item) => (
+          <article
+            key={item.label}
+            className={`volunteer-fit-card volunteer-fit-${item.tone}`}
+          >
+            <span className="volunteer-fit-card-icon" aria-hidden="true">
+              {item.icon}
+            </span>
+            <div>
+              <p className="volunteer-fit-label">{item.label}</p>
+              <p>{item.value}</p>
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export default async function OpportunityReviewsPage({
   params,
   searchParams,
@@ -326,7 +488,9 @@ export default async function OpportunityReviewsPage({
 
   const { data: opportunity } = await supabase
     .from("opportunities")
-    .select("id,title,summary,status")
+    .select(
+      "id,title,summary,status,location_type,time_commitment,interests,skills,support_offered",
+    )
     .eq("id", opportunityId)
     .eq("organisation_user_id", user.id)
     .maybeSingle<Opportunity>();
@@ -359,6 +523,36 @@ export default async function OpportunityReviewsPage({
     reviewRows.map((review) => [review.opportunity_interest_id, review]),
   );
 
+  const volunteerIds = Array.from(
+    new Set(
+      interestRows
+        .map((interest) => interest.volunteer_user_id)
+        .filter((value): value is string => Boolean(value)),
+    ),
+  );
+
+  let sharedReviewHistoryRows: SharedReviewHistory[] = [];
+
+  if (volunteerIds.length > 0) {
+    const { data: sharedHistory } = await supabase
+      .from("volunteer_skill_reviews")
+      .select("id,volunteer_user_id,status")
+      .eq("organisation_user_id", user.id)
+      .eq("status", "shared")
+      .in("volunteer_user_id", volunteerIds);
+
+    sharedReviewHistoryRows = (sharedHistory as SharedReviewHistory[] | null) ?? [];
+  }
+
+  const sharedReviewCountByVolunteerId = new Map<string, number>();
+
+  sharedReviewHistoryRows.forEach((review) => {
+    sharedReviewCountByVolunteerId.set(
+      review.volunteer_user_id,
+      (sharedReviewCountByVolunteerId.get(review.volunteer_user_id) ?? 0) + 1,
+    );
+  });
+
   const newInterestCount = interestRows.filter(
     (interest) => normaliseInterestStatus(interest.status) === "new",
   ).length;
@@ -384,7 +578,7 @@ export default async function OpportunityReviewsPage({
   ).length;
 
   const listenText =
-    "This is the organiser volunteer management and positive skills review page for this opportunity. It shows volunteers who registered interest. You can update each volunteer status to new, contacted, accepted, or closed. Accepted means your organisation is ready to move forward with that volunteer. You can also tick positive skills, add an optional encouraging comment, choose whether the review is shared with the volunteer, and save. Shared reviews can become part of the volunteer pathway. Private organisation notes are only for the organisation.";
+    "This is the organiser volunteer management and positive skills review page for this opportunity. It shows volunteers who registered interest. Each volunteer card includes a supportive fit summary with shared interests, relevant skills, location clue and positive review history. This is not a ranking. You can update each volunteer status to new, contacted, accepted, or closed. Accepted means your organisation is ready to move forward with that volunteer. You can also tick positive skills, add an optional encouraging comment, choose whether the review is shared with the volunteer, and save. Shared reviews can become part of the volunteer pathway. Private organisation notes are only for the organisation.";
 
   return (
     <main className="dashboard-bg review-page">
@@ -546,6 +740,9 @@ export default async function OpportunityReviewsPage({
             {interestRows.map((interest) => {
               const review = reviewByInterestId.get(interest.id);
               const hasSavedSkill = hasAnySkill(review);
+              const sharedReviewHistoryCount =
+                sharedReviewCountByVolunteerId.get(interest.volunteer_user_id) ??
+                0;
 
               return (
                 <article
@@ -590,6 +787,12 @@ export default async function OpportunityReviewsPage({
                       </span>
                     </div>
                   </div>
+
+                  <VolunteerFitSummary
+                    opportunity={opportunity}
+                    interest={interest}
+                    sharedReviewHistoryCount={sharedReviewHistoryCount}
+                  />
 
                   <form
                     action={updateOpportunityInterestStatus}
@@ -903,6 +1106,104 @@ export default async function OpportunityReviewsPage({
           color: #5d6677;
         }
 
+        .volunteer-fit-panel {
+          display: grid;
+          gap: 14px;
+          padding: 16px;
+          border: 1px solid rgba(83, 111, 99, 0.18);
+          border-radius: 22px;
+          background:
+            linear-gradient(135deg, rgba(244, 255, 249, 0.72), rgba(255, 255, 255, 0.82)),
+            rgba(255, 255, 255, 0.72);
+        }
+
+        .volunteer-fit-heading {
+          display: grid;
+          grid-template-columns: auto 1fr;
+          gap: 12px;
+          align-items: start;
+        }
+
+        .volunteer-fit-icon {
+          display: inline-flex;
+          width: 50px;
+          height: 50px;
+          align-items: center;
+          justify-content: center;
+          border-radius: 18px;
+          background: rgba(143, 178, 158, 0.16);
+          font-size: 1.55rem;
+        }
+
+        .volunteer-fit-heading h3 {
+          margin: 0 0 6px;
+          color: #315f48;
+          font-size: 1.1rem;
+          font-weight: 950;
+          line-height: 1.15;
+        }
+
+        .volunteer-fit-heading p {
+          margin: 0;
+          color: #60706a;
+          font-weight: 750;
+          line-height: 1.45;
+        }
+
+        .volunteer-fit-grid {
+          display: grid;
+          grid-template-columns: repeat(5, minmax(0, 1fr));
+          gap: 10px;
+        }
+
+        .volunteer-fit-card {
+          display: grid;
+          gap: 8px;
+          min-height: 118px;
+          padding: 12px;
+          border: 1px solid rgba(108, 92, 160, 0.12);
+          border-radius: 18px;
+          background: rgba(255, 255, 255, 0.78);
+        }
+
+        .volunteer-fit-ready {
+          border-color: rgba(83, 111, 99, 0.22);
+          background: rgba(244, 255, 249, 0.9);
+        }
+
+        .volunteer-fit-neutral {
+          border-color: rgba(108, 92, 160, 0.14);
+          background: rgba(248, 248, 252, 0.9);
+        }
+
+        .volunteer-fit-card-icon {
+          display: inline-flex;
+          width: 40px;
+          height: 40px;
+          align-items: center;
+          justify-content: center;
+          border-radius: 14px;
+          background: rgba(255, 255, 255, 0.74);
+          font-size: 1.25rem;
+        }
+
+        .volunteer-fit-label {
+          margin: 0 0 4px !important;
+          color: #315f48 !important;
+          font-size: 0.82rem;
+          font-weight: 950 !important;
+          line-height: 1.1 !important;
+        }
+
+        .volunteer-fit-card p {
+          margin: 0;
+          color: #60706a;
+          font-size: 0.86rem;
+          font-weight: 750;
+          line-height: 1.35;
+          overflow-wrap: anywhere;
+        }
+
         .interest-status-form {
           display: grid;
           grid-template-columns: minmax(0, 1fr) auto;
@@ -1089,6 +1390,12 @@ export default async function OpportunityReviewsPage({
           width: fit-content;
         }
 
+        @media (max-width: 1180px) {
+          .volunteer-fit-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+        }
+
         @media (max-width: 960px) {
           .review-count-grid {
             grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1142,7 +1449,8 @@ export default async function OpportunityReviewsPage({
           }
 
           .review-card-header,
-          .review-volunteer-title {
+          .review-volunteer-title,
+          .volunteer-fit-heading {
             display: grid;
           }
 
@@ -1151,7 +1459,8 @@ export default async function OpportunityReviewsPage({
           }
 
           .review-volunteer-meta,
-          .review-skill-grid {
+          .review-skill-grid,
+          .volunteer-fit-grid {
             grid-template-columns: 1fr;
           }
 
