@@ -4,7 +4,12 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
 function normalisePreferredContactMethod(value: string | null | undefined) {
-  if (value === "email" || value === "phone" || value === "sms" || value === "not_sure") {
+  if (
+    value === "email" ||
+    value === "phone" ||
+    value === "sms" ||
+    value === "not_sure"
+  ) {
     return value;
   }
 
@@ -23,7 +28,7 @@ export async function saveVolunteerOnboarding(formData: FormData) {
   const supabase = await createClient();
 
   const {
-    data: { user }
+    data: { user },
   } = await supabase.auth.getUser();
 
   if (!user) {
@@ -33,25 +38,34 @@ export async function saveVolunteerOnboarding(formData: FormData) {
   const goals = formData.getAll("goals").map(String);
   const city = String(formData.get("city") || "").trim();
   const volunteeringPreference = normaliseVolunteeringPreference(
-    String(formData.get("volunteering_preference") || "both")
+    String(formData.get("volunteering_preference") || "both"),
   );
   const preferredContactMethod = normalisePreferredContactMethod(
-    String(formData.get("preferred_contact_method") || "email")
+    String(formData.get("preferred_contact_method") || "email"),
   );
+  const phone = String(formData.get("phone") || "").trim();
 
   if (!city) {
     redirect(
       `/onboarding/volunteer?error=${encodeURIComponent(
-        "Please add your nearest town or city."
-      )}`
+        "Please add your nearest town or city.",
+      )}`,
     );
   }
 
   if (!goals.length) {
     redirect(
       `/onboarding/volunteer?error=${encodeURIComponent(
-        "Please choose at least one goal."
-      )}`
+        "Please choose at least one goal.",
+      )}`,
+    );
+  }
+
+  if (phone.length > 40) {
+    redirect(
+      `/onboarding/volunteer?error=${encodeURIComponent(
+        "Please check the phone or text number. It looks too long.",
+      )}`,
     );
   }
 
@@ -62,10 +76,11 @@ export async function saveVolunteerOnboarding(formData: FormData) {
       goals,
       volunteering_preference: volunteeringPreference,
       preferred_contact_method: preferredContactMethod,
+      phone,
       onboarding_completed: false,
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
     },
-    { onConflict: "user_id" }
+    { onConflict: "user_id" },
   );
 
   if (error) {
