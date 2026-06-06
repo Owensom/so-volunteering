@@ -24,6 +24,20 @@ type VolunteerProfile = {
   volunteering_preference: string | null;
 };
 
+type EducationEntry = {
+  id: string;
+  entry_type: string;
+  institution_name: string | null;
+  qualification_name: string;
+  qualification_level: string | null;
+  subject_or_area: string | null;
+  year_started: string | null;
+  year_completed: string | null;
+  is_current: boolean;
+  notes: string | null;
+  display_order: number;
+};
+
 type SkillReview = {
   id: string;
   opportunity_title: string | null;
@@ -103,6 +117,41 @@ function formatDate(value: string) {
     dateStyle: "medium",
     timeZone: "Europe/London",
   }).format(new Date(value));
+}
+
+function formatEducationType(value: string) {
+  if (value === "school") return "School";
+  if (value === "college") return "College";
+  if (value === "university") return "University";
+  if (value === "training_course") return "Training course";
+  if (value === "online_course") return "Online course";
+  if (value === "certificate") return "Certificate";
+  if (value === "work_related_training") return "Work-related training";
+  return "Other learning";
+}
+
+function formatEducationDates(entry: EducationEntry) {
+  if (entry.is_current && entry.year_started) {
+    return `${entry.year_started} – Present`;
+  }
+
+  if (entry.is_current) {
+    return "Currently studying";
+  }
+
+  if (entry.year_started && entry.year_completed) {
+    return `${entry.year_started} – ${entry.year_completed}`;
+  }
+
+  if (entry.year_completed) {
+    return entry.year_completed;
+  }
+
+  if (entry.year_started) {
+    return `Started ${entry.year_started}`;
+  }
+
+  return "";
 }
 
 function getReviewSkills(review: SkillReview) {
@@ -222,6 +271,15 @@ export default async function PositivePathwayCvPage() {
     .eq("user_id", user.id)
     .maybeSingle<VolunteerProfile>();
 
+  const { data: educationEntries } = await supabase
+    .from("volunteer_education_entries")
+    .select(
+      "id,entry_type,institution_name,qualification_name,qualification_level,subject_or_area,year_started,year_completed,is_current,notes,display_order",
+    )
+    .eq("volunteer_user_id", user.id)
+    .order("display_order", { ascending: true })
+    .order("created_at", { ascending: false });
+
   const { data: skillReviews } = await supabase
     .from("volunteer_skill_reviews")
     .select(
@@ -231,13 +289,14 @@ export default async function PositivePathwayCvPage() {
     .eq("status", "shared")
     .order("updated_at", { ascending: false });
 
+  const educationRows = (educationEntries as EducationEntry[] | null) ?? [];
   const reviews = (skillReviews as SkillReview[] | null) ?? [];
   const recognisedSkills = getAllRecognisedSkills(reviews);
   const completionCount = getProfileCompletion(volunteerProfile);
   const displayName = profile?.full_name?.trim() || "Volunteer";
   const contactEmail = profile?.email || user.email || "Not added yet";
 
-  const listenText = `This is your Positive Pathway CV. It brings together your goals, interests, skills, availability and positive skills reviews shared by organisations. You currently have ${reviews.length} shared review${reviews.length === 1 ? "" : "s"} and ${recognisedSkills.length} recognised skill area${recognisedSkills.length === 1 ? "" : "s"}. This page is read only for now. Use Print or Save as PDF to open your browser print options. You can use your pathway to update your details.`;
+  const listenText = `This is your Positive Pathway CV. It brings together your goals, interests, skills, education, qualifications, availability and positive skills reviews shared by organisations. You currently have ${educationRows.length} education entr${educationRows.length === 1 ? "y" : "ies"}, ${reviews.length} shared review${reviews.length === 1 ? "" : "s"} and ${recognisedSkills.length} recognised skill area${recognisedSkills.length === 1 ? "" : "s"}. Use Print or Save as PDF to open your browser print options. You can use your pathway and profile pages to update your details.`;
 
   return (
     <main className="dashboard-bg positive-cv-page">
@@ -302,8 +361,8 @@ export default async function PositivePathwayCvPage() {
             </h1>
 
             <p className="dashboard-lead">
-              A strengths-based summary of your volunteering pathway, skills and
-              positive feedback.
+              A strengths-based summary of your volunteering pathway, education,
+              skills and positive feedback.
             </p>
 
             <div className="positive-cv-summary-pills" aria-label="CV summary">
@@ -311,6 +370,11 @@ export default async function PositivePathwayCvPage() {
                 icon="✅"
                 label="profile steps added"
                 value={`${completionCount}/5`}
+              />
+              <SummaryPill
+                icon="📚"
+                label={`education entr${educationRows.length === 1 ? "y" : "ies"}`}
+                value={educationRows.length}
               />
               <SummaryPill
                 icon="⭐"
@@ -394,6 +458,51 @@ export default async function PositivePathwayCvPage() {
 
           <CvSection icon="⭐" title="Skills I have or want to build">
             <p className="cv-body-text">{formatList(volunteerProfile?.skills)}</p>
+          </CvSection>
+
+          <CvSection icon="📚" title="Education & Qualifications">
+            {educationRows.length > 0 ? (
+              <div className="education-cv-list">
+                {educationRows.map((entry) => {
+                  const dateText = formatEducationDates(entry);
+
+                  return (
+                    <article key={entry.id} className="education-cv-entry">
+                      <div>
+                        <h3>{entry.qualification_name}</h3>
+                        <p>
+                          {entry.institution_name || formatEducationType(entry.entry_type)}
+                          {dateText ? ` · ${dateText}` : ""}
+                        </p>
+                      </div>
+
+                      <div className="education-cv-meta">
+                        <span>{formatEducationType(entry.entry_type)}</span>
+
+                        {entry.qualification_level ? (
+                          <span>{entry.qualification_level}</span>
+                        ) : null}
+
+                        {entry.subject_or_area ? (
+                          <span>{entry.subject_or_area}</span>
+                        ) : null}
+
+                        {entry.is_current ? <span>Current</span> : null}
+                      </div>
+
+                      {entry.notes ? (
+                        <p className="education-cv-note">{entry.notes}</p>
+                      ) : null}
+                    </article>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="cv-body-text">
+                Education, training and qualifications can be added from your
+                profile if you want them included here.
+              </p>
+            )}
           </CvSection>
 
           <CvSection icon="📅" title="Availability and preferences">
@@ -493,6 +602,13 @@ export default async function PositivePathwayCvPage() {
           aria-label="CV actions"
         >
           <PrintButton />
+
+          <Link href="/profile/education" className="secondary-button">
+            <span className="dashboard-button-inner">
+              <span aria-hidden="true">📚</span>
+              <span>Edit education</span>
+            </span>
+          </Link>
 
           <Link href="/pathway" className="primary-button">
             <span className="dashboard-button-inner">
@@ -618,6 +734,61 @@ export default async function PositivePathwayCvPage() {
           border: 1px solid rgba(143, 178, 158, 0.18);
           border-radius: 18px;
           background: rgba(255, 255, 255, 0.78);
+        }
+
+        .education-cv-list {
+          display: grid;
+          gap: 12px;
+        }
+
+        .education-cv-entry {
+          padding: 16px;
+          border: 1px solid rgba(143, 178, 158, 0.18);
+          border-radius: 22px;
+          background: rgba(255, 255, 255, 0.82);
+          display: grid;
+          gap: 12px;
+        }
+
+        .education-cv-entry h3 {
+          margin: 0 0 4px;
+          color: #315f48;
+          overflow-wrap: anywhere;
+        }
+
+        .education-cv-entry p {
+          margin: 0;
+          color: #60706a;
+          line-height: 1.5;
+          overflow-wrap: anywhere;
+        }
+
+        .education-cv-meta {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+        }
+
+        .education-cv-meta span {
+          min-height: 34px;
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 7px 10px;
+          border: 1px solid rgba(143, 178, 158, 0.18);
+          border-radius: 999px;
+          background: rgba(244, 255, 249, 0.86);
+          color: #315f48;
+          font-weight: 900;
+          line-height: 1.1;
+        }
+
+        .education-cv-note {
+          padding: 14px;
+          border-radius: 18px;
+          background: rgba(248, 245, 255, 0.72);
+          color: #4f625b !important;
+          font-weight: 750;
         }
 
         .recognised-skill-grid {
@@ -800,6 +971,7 @@ export default async function PositivePathwayCvPage() {
           .positive-cv-document,
           .cv-section,
           .feedback-card,
+          .education-cv-entry,
           .recognised-skill-card,
           .summary-pill {
             box-shadow: none !important;
@@ -832,8 +1004,10 @@ export default async function PositivePathwayCvPage() {
           .cv-detail-grid p,
           .cv-body-text,
           .cv-note-box p,
+          .education-cv-entry p,
           .feedback-card p,
-          .feedback-comment {
+          .feedback-comment,
+          .education-cv-note {
             color: #111827 !important;
           }
 
@@ -869,15 +1043,19 @@ export default async function PositivePathwayCvPage() {
             border: 1px solid #d1d5db !important;
           }
 
-          .cv-section-heading h2 {
+          .cv-section-heading h2,
+          .education-cv-entry h3 {
             color: #111827 !important;
           }
 
           .recognised-skill-card,
           .feedback-card,
+          .education-cv-entry,
+          .education-cv-meta span,
           .feedback-skill-row span,
           .cv-note-box,
-          .feedback-comment {
+          .feedback-comment,
+          .education-cv-note {
             border: 1px solid #d1d5db !important;
             background: #ffffff !important;
           }
