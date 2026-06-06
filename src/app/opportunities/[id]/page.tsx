@@ -61,7 +61,8 @@ function normaliseColourTheme(value: string | null | undefined) {
     value === "calm_green" ||
     value === "soft_blue" ||
     value === "warm_peach" ||
-    value === "high_contrast"
+    value === "high_contrast" ||
+    value === "neon_arcade"
   ) {
     return value;
   }
@@ -79,6 +80,23 @@ function normaliseAvatarIcon(value: string | null | undefined) {
 
 function normaliseListenMode(value: string | null | undefined) {
   return value === "context" ? "context" : "always";
+}
+
+function normaliseInterestStatus(status: string | null | undefined) {
+  if (
+    status === "new" ||
+    status === "contacted" ||
+    status === "accepted" ||
+    status === "closed"
+  ) {
+    return status;
+  }
+
+  if (status === "reviewed") {
+    return "contacted";
+  }
+
+  return "new";
 }
 
 function getThemeClass(colourTheme: string) {
@@ -106,6 +124,7 @@ function getThemeLabel(colourTheme: string) {
   if (colourTheme === "soft_blue") return "Soft blue";
   if (colourTheme === "warm_peach") return "Warm peach";
   if (colourTheme === "high_contrast") return "High contrast";
+  if (colourTheme === "neon_arcade") return "Neon arcade";
   return "SO default";
 }
 
@@ -115,33 +134,53 @@ function formatLocationType(value: string | null | undefined) {
   return "In-person";
 }
 
-function formatInterestStatus(status: string) {
-  if (status === "reviewed") return "Reviewed";
-  if (status === "contacted") return "Contacted";
-  if (status === "closed") return "Closed";
-  return "New";
+function formatInterestStatus(status: string | null | undefined) {
+  const normalisedStatus = normaliseInterestStatus(status);
+
+  if (normalisedStatus === "accepted") return "Accepted";
+  if (normalisedStatus === "contacted") return "Contacted";
+  if (normalisedStatus === "closed") return "Closed";
+  return "Sent";
+}
+
+function getInterestHelpText(status: string | null | undefined) {
+  const normalisedStatus = normaliseInterestStatus(status);
+
+  if (normalisedStatus === "accepted") {
+    return "The organisation would like to move forward with you.";
+  }
+
+  if (normalisedStatus === "contacted") {
+    return "The organisation has marked this as contacted.";
+  }
+
+  if (normalisedStatus === "closed") {
+    return "This role is not progressing at the moment.";
+  }
+
+  return "Your interest has been sent to the organisation.";
 }
 
 function countMatches(
   volunteerValues: string[] | null | undefined,
-  opportunityValues: string[] | null | undefined
+  opportunityValues: string[] | null | undefined,
 ) {
   if (!Array.isArray(volunteerValues) || !Array.isArray(opportunityValues)) {
     return 0;
   }
 
   const volunteerSet = new Set(
-    volunteerValues.map((value) => value.trim().toLowerCase())
+    volunteerValues.map((value) => value.trim().toLowerCase()),
   );
 
   return opportunityValues.filter((value) =>
-    volunteerSet.has(value.trim().toLowerCase())
+    volunteerSet.has(value.trim().toLowerCase()),
   ).length;
 }
 
 function ChipList({
   values,
-  emptyText
+  emptyText,
 }: {
   values: string[] | null | undefined;
   emptyText: string;
@@ -165,7 +204,7 @@ function DetailCard({
   icon,
   label,
   title,
-  children
+  children,
 }: {
   icon: string;
   label: string;
@@ -195,7 +234,7 @@ function DetailCard({
 
 export default async function OpportunityDetailPage({
   params,
-  searchParams
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
   searchParams: Promise<{ error?: string; message?: string }>;
@@ -215,7 +254,7 @@ export default async function OpportunityDetailPage({
   const supabase = await createClient();
 
   const {
-    data: { user }
+    data: { user },
   } = await supabase.auth.getUser();
 
   if (!user) {
@@ -254,7 +293,7 @@ export default async function OpportunityDetailPage({
   const { data: opportunity } = await supabase
     .from("opportunities")
     .select(
-      "id,title,summary,location_type,location,time_commitment,interests,skills,support_offered,contact_name,contact_email,safety_notes,status"
+      "id,title,summary,location_type,location,time_commitment,interests,skills,support_offered,contact_name,contact_email,safety_notes,status",
     )
     .eq("id", opportunityId)
     .eq("status", "published")
@@ -279,12 +318,11 @@ export default async function OpportunityDetailPage({
 
   const simpleView = viewMode === "simple";
   const detailedView = viewMode === "detailed";
-
   const hasAlreadyExpressedInterest = Boolean(existingInterest);
 
   const interestMatches = countMatches(
     volunteerProfile?.interests,
-    opportunity.interests
+    opportunity.interests,
   );
 
   const skillMatches = countMatches(volunteerProfile?.skills, opportunity.skills);
@@ -295,9 +333,10 @@ export default async function OpportunityDetailPage({
 
   const shellClassName = [
     "dashboard-bg",
+    "opportunity-detail-page",
     getThemeClass(colourTheme),
     getTextClass(textSize),
-    getViewClass(viewMode)
+    getViewClass(viewMode),
   ].join(" ");
 
   return (
@@ -352,11 +391,7 @@ export default async function OpportunityDetailPage({
               <span>{opportunity.title}</span>
             </h1>
 
-            <p className="dashboard-lead">
-              {simpleView
-                ? opportunity.summary
-                : opportunity.summary}
-            </p>
+            <p className="dashboard-lead">{opportunity.summary}</p>
 
             <div className="dashboard-primary-actions">
               <a
@@ -408,18 +443,29 @@ export default async function OpportunityDetailPage({
               </div>
             </div>
 
-            <p className="dashboard-progress-note">
-              Interest matches: <strong>{interestMatches}</strong>
-            </p>
-            <p className="dashboard-progress-note">
-              Skill matches: <strong>{skillMatches}</strong>
-            </p>
+            {!simpleView ? (
+              <>
+                <p className="dashboard-progress-note">
+                  Interest matches: <strong>{interestMatches}</strong>
+                </p>
+                <p className="dashboard-progress-note">
+                  Skill matches: <strong>{skillMatches}</strong>
+                </p>
+              </>
+            ) : null}
 
             {existingInterest ? (
-              <p className="dashboard-progress-note">
-                Your status:{" "}
-                <strong>{formatInterestStatus(existingInterest.status)}</strong>
-              </p>
+              <>
+                <p className="dashboard-progress-note">
+                  Your status:{" "}
+                  <strong>{formatInterestStatus(existingInterest.status)}</strong>
+                </p>
+                {!simpleView ? (
+                  <p className="dashboard-progress-note">
+                    {getInterestHelpText(existingInterest.status)}
+                  </p>
+                ) : null}
+              </>
             ) : null}
 
             {detailedView ? (
@@ -485,15 +531,17 @@ export default async function OpportunityDetailPage({
             />
           </DetailCard>
 
-          <DetailCard icon="🛡️" label="Safety" title="Safety and supervision">
-            {opportunity.safety_notes ? (
-              <p>{opportunity.safety_notes}</p>
-            ) : (
-              <p className="dashboard-muted-action">
-                No safety notes listed yet.
-              </p>
-            )}
-          </DetailCard>
+          {!simpleView ? (
+            <DetailCard icon="🛡️" label="Safety" title="Safety and supervision">
+              {opportunity.safety_notes ? (
+                <p>{opportunity.safety_notes}</p>
+              ) : (
+                <p className="dashboard-muted-action">
+                  No safety notes listed yet.
+                </p>
+              )}
+            </DetailCard>
+          ) : null}
 
           {!simpleView ? (
             <DetailCard icon="👤" label="Contact" title="Who to contact">
@@ -571,6 +619,10 @@ export default async function OpportunityDetailPage({
                       </strong>
                     </p>
 
+                    {!simpleView ? (
+                      <p>{getInterestHelpText(existingInterest.status)}</p>
+                    ) : null}
+
                     {existingInterest.message ? (
                       <div className="supporting-statement-box">
                         <p className="dashboard-card-label">
@@ -615,7 +667,11 @@ export default async function OpportunityDetailPage({
                         <span className="field-label-icon" aria-hidden="true">
                           💬
                         </span>
-                        <span>Optional supporting statement</span>
+                        <span>
+                          {simpleView
+                            ? "Optional message"
+                            : "Optional supporting statement"}
+                        </span>
                       </span>
                       <textarea
                         name="message"
@@ -643,11 +699,16 @@ export default async function OpportunityDetailPage({
       </section>
 
       <style>{`
-        .dashboard-grid {
+        .opportunity-detail-page,
+        .opportunity-detail-page * {
+          box-sizing: border-box;
+        }
+
+        .opportunity-detail-page .dashboard-grid {
           align-items: stretch;
         }
 
-        .dashboard-pathway-card {
+        .opportunity-detail-page .dashboard-pathway-card {
           height: 100%;
           align-items: stretch;
         }
@@ -667,6 +728,10 @@ export default async function OpportunityDetailPage({
           min-height: 100%;
           flex-direction: column;
           gap: 18px;
+        }
+
+        .opportunity-detail-copy h2 {
+          overflow-wrap: anywhere;
         }
 
         .opportunity-detail-body {
@@ -704,6 +769,7 @@ export default async function OpportunityDetailPage({
           line-height: 1.2;
           box-shadow: 0 10px 22px rgba(33, 56, 48, 0.06);
           white-space: normal;
+          overflow-wrap: anywhere;
         }
 
         .supporting-statement-box {
@@ -836,7 +902,9 @@ export default async function OpportunityDetailPage({
 
         .preference-theme-high_contrast .dashboard-welcome-card,
         .preference-theme-high_contrast .info-card,
-        .preference-theme-high_contrast .dashboard-progress-card {
+        .preference-theme-high_contrast .dashboard-progress-card,
+        .preference-theme-high_contrast .opportunity-chip,
+        .preference-theme-high_contrast .supporting-statement-box {
           border: 2px solid #1f2937;
           background: rgba(255, 255, 255, 0.98);
         }
@@ -849,7 +917,9 @@ export default async function OpportunityDetailPage({
 
         .preference-theme-high_contrast .dashboard-lead,
         .preference-theme-high_contrast .opportunity-detail-body,
-        .preference-theme-high_contrast .dashboard-progress-note {
+        .preference-theme-high_contrast .dashboard-progress-note,
+        .preference-theme-high_contrast .dashboard-muted-action,
+        .preference-theme-high_contrast .opportunity-chip {
           color: #1f2937;
         }
 
@@ -858,6 +928,62 @@ export default async function OpportunityDetailPage({
           border: 2px solid #1f2937;
           background: #ffffff;
           color: #111827;
+        }
+
+        .preference-theme-neon_arcade {
+          background:
+            radial-gradient(circle at top left, rgba(34, 211, 238, 0.28), transparent 34%),
+            radial-gradient(circle at top right, rgba(217, 70, 239, 0.24), transparent 30%),
+            linear-gradient(135deg, #101827 0%, #15132c 46%, #071827 100%);
+        }
+
+        .preference-theme-neon_arcade .dashboard-welcome-card,
+        .preference-theme-neon_arcade .dashboard-progress-card,
+        .preference-theme-neon_arcade .info-card,
+        .preference-theme-neon_arcade .supporting-statement-box {
+          border-color: rgba(34, 211, 238, 0.42);
+          background: rgba(15, 23, 42, 0.86);
+          box-shadow:
+            0 24px 70px rgba(0, 0, 0, 0.28),
+            0 0 0 1px rgba(217, 70, 239, 0.12);
+        }
+
+        .preference-theme-neon_arcade .dashboard-title,
+        .preference-theme-neon_arcade .dashboard-card-copy h2,
+        .preference-theme-neon_arcade .dashboard-progress-card h2,
+        .preference-theme-neon_arcade .dashboard-progress-note strong,
+        .preference-theme-neon_arcade .opportunity-detail-body strong {
+          color: #e0f2fe;
+        }
+
+        .preference-theme-neon_arcade .dashboard-kicker,
+        .preference-theme-neon_arcade .dashboard-lead,
+        .preference-theme-neon_arcade .dashboard-card-label,
+        .preference-theme-neon_arcade .opportunity-detail-body,
+        .preference-theme-neon_arcade .dashboard-progress-note,
+        .preference-theme-neon_arcade .dashboard-muted-action {
+          color: #dbeafe;
+        }
+
+        .preference-theme-neon_arcade .dashboard-card-icon,
+        .preference-theme-neon_arcade .dashboard-progress-icon {
+          border: 1px solid rgba(34, 211, 238, 0.42);
+          background: rgba(34, 211, 238, 0.12);
+          color: #a7f3d0;
+          box-shadow: inset 0 0 0 1px rgba(217, 70, 239, 0.14);
+        }
+
+        .preference-theme-neon_arcade .opportunity-chip,
+        .preference-theme-neon_arcade .text-link {
+          border-color: rgba(34, 211, 238, 0.42);
+          background: rgba(34, 211, 238, 0.12);
+          color: #a7f3d0;
+        }
+
+        .preference-theme-neon_arcade .remove-interest-button {
+          border-color: rgba(248, 113, 113, 0.5);
+          background: rgba(127, 29, 29, 0.28);
+          color: #fecaca;
         }
 
         @media (max-width: 640px) {
@@ -874,8 +1000,11 @@ export default async function OpportunityDetailPage({
           }
 
           .opportunity-chip {
+            width: 100%;
+            justify-content: center;
             border-radius: 18px;
             font-size: 0.86rem;
+            text-align: center;
           }
 
           .interest-management-actions {
