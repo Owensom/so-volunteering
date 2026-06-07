@@ -37,6 +37,23 @@ type OpportunityRow = {
   location: string | null;
   time_commitment: string | null;
   status: string;
+
+  minimum_age_stage: string | null;
+  suitable_for_pupils: boolean | null;
+  parent_carer_consent_required: boolean | null;
+  school_approval_required: boolean | null;
+  safeguarding_check_region: string | null;
+  safeguarding_review_required: boolean | null;
+  supervision_required: boolean | null;
+  no_lone_working: boolean | null;
+  no_home_visits: boolean | null;
+  no_money_handling: boolean | null;
+  no_personal_care: boolean | null;
+  no_private_messaging: boolean | null;
+  risk_assessment_completed: boolean | null;
+  named_safeguarding_contact: string | null;
+  legal_safeguarding_notes: string | null;
+  role_frequency_pattern: string | null;
 };
 
 type InterestStatus = "new" | "contacted" | "accepted" | "closed";
@@ -46,6 +63,12 @@ type GuideStep = {
   title: string;
   text: string;
   isComplete: boolean;
+};
+
+type SafetyBadge = {
+  icon: string;
+  label: string;
+  className: string;
 };
 
 function normaliseUserType(value: string | null | undefined) {
@@ -120,10 +143,6 @@ function shouldShowPhone(value: string | null | undefined) {
 
 function getSafePhoneHref(phoneNumber: string) {
   return phoneNumber.replace(/[^\d+]/g, "");
-}
-
-function hasAny(values: string[] | null | undefined) {
-  return Array.isArray(values) && values.length > 0;
 }
 
 function hasText(value: string | null | undefined) {
@@ -298,6 +317,352 @@ function getNextStepText(status: string | null | undefined) {
   return "Open the contact helper, reach out kindly, then mark this interest as Contacted.";
 }
 
+function getMinimumAgeStageLabel(value: string | null | undefined) {
+  if (value === "adults_only") return "Adults only";
+  if (value === "sixteen_plus") return "16+";
+  if (value === "fourteen_plus") return "14+";
+  if (value === "school_pupils_with_approval") {
+    return "School approval needed";
+  }
+  if (value === "school_pupils_with_parent_carer_consent") {
+    return "Parent/carer consent needed";
+  }
+
+  return "";
+}
+
+function getSafeguardingCheckRegionLabel(value: string | null | undefined) {
+  if (value === "scotland_pvg") return "Scotland - PVG";
+  if (value === "england_wales_dbs") return "England / Wales - DBS";
+  if (value === "northern_ireland_accessni") return "Northern Ireland - AccessNI";
+  if (value === "not_expected") return "No check expected";
+  if (value === "not_sure") return "Check needs review";
+
+  return "";
+}
+
+function getFrequencyPatternLabel(value: string | null | undefined) {
+  if (value === "one_off") return "One-off";
+  if (value === "occasional") return "Occasional";
+  if (value === "weekly_or_regular") return "Weekly or regular";
+  if (value === "more_than_three_days_in_thirty") {
+    return "More than 3 days in 30";
+  }
+  if (value === "overnight") return "Overnight / late-night";
+  if (value === "not_sure") return "Frequency unsure";
+
+  return "";
+}
+
+function hasRoleSafetyInformation(opportunity: OpportunityRow | null | undefined) {
+  if (!opportunity) return false;
+
+  return Boolean(
+    (opportunity.minimum_age_stage &&
+      opportunity.minimum_age_stage !== "not_set") ||
+      (opportunity.safeguarding_check_region &&
+        opportunity.safeguarding_check_region !== "organisation_default") ||
+      (opportunity.role_frequency_pattern &&
+        opportunity.role_frequency_pattern !== "not_set") ||
+      opportunity.suitable_for_pupils === true ||
+      opportunity.parent_carer_consent_required === true ||
+      opportunity.school_approval_required === true ||
+      opportunity.safeguarding_review_required === true ||
+      opportunity.supervision_required === true ||
+      opportunity.no_lone_working === true ||
+      opportunity.no_home_visits === true ||
+      opportunity.no_money_handling === true ||
+      opportunity.no_personal_care === true ||
+      opportunity.no_private_messaging === true ||
+      opportunity.risk_assessment_completed === true ||
+      hasText(opportunity.named_safeguarding_contact) ||
+      hasText(opportunity.legal_safeguarding_notes),
+  );
+}
+
+function needsSafeguardingAttention(opportunity: OpportunityRow | null | undefined) {
+  if (!opportunity) return false;
+
+  return Boolean(
+    opportunity.suitable_for_pupils === true ||
+      opportunity.parent_carer_consent_required === true ||
+      opportunity.school_approval_required === true ||
+      opportunity.safeguarding_review_required === true ||
+      opportunity.role_frequency_pattern === "more_than_three_days_in_thirty" ||
+      opportunity.role_frequency_pattern === "overnight" ||
+      opportunity.role_frequency_pattern === "not_sure" ||
+      opportunity.safeguarding_check_region === "not_sure",
+  );
+}
+
+function hasSafeguardingSupportInfo(opportunity: OpportunityRow | null | undefined) {
+  if (!opportunity) return false;
+
+  return Boolean(
+    opportunity.risk_assessment_completed === true ||
+      opportunity.supervision_required === true ||
+      opportunity.no_lone_working === true ||
+      opportunity.no_home_visits === true ||
+      opportunity.no_money_handling === true ||
+      opportunity.no_personal_care === true ||
+      opportunity.no_private_messaging === true ||
+      hasText(opportunity.named_safeguarding_contact) ||
+      hasText(opportunity.legal_safeguarding_notes),
+  );
+}
+
+function getRoleSafetySummary(opportunity: OpportunityRow | null | undefined) {
+  const hasSafety = hasRoleSafetyInformation(opportunity);
+  const needsAttention = needsSafeguardingAttention(opportunity);
+  const hasSupportInfo = hasSafeguardingSupportInfo(opportunity);
+
+  if (!opportunity) {
+    return {
+      icon: "⚠️",
+      label: "Role not loaded",
+      text: "The role could not be loaded, so safety context cannot be reviewed here.",
+      className: "role-safety-attention",
+    };
+  }
+
+  if (!hasSafety) {
+    return {
+      icon: "⚖️",
+      label: "Safety context not started",
+      text: "This role does not yet have role-level legal or safeguarding readiness recorded.",
+      className: "role-safety-attention",
+    };
+  }
+
+  if (needsAttention && !hasSupportInfo) {
+    return {
+      icon: "⚠️",
+      label: "Needs safeguarding review",
+      text: "This role has pupil or safeguarding flags. Add review notes, supervision, risk assessment or a named safeguarding contact before relying on it.",
+      className: "role-safety-attention",
+    };
+  }
+
+  if (needsAttention) {
+    return {
+      icon: "🏫",
+      label: "Safeguarding review flagged",
+      text: "This role has pupil or safeguarding flags and supporting readiness information. Check this before contacting or accepting the volunteer.",
+      className: "role-safety-warning",
+    };
+  }
+
+  return {
+    icon: "✅",
+    label: "Safety context started",
+    text: "Role-level safety and safeguarding readiness has been started for this opportunity.",
+    className: "role-safety-ready",
+  };
+}
+
+function getSafetyBadges(opportunity: OpportunityRow | null | undefined): SafetyBadge[] {
+  if (!opportunity) return [];
+
+  const badges: SafetyBadge[] = [];
+
+  const minimumAgeLabel = getMinimumAgeStageLabel(opportunity.minimum_age_stage);
+
+  if (minimumAgeLabel) {
+    badges.push({
+      icon: "👥",
+      label: minimumAgeLabel,
+      className: "role-safety-badge-info",
+    });
+  }
+
+  const checkLabel = getSafeguardingCheckRegionLabel(
+    opportunity.safeguarding_check_region,
+  );
+
+  if (checkLabel) {
+    badges.push({
+      icon: "🛡️",
+      label: checkLabel,
+      className:
+        opportunity.safeguarding_check_region === "not_sure"
+          ? "role-safety-badge-warning"
+          : "role-safety-badge-info",
+    });
+  }
+
+  const frequencyLabel = getFrequencyPatternLabel(
+    opportunity.role_frequency_pattern,
+  );
+
+  if (frequencyLabel) {
+    badges.push({
+      icon: "🔁",
+      label: frequencyLabel,
+      className:
+        opportunity.role_frequency_pattern === "not_sure" ||
+        opportunity.role_frequency_pattern === "more_than_three_days_in_thirty" ||
+        opportunity.role_frequency_pattern === "overnight"
+          ? "role-safety-badge-warning"
+          : "role-safety-badge-info",
+    });
+  }
+
+  if (opportunity.suitable_for_pupils === true) {
+    badges.push({
+      icon: "🏫",
+      label: "Pupil suitable",
+      className: "role-safety-badge-warning",
+    });
+  }
+
+  if (opportunity.school_approval_required === true) {
+    badges.push({
+      icon: "✅",
+      label: "School approval",
+      className: "role-safety-badge-warning",
+    });
+  }
+
+  if (opportunity.parent_carer_consent_required === true) {
+    badges.push({
+      icon: "👪",
+      label: "Parent/carer consent",
+      className: "role-safety-badge-warning",
+    });
+  }
+
+  if (opportunity.safeguarding_review_required === true) {
+    badges.push({
+      icon: "⚖️",
+      label: "Review required",
+      className: "role-safety-badge-warning",
+    });
+  }
+
+  if (opportunity.supervision_required === true) {
+    badges.push({
+      icon: "👀",
+      label: "Supervision",
+      className: "role-safety-badge-ready",
+    });
+  }
+
+  if (opportunity.no_lone_working === true) {
+    badges.push({
+      icon: "🚫",
+      label: "No lone working",
+      className: "role-safety-badge-ready",
+    });
+  }
+
+  if (opportunity.no_home_visits === true) {
+    badges.push({
+      icon: "🏠",
+      label: "No home visits",
+      className: "role-safety-badge-ready",
+    });
+  }
+
+  if (opportunity.no_money_handling === true) {
+    badges.push({
+      icon: "💷",
+      label: "No money handling",
+      className: "role-safety-badge-ready",
+    });
+  }
+
+  if (opportunity.no_personal_care === true) {
+    badges.push({
+      icon: "🤲",
+      label: "No personal care",
+      className: "role-safety-badge-ready",
+    });
+  }
+
+  if (opportunity.no_private_messaging === true) {
+    badges.push({
+      icon: "📵",
+      label: "Approved contact only",
+      className: "role-safety-badge-ready",
+    });
+  }
+
+  if (opportunity.risk_assessment_completed === true) {
+    badges.push({
+      icon: "📋",
+      label: "Risk checked",
+      className: "role-safety-badge-ready",
+    });
+  }
+
+  if (hasText(opportunity.named_safeguarding_contact)) {
+    badges.push({
+      icon: "👤",
+      label: "Named safeguarding contact",
+      className: "role-safety-badge-ready",
+    });
+  }
+
+  return badges;
+}
+
+function RoleSafetyPanel({
+  opportunity,
+}: {
+  opportunity: OpportunityRow | null | undefined;
+}) {
+  const summary = getRoleSafetySummary(opportunity);
+  const badges = getSafetyBadges(opportunity);
+
+  return (
+    <article className={`role-safety-panel ${summary.className}`}>
+      <div className="role-safety-heading">
+        <span className="role-safety-heading-icon" aria-hidden="true">
+          {summary.icon}
+        </span>
+
+        <div>
+          <p className="dashboard-card-label">Role safety context</p>
+          <h2>{summary.label}</h2>
+          <p>{summary.text}</p>
+        </div>
+      </div>
+
+      {badges.length > 0 ? (
+        <div className="role-safety-badge-grid">
+          {badges.map((badge) => (
+            <span
+              key={`${badge.icon}-${badge.label}`}
+              className={`role-safety-badge ${badge.className}`}
+            >
+              <span aria-hidden="true">{badge.icon}</span>
+              {badge.label}
+            </span>
+          ))}
+        </div>
+      ) : (
+        <p className="dashboard-muted-action">
+          No role-level safety badges have been added yet.
+        </p>
+      )}
+
+      {opportunity?.legal_safeguarding_notes ? (
+        <div className="role-safety-note">
+          <strong>Organisation note</strong>
+          <p>{opportunity.legal_safeguarding_notes}</p>
+        </div>
+      ) : null}
+
+      {opportunity?.named_safeguarding_contact ? (
+        <p className="role-safety-contact">
+          Named safeguarding contact:{" "}
+          <strong>{opportunity.named_safeguarding_contact}</strong>
+        </p>
+      ) : null}
+    </article>
+  );
+}
+
 function ChipList({
   values,
   emptyText,
@@ -461,7 +826,9 @@ export default async function OrganisationInterestDetailPage({
 
   const { data: opportunity } = await supabase
     .from("opportunities")
-    .select("id,title,summary,location_type,location,time_commitment,status")
+    .select(
+      "id,title,summary,location_type,location,time_commitment,status,minimum_age_stage,suitable_for_pupils,parent_carer_consent_required,school_approval_required,safeguarding_check_region,safeguarding_review_required,supervision_required,no_lone_working,no_home_visits,no_money_handling,no_personal_care,no_private_messaging,risk_assessment_completed,named_safeguarding_contact,legal_safeguarding_notes,role_frequency_pattern",
+    )
     .eq("id", interest.opportunity_id)
     .eq("organisation_user_id", user.id)
     .maybeSingle<OpportunityRow>();
@@ -542,21 +909,23 @@ export default async function OrganisationInterestDetailPage({
     interest.volunteer_support_shared === true
       ? hasText(interest.volunteer_support_needs)
       : true;
+  const hasRoleSafety = hasRoleSafetyInformation(opportunity);
 
   const step1Complete = Boolean(opportunity);
-  const step2Complete =
+  const step2Complete = hasRoleSafety;
+  const step3Complete =
     hasText(interest.volunteer_name) ||
     hasText(interest.volunteer_email) ||
     hasSharedProfile ||
     hasText(interest.message);
-  const step3Complete =
+  const step4Complete =
     hasText(interest.volunteer_preferred_contact_method) &&
     (contactHelperMode === "email" ||
       ((contactHelperMode === "sms" || contactHelperMode === "phone") &&
         hasText(phoneNumber)));
-  const step4Complete = hasContactRoute;
-  const step5Complete = normalisedStatus !== "new";
-  const step6Complete = hasAcceptedVolunteer;
+  const step5Complete = hasContactRoute;
+  const step6Complete = normalisedStatus !== "new";
+  const step7Complete = hasAcceptedVolunteer;
 
   const guideSteps: GuideStep[] = [
     {
@@ -566,34 +935,40 @@ export default async function OrganisationInterestDetailPage({
       isComplete: step1Complete,
     },
     {
+      icon: "⚖️",
+      title: "Check role safety",
+      text: "Review minimum age, consent, supervision and safeguarding context before contact.",
+      isComplete: step2Complete,
+    },
+    {
       icon: "👤",
       title: "Read volunteer snapshot",
       text: "Review goals, interests, skills, statement and shared support.",
-      isComplete: step2Complete,
+      isComplete: step3Complete,
     },
     {
       icon: "📞",
       title: "Check contact preference",
       text: "Use the volunteer’s preferred contact method where possible.",
-      isComplete: step3Complete,
+      isComplete: step4Complete,
     },
     {
       icon: "🛡️",
       title: "Contact safely",
       text: "Use the helper and do not ask for money, bank details, passwords or financial information.",
-      isComplete: step4Complete,
+      isComplete: step5Complete,
     },
     {
       icon: "📌",
       title: "Update status",
       text: "Mark as Contacted, Accepted or Closed when the next step is clear.",
-      isComplete: step5Complete,
+      isComplete: step6Complete,
     },
     {
       icon: "⭐",
       title: "Add pathway evidence",
       text: "If accepted, add a positive skills review after meaningful activity.",
-      isComplete: step6Complete,
+      isComplete: step7Complete,
     },
   ];
 
@@ -601,7 +976,7 @@ export default async function OrganisationInterestDetailPage({
   const completionPercent = Math.round((completedSteps / guideSteps.length) * 100);
 
   const listenText =
-    "You are on a volunteer interest detail page. This page now has a step by step guide. Step 1 is reviewing the role. Step 2 is reading the volunteer snapshot. Step 3 is checking the preferred contact method. Step 4 is contacting safely. Step 5 is updating the status. Step 6 is adding positive pathway evidence if the volunteer is accepted. The contact helper prepares an email, text or call notes depending on the volunteer’s preferred contact method. SO Volunteering and organisations using this platform should never ask volunteers for money, bank details, passwords or financial information. If the volunteer is accepted, the green pathway panel explains how to add positive skills evidence after they complete a task. Use Update status to mark the interest as New interest, Contacted, Accepted or Closed.";
+    "You are on a volunteer interest detail page. Step 1 is reviewing the role. Step 2 is checking the role safety context, including age, pupil suitability, consent, supervision, PVG, DBS or AccessNI wording, no lone working, no home visits, no money handling, no personal care and approved contact routes. Step 3 is reading the volunteer snapshot. Step 4 is checking the preferred contact method. Step 5 is contacting safely. Step 6 is updating the status. Step 7 is adding positive pathway evidence if the volunteer is accepted. SO Volunteering and organisations using this platform should never ask volunteers for money, bank details, passwords or financial information.";
 
   return (
     <main className="dashboard-bg organisation-interest-page">
@@ -657,8 +1032,8 @@ export default async function OrganisationInterestDetailPage({
             </h1>
 
             <p className="dashboard-lead organisation-interest-lead">
-              Review this interest, prepare kind contact, and update the status
-              when the next step is clear.
+              Review this interest, check role safety, prepare kind contact, and
+              update the status when the next step is clear.
             </p>
 
             <div className="organisation-interest-hero-meta">
@@ -679,6 +1054,19 @@ export default async function OrganisationInterestDetailPage({
               <span className="interest-detail-meta-pill">
                 <span aria-hidden="true">📞</span>
                 <span>{preferredContactMethod}</span>
+              </span>
+
+              <span
+                className={
+                  hasRoleSafety
+                    ? "interest-detail-meta-pill role-safety-meta-ready"
+                    : "interest-detail-meta-pill role-safety-meta-warning"
+                }
+              >
+                <span aria-hidden="true">⚖️</span>
+                <span>
+                  {hasRoleSafety ? "Role safety added" : "Role safety not started"}
+                </span>
               </span>
             </div>
 
@@ -762,7 +1150,7 @@ export default async function OrganisationInterestDetailPage({
             <div className="interest-progress-summary">
               <div className="interest-progress-label">
                 <span>Interest progress</span>
-                <strong>{completedSteps}/6 steps</strong>
+                <strong>{completedSteps}/7 steps</strong>
               </div>
               <div className="interest-progress-meter" aria-hidden="true">
                 <span style={{ width: `${completionPercent}%` }} />
@@ -795,7 +1183,7 @@ export default async function OrganisationInterestDetailPage({
               <h2 id="interest-guide-title">How to handle this interest</h2>
               <p>
                 Work through the steps in order. Completed steps are green and
-                show a tick. Keep contact kind, clear and safe.
+                show a tick. Check role safety before moving a volunteer forward.
               </p>
             </div>
           </div>
@@ -952,10 +1340,20 @@ export default async function OrganisationInterestDetailPage({
 
           <GuidedSection
             stepNumber={2}
+            icon="⚖️"
+            title="Check role safety"
+            description="Review the role-level legal, safeguarding and contact-safety context before moving this volunteer forward."
+            isComplete={step2Complete}
+          >
+            <RoleSafetyPanel opportunity={opportunity} />
+          </GuidedSection>
+
+          <GuidedSection
+            stepNumber={3}
             icon="👤"
             title="Read volunteer snapshot"
             description="Review the volunteer’s contact details, statement, goals, interests, skills and shared support."
-            isComplete={step2Complete}
+            isComplete={step3Complete}
           >
             <section
               className="dashboard-grid interest-detail-grid"
@@ -1049,11 +1447,11 @@ export default async function OrganisationInterestDetailPage({
           </GuidedSection>
 
           <GuidedSection
-            stepNumber={3}
+            stepNumber={4}
             icon="📞"
             title="Check contact preference"
             description="Use the volunteer’s preferred contact method where possible."
-            isComplete={step3Complete}
+            isComplete={step4Complete}
           >
             <section
               className="dashboard-grid interest-detail-grid"
@@ -1166,11 +1564,11 @@ export default async function OrganisationInterestDetailPage({
           </GuidedSection>
 
           <GuidedSection
-            stepNumber={4}
+            stepNumber={5}
             icon="🛡️"
             title="Contact safely"
             description="Use the contact helper and keep the first message kind, clear and safe."
-            isComplete={step4Complete}
+            isComplete={step5Complete}
           >
             <DetailCard
               icon={
@@ -1291,11 +1689,11 @@ export default async function OrganisationInterestDetailPage({
           </GuidedSection>
 
           <GuidedSection
-            stepNumber={5}
+            stepNumber={6}
             icon="📌"
             title="Update status"
             description="Mark this interest as Contacted, Accepted or Closed when the next step is clear."
-            isComplete={step5Complete}
+            isComplete={step6Complete}
           >
             <article className="info-card dashboard-pathway-card interest-detail-card">
               <div
@@ -1343,11 +1741,11 @@ export default async function OrganisationInterestDetailPage({
           </GuidedSection>
 
           <GuidedSection
-            stepNumber={6}
+            stepNumber={7}
             icon="⭐"
             title="Add positive pathway evidence"
             description="If the volunteer is accepted, add a positive skills review after meaningful activity."
-            isComplete={step6Complete}
+            isComplete={step7Complete}
           >
             <DetailCard
               icon={hasAcceptedVolunteer ? "🌱" : "🧭"}
@@ -1430,7 +1828,8 @@ export default async function OrganisationInterestDetailPage({
         .accepted-pathway-panel,
         .interest-guide-panel,
         .organisation-contact-safety-card,
-        .interest-step-section {
+        .interest-step-section,
+        .role-safety-panel {
           overflow: hidden;
         }
 
@@ -1446,7 +1845,9 @@ export default async function OrganisationInterestDetailPage({
         .organisation-contact-safety-card,
         .organisation-contact-safety-card *,
         .interest-step-section,
-        .interest-step-section * {
+        .interest-step-section *,
+        .role-safety-panel,
+        .role-safety-panel * {
           min-width: 0;
         }
 
@@ -1480,6 +1881,18 @@ export default async function OrganisationInterestDetailPage({
         .interest-detail-meta-pill {
           color: #5d6677;
           font-weight: 850;
+        }
+
+        .role-safety-meta-ready {
+          border-color: rgba(83, 111, 99, 0.24);
+          background: rgba(244, 255, 249, 0.96);
+          color: #536f63;
+        }
+
+        .role-safety-meta-warning {
+          border-color: rgba(190, 118, 76, 0.28);
+          background: rgba(255, 248, 241, 0.94);
+          color: #8a6630;
         }
 
         .interest-detail-status-new {
@@ -1621,7 +2034,7 @@ export default async function OrganisationInterestDetailPage({
 
         .interest-guide-grid {
           display: grid;
-          grid-template-columns: repeat(3, minmax(0, 1fr));
+          grid-template-columns: repeat(4, minmax(0, 1fr));
           gap: 12px;
         }
 
@@ -1893,6 +2306,129 @@ export default async function OrganisationInterestDetailPage({
         .interest-step-body {
           display: grid;
           gap: 16px;
+        }
+
+        .role-safety-panel {
+          display: grid;
+          gap: 16px;
+          padding: clamp(18px, 4vw, 24px);
+          border-radius: 28px;
+          box-shadow: 0 18px 48px rgba(33, 56, 48, 0.08);
+        }
+
+        .role-safety-ready {
+          border: 1px solid rgba(83, 111, 99, 0.24);
+          background:
+            radial-gradient(circle at top left, rgba(155, 232, 190, 0.28), transparent 34%),
+            rgba(244, 255, 249, 0.92);
+        }
+
+        .role-safety-warning {
+          border: 1px solid rgba(191, 146, 72, 0.28);
+          background:
+            radial-gradient(circle at top left, rgba(255, 229, 184, 0.32), transparent 34%),
+            rgba(255, 250, 241, 0.94);
+        }
+
+        .role-safety-attention {
+          border: 1px solid rgba(190, 118, 76, 0.3);
+          background:
+            radial-gradient(circle at top left, rgba(255, 210, 184, 0.34), transparent 34%),
+            rgba(255, 248, 241, 0.94);
+        }
+
+        .role-safety-heading {
+          display: grid;
+          grid-template-columns: auto 1fr;
+          gap: 14px;
+          align-items: start;
+        }
+
+        .role-safety-heading-icon {
+          display: inline-flex;
+          width: 62px;
+          height: 62px;
+          align-items: center;
+          justify-content: center;
+          border-radius: 22px;
+          background: rgba(255, 255, 255, 0.72);
+          box-shadow: inset 0 0 0 1px rgba(108, 92, 160, 0.12);
+          font-size: 1.85rem;
+        }
+
+        .role-safety-heading h2 {
+          margin: 0 0 8px;
+          color: #315f48;
+          font-size: clamp(1.3rem, 3vw, 1.75rem);
+          font-weight: 950;
+          letter-spacing: -0.035em;
+          line-height: 1.1;
+        }
+
+        .role-safety-heading p {
+          margin: 0;
+          color: #60706a;
+          font-weight: 760;
+          line-height: 1.5;
+        }
+
+        .role-safety-badge-grid {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+        }
+
+        .role-safety-badge {
+          display: inline-flex;
+          min-height: 34px;
+          align-items: center;
+          justify-content: center;
+          gap: 7px;
+          padding: 8px 11px;
+          border-radius: 999px;
+          font-size: 0.84rem;
+          font-weight: 950;
+          line-height: 1.12;
+        }
+
+        .role-safety-badge-ready {
+          border: 1px solid rgba(83, 111, 99, 0.2);
+          background: rgba(244, 255, 249, 0.96);
+          color: #536f63;
+        }
+
+        .role-safety-badge-info {
+          border: 1px solid rgba(108, 92, 160, 0.16);
+          background: rgba(248, 245, 255, 0.94);
+          color: #5c5488;
+        }
+
+        .role-safety-badge-warning {
+          border: 1px solid rgba(191, 146, 72, 0.24);
+          background: rgba(255, 250, 241, 0.96);
+          color: #8a6630;
+        }
+
+        .role-safety-note {
+          display: grid;
+          gap: 6px;
+          padding: 14px;
+          border: 1px solid rgba(108, 92, 160, 0.14);
+          border-radius: 18px;
+          background: rgba(255, 255, 255, 0.72);
+        }
+
+        .role-safety-note strong,
+        .role-safety-contact strong {
+          color: #315f48;
+        }
+
+        .role-safety-note p,
+        .role-safety-contact {
+          margin: 0;
+          color: #60706a;
+          font-weight: 760;
+          line-height: 1.45;
         }
 
         .accepted-pathway-panel {
@@ -2191,6 +2727,12 @@ export default async function OrganisationInterestDetailPage({
           background: rgba(244, 255, 249, 0.96);
         }
 
+        @media (max-width: 1120px) {
+          .interest-guide-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+          }
+        }
+
         @media (max-width: 980px) {
           .interest-guide-grid {
             grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2305,20 +2847,23 @@ export default async function OrganisationInterestDetailPage({
 
           .interest-guide-panel,
           .organisation-contact-safety-card,
-          .interest-step-section {
+          .interest-step-section,
+          .role-safety-panel {
             padding: 18px;
             border-radius: 24px;
           }
 
           .interest-guide-heading,
           .organisation-contact-safety-card,
-          .interest-step-heading {
+          .interest-step-heading,
+          .role-safety-heading {
             grid-template-columns: 1fr;
           }
 
           .interest-guide-heading > span,
           .organisation-contact-safety-icon,
-          .interest-step-icon {
+          .interest-step-icon,
+          .role-safety-heading-icon {
             width: 56px;
             height: 56px;
             border-radius: 20px;
@@ -2330,6 +2875,11 @@ export default async function OrganisationInterestDetailPage({
 
           .interest-guide-step {
             min-height: 0;
+          }
+
+          .role-safety-badge {
+            width: 100%;
+            text-align: center;
           }
 
           .accepted-pathway-panel {
