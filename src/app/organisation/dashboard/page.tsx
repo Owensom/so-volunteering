@@ -328,7 +328,7 @@ export default async function OrganisationDashboardPage() {
   );
 
   const listenText =
-    "You are on the organisation dashboard. This is your workspace for creating volunteering roles, reviewing volunteer interest, accepting or contacting volunteers, and adding positive skills evidence. First, check the Workspace status card. Then use the Organisation readiness checklist to see what is ready and what needs action. The checklist now includes organisation logo and volunteer safety statement readiness. Below that, the summary cards show role, interest and skills review counts. Use Create role to make a new inclusive volunteering role. Use Interest inbox to review volunteers who clicked I’m interested. Use Roles and reviews to edit roles and open volunteers and reviews for each role. Help using the app is for getting support if you are stuck, something is not working, or you want to report a problem with SO Volunteering.";
+    "You are on the organisation dashboard. This is your workspace for creating volunteering roles, reviewing volunteer interest, accepting or contacting volunteers, and adding positive skills evidence. First, check the Workspace status card. Then use the Organisation readiness checklist to see what is ready and what needs action. The checklist includes organisation logo and volunteer safety statement readiness. Below that, the summary cards show role, interest and skills review counts. Use Create role to make a new inclusive volunteering role. Use Interest inbox to review volunteers who clicked I’m interested. Use Roles and reviews to edit roles and open volunteers and reviews for each role. The install card explains how to add SO Volunteering to your phone, tablet or computer home screen so it opens more like an app. Help using the app is for getting support if you are stuck, something is not working, or you want to report a problem with SO Volunteering.";
 
   return (
     <main className="dashboard-bg organisation-dashboard-page">
@@ -793,6 +793,15 @@ export default async function OrganisationDashboardPage() {
             title="Volunteers & skills reviews"
             description="Open a role, then use Volunteers & reviews to add positive employability skills evidence."
             action="Open roles"
+          />
+
+          <OrganisationCard
+            icon="📲"
+            label="Install"
+            title="Install SO Volunteering"
+            description="Use SO Volunteering like an app. On iPhone or iPad, tap Share then Add to Home Screen. On Android or Chrome, tap the menu then Install app or Add to Home screen. On desktop Chrome or Edge, use the install icon in the address bar."
+            action="No app store needed"
+            muted
           />
 
           <OrganisationCard
