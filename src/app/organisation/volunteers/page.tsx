@@ -79,6 +79,13 @@ type VolunteerConnection = {
   supportNeeds: string;
 };
 
+type ConnectionGuideStep = {
+  icon: string;
+  title: string;
+  text: string;
+  isComplete: boolean;
+};
+
 function normaliseUserType(value: string | null | undefined) {
   return value?.trim().toLowerCase() === "organisation"
     ? "organisation"
@@ -92,6 +99,13 @@ function normaliseInterestStatus(
   if (status === "accepted") return "accepted";
   if (status === "closed") return "closed";
   return "new";
+}
+
+function normaliseReviewStatus(status: string | null | undefined) {
+  if (status === "shared") return "shared";
+  if (status === "hidden") return "hidden";
+  if (status === "draft") return "draft";
+  return "draft";
 }
 
 function formatInterestStatus(status: string | null | undefined) {
@@ -125,6 +139,7 @@ function formatContactMethod(value: string | null | undefined) {
   if (value === "sms") return "Text message";
   if (value === "phone") return "Phone call";
   if (value === "email") return "Email";
+  if (value === "not_sure") return "Not sure yet";
   return "Not chosen";
 }
 
@@ -179,8 +194,13 @@ function sortStatusPriority(status: "new" | "contacted" | "accepted" | "closed")
   return 1;
 }
 
-function getLatestStatus(statuses: Array<"new" | "contacted" | "accepted" | "closed">) {
-  return statuses.sort((a, b) => sortStatusPriority(b) - sortStatusPriority(a))[0] || "new";
+function getLatestStatus(
+  statuses: Array<"new" | "contacted" | "accepted" | "closed">,
+) {
+  return (
+    statuses.sort((a, b) => sortStatusPriority(b) - sortStatusPriority(a))[0] ||
+    "new"
+  );
 }
 
 function fallbackVolunteerName(email: string | null | undefined) {
@@ -251,6 +271,60 @@ function StatCard({
         <small>{helper}</small>
       </div>
     </article>
+  );
+}
+
+function ConnectionGuide({ steps }: { steps: ConnectionGuideStep[] }) {
+  return (
+    <section
+      className="connection-guide-panel"
+      aria-labelledby="connection-guide-title"
+    >
+      <div className="connection-guide-heading">
+        <span aria-hidden="true">🧭</span>
+
+        <div>
+          <p className="dashboard-kicker">Step-by-step guide</p>
+          <h2 id="connection-guide-title">
+            How to use volunteer connections
+          </h2>
+          <p>
+            This page helps you follow up with volunteers your organisation has
+            already interacted with. It is not a searchable volunteer database.
+          </p>
+        </div>
+      </div>
+
+      <div className="connection-guide-grid">
+        {steps.map((step, index) => (
+          <article
+            key={step.title}
+            className={
+              step.isComplete
+                ? "connection-guide-step connection-guide-step-complete"
+                : "connection-guide-step"
+            }
+          >
+            <span className="connection-guide-step-number">
+              {step.isComplete ? "✓" : index + 1}
+            </span>
+
+            <div className="connection-guide-step-icon" aria-hidden="true">
+              {step.icon}
+            </div>
+
+            <div className="connection-guide-step-copy">
+              <p className="connection-guide-step-kicker">
+                Step {index + 1}
+                <span>{step.isComplete ? "Ready" : "Guide"}</span>
+              </p>
+              <h3>{step.title}</h3>
+              <p>{step.text}</p>
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -390,15 +464,15 @@ export default async function OrganisationVolunteersPage() {
           : latest.created_at;
 
       const sharedReviewCount = volunteerReviews.filter(
-        (review) => review.status === "shared",
+        (review) => normaliseReviewStatus(review.status) === "shared",
       ).length;
 
       const draftReviewCount = volunteerReviews.filter(
-        (review) => review.status === "draft",
+        (review) => normaliseReviewStatus(review.status) === "draft",
       ).length;
 
       const hiddenReviewCount = volunteerReviews.filter(
-        (review) => review.status === "hidden",
+        (review) => normaliseReviewStatus(review.status) === "hidden",
       ).length;
 
       return {
@@ -416,8 +490,10 @@ export default async function OrganisationVolunteersPage() {
         latestActivity,
         latestStatus: getLatestStatus(statuses),
         interestCount: sortedRows.length,
-        acceptedCount: statuses.filter((status) => status === "accepted").length,
-        contactedCount: statuses.filter((status) => status === "contacted").length,
+        acceptedCount: statuses.filter((status) => status === "accepted")
+          .length,
+        contactedCount: statuses.filter((status) => status === "contacted")
+          .length,
         closedCount: statuses.filter((status) => status === "closed").length,
         sharedReviewCount,
         draftReviewCount,
@@ -440,11 +516,13 @@ export default async function OrganisationVolunteersPage() {
           (row) => row.volunteer_support_shared === true,
         ),
         supportNeeds:
-          sortedRows.find(
-            (row) =>
-              row.volunteer_support_shared === true &&
-              row.volunteer_support_needs?.trim(),
-          )?.volunteer_support_needs?.trim() || "",
+          sortedRows
+            .find(
+              (row) =>
+                row.volunteer_support_shared === true &&
+                row.volunteer_support_needs?.trim(),
+            )
+            ?.volunteer_support_needs?.trim() || "",
       };
     })
     .sort(
@@ -456,12 +534,50 @@ export default async function OrganisationVolunteersPage() {
   const acceptedConnections = connections.filter(
     (connection) => connection.acceptedCount > 0,
   ).length;
+  const contactedConnections = connections.filter(
+    (connection) => connection.contactedCount > 0,
+  ).length;
   const reviewedConnections = connections.filter(
     (connection) => connection.sharedReviewCount > 0,
   ).length;
   const activeConnections = connections.filter(
     (connection) => connection.latestStatus !== "closed",
   ).length;
+  const totalSharedReviews = connections.reduce(
+    (total, connection) => total + connection.sharedReviewCount,
+    0,
+  );
+  const totalDraftReviews = connections.reduce(
+    (total, connection) => total + connection.draftReviewCount,
+    0,
+  );
+
+  const guideSteps: ConnectionGuideStep[] = [
+    {
+      icon: "📬",
+      title: "Start from interests",
+      text: "Open a volunteer’s role interest before contacting or changing status.",
+      isComplete: totalConnections > 0,
+    },
+    {
+      icon: "📞",
+      title: "Use the chosen contact route",
+      text: "Respect the volunteer’s saved email, text or phone preference.",
+      isComplete: totalConnections > 0,
+    },
+    {
+      icon: "⭐",
+      title: "Record positive evidence",
+      text: "Use role review pages to add supportive skills evidence after activity.",
+      isComplete: reviewedConnections > 0 || totalDraftReviews > 0,
+    },
+    {
+      icon: "🛡️",
+      title: "Protect volunteer privacy",
+      text: "Only use shared information for the relevant volunteering relationship.",
+      isComplete: true,
+    },
+  ];
 
   const listenText =
     "This is the organisation volunteer connections page. It only shows volunteers who have interacted with your organisation through an interest or a positive skills review. It is not a public volunteer database and it does not show all volunteers on the platform. Each card shows the volunteer name, contact route, city, roles they connected with, status history and positive review counts. Support information is only shown if the volunteer chose to share it with your organisation.";
@@ -521,8 +637,8 @@ export default async function OrganisationVolunteersPage() {
 
             <p className="dashboard-lead organisation-connections-lead">
               See volunteers who have connected with your organisation through
-              role interest or positive skills reviews. This is your organisation
-              history only, not a platform-wide volunteer list.
+              role interest or positive skills reviews. This is your
+              organisation history only, not a platform-wide volunteer list.
             </p>
 
             <div className="dashboard-primary-actions organisation-connections-hero-actions">
@@ -543,6 +659,26 @@ export default async function OrganisationVolunteersPage() {
                 <span className="dashboard-button-inner">
                   <span aria-hidden="true">⭐</span>
                   <span>Roles & reviews</span>
+                </span>
+              </Link>
+
+              <Link
+                href="/organisation/opportunities/new"
+                className="secondary-button dashboard-main-action"
+              >
+                <span className="dashboard-button-inner">
+                  <span aria-hidden="true">📣</span>
+                  <span>Create role</span>
+                </span>
+              </Link>
+
+              <Link
+                href="/organisation/profile"
+                className="secondary-button dashboard-main-action"
+              >
+                <span className="dashboard-button-inner">
+                  <span aria-hidden="true">🏢</span>
+                  <span>Organisation profile</span>
                 </span>
               </Link>
             </div>
@@ -569,13 +705,18 @@ export default async function OrganisationVolunteersPage() {
               Active connections: <strong>{activeConnections}</strong>
             </p>
             <p className="dashboard-progress-note">
+              Contacted volunteers: <strong>{contactedConnections}</strong>
+            </p>
+            <p className="dashboard-progress-note">
               Accepted volunteers: <strong>{acceptedConnections}</strong>
             </p>
             <p className="dashboard-progress-note">
-              With shared reviews: <strong>{reviewedConnections}</strong>
+              Shared reviews: <strong>{totalSharedReviews}</strong>
             </p>
           </aside>
         </section>
+
+        <ConnectionGuide steps={guideSteps} />
 
         <section
           className="connection-privacy-card"
@@ -588,13 +729,14 @@ export default async function OrganisationVolunteersPage() {
           <div>
             <p className="dashboard-kicker">Privacy and safety</p>
             <h2 id="connection-privacy-title">
-              Only your organisation’s volunteer connections
+              This is not a searchable volunteer database
             </h2>
             <p>
-              This page only uses volunteers who have interacted with your
-              organisation. Do not use it as a public volunteer search. Support
-              information should only be used when the volunteer chose to share
-              it for a role, and contact should remain kind, relevant and safe.
+              This page only shows volunteers who have already interacted with
+              your organisation. Do not use it as a public volunteer search.
+              Support information should only be used when the volunteer chose
+              to share it for a role, and contact should remain kind, relevant
+              and safe.
             </p>
           </div>
         </section>
@@ -613,7 +755,7 @@ export default async function OrganisationVolunteersPage() {
             icon="🌱"
             label="Active"
             value={activeConnections}
-            helper="Not closed as latest status"
+            helper="Latest status is not closed"
           />
           <StatCard
             icon="✅"
@@ -637,12 +779,14 @@ export default async function OrganisationVolunteersPage() {
               </div>
 
               <div className="dashboard-card-copy">
-                <p className="dashboard-card-label">No volunteer connections yet</p>
+                <p className="dashboard-card-label">
+                  No volunteer connections yet
+                </p>
                 <h2>Connections will appear after volunteers show interest</h2>
                 <p>
-                  When volunteers express interest in your roles, or when you add
-                  positive skills reviews, they will appear here as organisation
-                  connections.
+                  When volunteers express interest in your roles, or when you
+                  add positive skills reviews, they will appear here as
+                  organisation connections.
                 </p>
 
                 <Link
@@ -672,7 +816,8 @@ export default async function OrganisationVolunteersPage() {
 
                     <div>
                       <p className="dashboard-card-label">
-                        Latest status: {formatInterestStatus(connection.latestStatus)}
+                        Latest status:{" "}
+                        {formatInterestStatus(connection.latestStatus)}
                       </p>
                       <h2>{connection.name}</h2>
                       <p>
@@ -711,6 +856,43 @@ export default async function OrganisationVolunteersPage() {
                 </div>
 
                 <section
+                  className="connection-section connection-care-section"
+                  aria-label={`Next action for ${connection.name}`}
+                >
+                  <div className="connection-section-heading">
+                    <span aria-hidden="true">🧭</span>
+                    <div>
+                      <h3>Suggested next step</h3>
+                      <p>
+                        {connection.acceptedCount > 0
+                          ? "This volunteer has at least one accepted role. Keep communication practical, kind and relevant."
+                          : connection.contactedCount > 0
+                            ? "This volunteer has been contacted. Update the role status when the next step is clear."
+                            : "This volunteer has expressed interest. Review their interest before contacting them."}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="connection-next-actions">
+                    <Link
+                      href={`/organisation/interests/${connection.roles[0]?.interestId}`}
+                      className="connection-action-link"
+                    >
+                      Open latest interest
+                    </Link>
+
+                    {connection.roles[0]?.opportunityId ? (
+                      <Link
+                        href={`/organisation/opportunities/${connection.roles[0].opportunityId}/reviews`}
+                        className="connection-action-link"
+                      >
+                        Open skills reviews
+                      </Link>
+                    ) : null}
+                  </div>
+                </section>
+
+                <section
                   className="connection-section"
                   aria-label={`Contact details for ${connection.name}`}
                 >
@@ -734,6 +916,12 @@ export default async function OrganisationVolunteersPage() {
                       {connection.phone || "Not supplied or not shared"}
                     </p>
                   </div>
+
+                  <p className="connection-contact-note">
+                    Contact should only relate to roles they have expressed
+                    interest in or activity they have completed with your
+                    organisation.
+                  </p>
                 </section>
 
                 <section
@@ -753,21 +941,60 @@ export default async function OrganisationVolunteersPage() {
 
                   <div className="connection-role-list">
                     {connection.roles.map((role) => (
-                      <Link
-                        key={role.interestId}
-                        href={`/organisation/interests/${role.interestId}`}
-                        className="connection-role-row"
-                      >
-                        <span aria-hidden="true">{getStatusIcon(role.status)}</span>
-                        <div>
-                          <strong>{role.title}</strong>
-                          <small>
-                            {formatInterestStatus(role.status)} · Received{" "}
-                            {safeDate(role.createdAt)}
-                          </small>
-                        </div>
-                      </Link>
+                      <div key={role.interestId} className="connection-role-row">
+                        <Link
+                          href={`/organisation/interests/${role.interestId}`}
+                          className="connection-role-main-link"
+                        >
+                          <span aria-hidden="true">{getStatusIcon(role.status)}</span>
+                          <div>
+                            <strong>{role.title}</strong>
+                            <small>
+                              {formatInterestStatus(role.status)} · Received{" "}
+                              {safeDate(role.createdAt)}
+                            </small>
+                          </div>
+                        </Link>
+
+                        <Link
+                          href={`/organisation/opportunities/${role.opportunityId}/reviews`}
+                          className="connection-review-link"
+                        >
+                          Skills reviews
+                        </Link>
+                      </div>
                     ))}
+                  </div>
+                </section>
+
+                <section
+                  className="connection-section"
+                  aria-label={`Review summary for ${connection.name}`}
+                >
+                  <div className="connection-section-heading">
+                    <span aria-hidden="true">⭐</span>
+                    <div>
+                      <h3>Positive skills evidence</h3>
+                      <p>
+                        Reviews help build the volunteer’s Positive Pathway CV
+                        when shared.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="connection-review-grid">
+                    <div>
+                      <strong>{connection.sharedReviewCount}</strong>
+                      <span>Shared</span>
+                    </div>
+                    <div>
+                      <strong>{connection.draftReviewCount}</strong>
+                      <span>Draft</span>
+                    </div>
+                    <div>
+                      <strong>{connection.hiddenReviewCount}</strong>
+                      <span>Hidden</span>
+                    </div>
                   </div>
                 </section>
 
@@ -851,6 +1078,7 @@ export default async function OrganisationVolunteersPage() {
 
         .organisation-connections-hero,
         .organisation-connections-status,
+        .connection-guide-panel,
         .connection-privacy-card,
         .connection-card,
         .connection-section,
@@ -863,6 +1091,8 @@ export default async function OrganisationVolunteersPage() {
         .organisation-connections-status *,
         .connection-card,
         .connection-card *,
+        .connection-guide-panel,
+        .connection-guide-panel *,
         .connection-privacy-card,
         .connection-privacy-card * {
           min-width: 0;
@@ -880,24 +1110,47 @@ export default async function OrganisationVolunteersPage() {
         }
 
         .organisation-connections-hero-actions {
+          display: grid !important;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
           gap: 12px;
           margin-top: 18px;
+          width: min(100%, 620px);
         }
 
+        .organisation-connections-hero-actions .dashboard-main-action {
+          width: 100%;
+          justify-content: center;
+          text-align: center;
+        }
+
+        .connection-guide-panel,
         .connection-privacy-card {
           display: grid;
-          grid-template-columns: auto 1fr;
-          gap: 16px;
-          align-items: start;
+          gap: 18px;
           padding: 22px;
-          border: 1px solid rgba(34, 124, 78, 0.24);
           border-radius: 28px;
-          background:
-            radial-gradient(circle at top left, rgba(155, 232, 190, 0.4), transparent 32%),
-            linear-gradient(135deg, rgba(244, 255, 249, 0.94), rgba(255, 255, 255, 0.9));
-          box-shadow: 0 18px 42px rgba(33, 96, 61, 0.1);
+          box-shadow: 0 18px 42px rgba(33, 96, 61, 0.08);
         }
 
+        .connection-guide-panel {
+          border: 1px solid rgba(108, 92, 160, 0.16);
+          background:
+            radial-gradient(circle at top left, rgba(222, 214, 255, 0.34), transparent 34%),
+            linear-gradient(135deg, rgba(248, 245, 255, 0.92), rgba(255, 255, 255, 0.9));
+        }
+
+        .connection-guide-heading,
+        .connection-privacy-card {
+          grid-template-columns: auto 1fr;
+          align-items: start;
+        }
+
+        .connection-guide-heading {
+          display: grid;
+          gap: 16px;
+        }
+
+        .connection-guide-heading > span,
         .connection-privacy-icon {
           display: inline-flex;
           width: 62px;
@@ -905,25 +1158,175 @@ export default async function OrganisationVolunteersPage() {
           align-items: center;
           justify-content: center;
           border-radius: 22px;
-          background: rgba(34, 124, 78, 0.12);
-          box-shadow: inset 0 0 0 1px rgba(34, 124, 78, 0.16);
           font-size: 1.9rem;
         }
 
+        .connection-guide-heading > span {
+          background: rgba(108, 92, 160, 0.12);
+          box-shadow: inset 0 0 0 1px rgba(108, 92, 160, 0.14);
+        }
+
+        .connection-privacy-card {
+          display: grid;
+          border: 1px solid rgba(34, 124, 78, 0.24);
+          background:
+            radial-gradient(circle at top left, rgba(155, 232, 190, 0.4), transparent 32%),
+            linear-gradient(135deg, rgba(244, 255, 249, 0.94), rgba(255, 255, 255, 0.9));
+        }
+
+        .connection-privacy-icon {
+          background: rgba(34, 124, 78, 0.12);
+          box-shadow: inset 0 0 0 1px rgba(34, 124, 78, 0.16);
+        }
+
+        .connection-guide-heading h2,
         .connection-privacy-card h2 {
           margin: 0 0 8px;
-          color: #145c38;
+          color: #315f48;
           font-size: clamp(1.3rem, 3vw, 1.75rem);
           font-weight: 950;
           letter-spacing: -0.035em;
           line-height: 1.1;
         }
 
+        .connection-privacy-card h2 {
+          color: #145c38;
+        }
+
+        .connection-guide-heading p,
         .connection-privacy-card p {
           margin: 0;
-          color: #275f45;
+          color: #60706a;
           font-weight: 780;
           line-height: 1.5;
+        }
+
+        .connection-privacy-card p {
+          color: #275f45;
+        }
+
+        .connection-guide-grid {
+          display: grid;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 12px;
+        }
+
+        .connection-guide-step {
+          position: relative;
+          display: grid;
+          gap: 10px;
+          min-height: 178px;
+          padding: 15px;
+          border: 1px solid rgba(108, 92, 160, 0.14);
+          border-radius: 22px;
+          background: rgba(255, 255, 255, 0.78);
+          box-shadow: 0 12px 28px rgba(33, 56, 48, 0.05);
+        }
+
+        .connection-guide-step-complete {
+          border-color: rgba(34, 124, 78, 0.26);
+          background:
+            radial-gradient(circle at top left, rgba(155, 232, 190, 0.28), transparent 34%),
+            rgba(244, 255, 249, 0.92);
+          box-shadow: 0 14px 30px rgba(33, 96, 61, 0.08);
+        }
+
+        .connection-guide-step-number {
+          position: absolute;
+          top: 12px;
+          right: 12px;
+          display: inline-flex;
+          width: 30px;
+          height: 30px;
+          align-items: center;
+          justify-content: center;
+          border-radius: 999px;
+          background: rgba(108, 92, 160, 0.12);
+          color: #4f4b82;
+          font-size: 0.82rem;
+          font-weight: 950;
+          line-height: 1;
+        }
+
+        .connection-guide-step-complete .connection-guide-step-number {
+          background: rgba(34, 124, 78, 0.14);
+          color: #145c38;
+        }
+
+        .connection-guide-step-icon {
+          display: inline-flex;
+          width: 52px;
+          height: 52px;
+          align-items: center;
+          justify-content: center;
+          border-radius: 18px;
+          background: rgba(248, 248, 252, 0.96);
+          box-shadow: inset 0 0 0 1px rgba(108, 92, 160, 0.08);
+          font-size: 1.55rem;
+        }
+
+        .connection-guide-step-complete .connection-guide-step-icon {
+          background: rgba(34, 124, 78, 0.12);
+          box-shadow: inset 0 0 0 1px rgba(34, 124, 78, 0.14);
+        }
+
+        .connection-guide-step-copy {
+          display: grid;
+          gap: 6px;
+        }
+
+        .connection-guide-step-kicker {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+          align-items: center;
+          margin: 0;
+          padding-right: 34px;
+          color: #6c5ca0;
+          font-size: 0.78rem;
+          font-weight: 950;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+        }
+
+        .connection-guide-step-kicker span {
+          display: inline-flex;
+          min-height: 24px;
+          align-items: center;
+          justify-content: center;
+          padding: 5px 8px;
+          border-radius: 999px;
+          background: rgba(108, 92, 160, 0.1);
+          color: #6c5ca0;
+          font-size: 0.68rem;
+          letter-spacing: 0;
+          text-transform: none;
+        }
+
+        .connection-guide-step-complete .connection-guide-step-kicker,
+        .connection-guide-step-complete .connection-guide-step-kicker span {
+          color: #145c38;
+        }
+
+        .connection-guide-step-complete .connection-guide-step-kicker span {
+          background: rgba(34, 124, 78, 0.12);
+        }
+
+        .connection-guide-step-copy h3 {
+          margin: 0;
+          padding-right: 32px;
+          color: #315f48;
+          font-size: 1rem;
+          font-weight: 950;
+          line-height: 1.14;
+        }
+
+        .connection-guide-step-copy p {
+          margin: 0;
+          color: #60706a;
+          font-size: 0.92rem;
+          font-weight: 740;
+          line-height: 1.42;
         }
 
         .connection-stat-grid {
@@ -1108,6 +1511,13 @@ export default async function OrganisationVolunteersPage() {
           background: rgba(255, 255, 255, 0.7);
         }
 
+        .connection-care-section {
+          border-color: rgba(34, 124, 78, 0.22);
+          background:
+            radial-gradient(circle at top left, rgba(155, 232, 190, 0.24), transparent 35%),
+            rgba(244, 255, 249, 0.78);
+        }
+
         .connection-section-heading {
           display: grid;
           grid-template-columns: auto 1fr;
@@ -1141,13 +1551,44 @@ export default async function OrganisationVolunteersPage() {
           line-height: 1.4;
         }
 
+        .connection-next-actions {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 10px;
+        }
+
+        .connection-action-link,
+        .connection-review-link {
+          display: inline-flex;
+          min-height: 40px;
+          align-items: center;
+          justify-content: center;
+          padding: 9px 13px;
+          border: 1px solid rgba(83, 111, 99, 0.2);
+          border-radius: 999px;
+          background: rgba(255, 255, 255, 0.86);
+          color: #536f63;
+          font-size: 0.88rem;
+          font-weight: 900;
+          line-height: 1.1;
+          text-decoration: none;
+          box-shadow: 0 8px 20px rgba(33, 56, 48, 0.06);
+        }
+
+        .connection-action-link:hover,
+        .connection-review-link:hover {
+          border-color: rgba(83, 111, 99, 0.34);
+          background: rgba(244, 255, 249, 0.96);
+        }
+
         .connection-contact-grid {
           display: grid;
           grid-template-columns: repeat(2, minmax(0, 1fr));
           gap: 10px;
         }
 
-        .connection-contact-grid p {
+        .connection-contact-grid p,
+        .connection-contact-note {
           margin: 0;
           padding: 12px;
           border-radius: 16px;
@@ -1158,6 +1599,11 @@ export default async function OrganisationVolunteersPage() {
           overflow-wrap: anywhere;
         }
 
+        .connection-contact-note {
+          background: rgba(244, 255, 249, 0.72);
+          color: #536f63;
+        }
+
         .connection-role-list {
           display: grid;
           gap: 10px;
@@ -1165,28 +1611,27 @@ export default async function OrganisationVolunteersPage() {
 
         .connection-role-row {
           display: grid;
-          grid-template-columns: auto 1fr;
+          grid-template-columns: minmax(0, 1fr) auto;
           gap: 10px;
-          align-items: start;
+          align-items: center;
           padding: 12px;
           border: 1px solid rgba(108, 92, 160, 0.12);
           border-radius: 18px;
           background: rgba(255, 255, 255, 0.78);
           color: inherit;
+        }
+
+        .connection-role-main-link {
+          display: grid;
+          grid-template-columns: auto 1fr;
+          gap: 10px;
+          align-items: start;
+          color: inherit;
           text-decoration: none;
-          transition:
-            border-color 160ms ease,
-            background 160ms ease,
-            transform 160ms ease;
+          min-width: 0;
         }
 
-        .connection-role-row:hover {
-          transform: translateY(-1px);
-          border-color: rgba(83, 111, 99, 0.28);
-          background: rgba(244, 255, 249, 0.86);
-        }
-
-        .connection-role-row > span {
+        .connection-role-main-link > span {
           display: inline-flex;
           width: 38px;
           height: 38px;
@@ -1197,7 +1642,7 @@ export default async function OrganisationVolunteersPage() {
           font-size: 1.2rem;
         }
 
-        .connection-role-row strong {
+        .connection-role-main-link strong {
           display: block;
           margin-bottom: 4px;
           color: #315f48;
@@ -1206,10 +1651,39 @@ export default async function OrganisationVolunteersPage() {
           overflow-wrap: anywhere;
         }
 
-        .connection-role-row small {
+        .connection-role-main-link small {
           color: #60706a;
           font-weight: 750;
           line-height: 1.3;
+        }
+
+        .connection-review-grid {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 10px;
+        }
+
+        .connection-review-grid div {
+          display: grid;
+          gap: 5px;
+          min-height: 82px;
+          padding: 12px;
+          border: 1px solid rgba(108, 92, 160, 0.12);
+          border-radius: 18px;
+          background: rgba(255, 255, 255, 0.78);
+        }
+
+        .connection-review-grid strong {
+          color: #315f48;
+          font-size: 1.35rem;
+          line-height: 1;
+        }
+
+        .connection-review-grid span {
+          color: #60706a;
+          font-size: 0.82rem;
+          font-weight: 850;
+          line-height: 1.2;
         }
 
         .connection-snapshot-grid {
@@ -1301,9 +1775,15 @@ export default async function OrganisationVolunteersPage() {
           margin-top: 8px;
         }
 
-        @media (max-width: 980px) {
+        @media (max-width: 1080px) {
+          .connection-guide-grid,
           .connection-stat-grid,
-          .connection-summary-grid,
+          .connection-summary-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+        }
+
+        @media (max-width: 980px) {
           .connection-snapshot-grid {
             grid-template-columns: repeat(2, minmax(0, 1fr));
           }
@@ -1347,6 +1827,7 @@ export default async function OrganisationVolunteersPage() {
           }
 
           .organisation-connections-hero-actions {
+            grid-template-columns: 1fr;
             width: 100%;
           }
 
@@ -1355,27 +1836,32 @@ export default async function OrganisationVolunteersPage() {
             width: 100%;
           }
 
+          .connection-guide-heading,
           .connection-privacy-card,
           .connection-section-heading,
           .connection-support-card {
             grid-template-columns: 1fr;
           }
 
+          .connection-guide-panel,
           .connection-privacy-card {
             padding: 18px;
             border-radius: 24px;
           }
 
+          .connection-guide-heading > span,
           .connection-privacy-icon {
             width: 56px;
             height: 56px;
             border-radius: 20px;
           }
 
+          .connection-guide-grid,
           .connection-stat-grid,
           .connection-summary-grid,
           .connection-contact-grid,
-          .connection-snapshot-grid {
+          .connection-snapshot-grid,
+          .connection-review-grid {
             grid-template-columns: 1fr;
           }
 
@@ -1395,6 +1881,20 @@ export default async function OrganisationVolunteersPage() {
           .connection-section {
             padding: 14px;
             border-radius: 20px;
+          }
+
+          .connection-next-actions,
+          .connection-action-link,
+          .connection-review-link {
+            width: 100%;
+          }
+
+          .connection-role-row {
+            grid-template-columns: 1fr;
+          }
+
+          .connection-review-link {
+            justify-content: center;
           }
 
           .connection-empty-action {
