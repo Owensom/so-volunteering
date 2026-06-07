@@ -18,6 +18,23 @@ type Opportunity = {
   time_commitment: string | null;
   status: string;
   created_at: string;
+
+  minimum_age_stage: string | null;
+  suitable_for_pupils: boolean | null;
+  parent_carer_consent_required: boolean | null;
+  school_approval_required: boolean | null;
+  safeguarding_check_region: string | null;
+  safeguarding_review_required: boolean | null;
+  supervision_required: boolean | null;
+  no_lone_working: boolean | null;
+  no_home_visits: boolean | null;
+  no_money_handling: boolean | null;
+  no_personal_care: boolean | null;
+  no_private_messaging: boolean | null;
+  risk_assessment_completed: boolean | null;
+  named_safeguarding_contact: string | null;
+  legal_safeguarding_notes: string | null;
+  role_frequency_pattern: string | null;
 };
 
 type InterestSummary = {
@@ -40,6 +57,19 @@ type RoleCounts = {
   closed: number;
 };
 
+type RoleSafetyReadiness = {
+  icon: string;
+  label: string;
+  text: string;
+  className: string;
+};
+
+type SafetyBadge = {
+  icon: string;
+  label: string;
+  className: string;
+};
+
 function normaliseUserType(value: string | null | undefined) {
   return value?.trim().toLowerCase() === "organisation"
     ? "organisation"
@@ -57,6 +87,10 @@ function normaliseInterestStatus(status: string | null | undefined) {
   if (status === "accepted") return "accepted";
   if (status === "closed") return "closed";
   return "new";
+}
+
+function hasText(value: string | null | undefined) {
+  return Boolean(value && value.trim().length > 0);
 }
 
 function formatStatus(status: string) {
@@ -87,6 +121,265 @@ function getStatusClass(status: string) {
   if (normalisedStatus === "published") return "role-status-published";
   if (normalisedStatus === "closed") return "role-status-closed";
   return "role-status-draft";
+}
+
+function getMinimumAgeStageLabel(value: string | null | undefined) {
+  if (value === "adults_only") return "Adults only";
+  if (value === "sixteen_plus") return "16+";
+  if (value === "fourteen_plus") return "14+";
+  if (value === "school_pupils_with_approval") {
+    return "School approval";
+  }
+  if (value === "school_pupils_with_parent_carer_consent") {
+    return "Parent/carer consent";
+  }
+
+  return "Age/stage not set";
+}
+
+function getSafeguardingCheckRegionLabel(value: string | null | undefined) {
+  if (value === "scotland_pvg") return "PVG";
+  if (value === "england_wales_dbs") return "DBS";
+  if (value === "northern_ireland_accessni") return "AccessNI";
+  if (value === "not_expected") return "No check expected";
+  if (value === "not_sure") return "Check not sure";
+
+  return "Organisation default";
+}
+
+function getFrequencyPatternLabel(value: string | null | undefined) {
+  if (value === "one_off") return "One-off";
+  if (value === "occasional") return "Occasional";
+  if (value === "weekly_or_regular") return "Weekly/regular";
+  if (value === "more_than_three_days_in_thirty") {
+    return "3+ days in 30";
+  }
+  if (value === "overnight") return "Overnight";
+  if (value === "not_sure") return "Frequency unsure";
+
+  return "Frequency not set";
+}
+
+function hasLegalSafeguardingReadiness(opportunity: Opportunity) {
+  return Boolean(
+    (opportunity.minimum_age_stage &&
+      opportunity.minimum_age_stage !== "not_set") ||
+      (opportunity.safeguarding_check_region &&
+        opportunity.safeguarding_check_region !== "organisation_default") ||
+      (opportunity.role_frequency_pattern &&
+        opportunity.role_frequency_pattern !== "not_set") ||
+      opportunity.suitable_for_pupils === true ||
+      opportunity.parent_carer_consent_required === true ||
+      opportunity.school_approval_required === true ||
+      opportunity.safeguarding_review_required === true ||
+      opportunity.supervision_required === true ||
+      opportunity.no_lone_working === true ||
+      opportunity.no_home_visits === true ||
+      opportunity.no_money_handling === true ||
+      opportunity.no_personal_care === true ||
+      opportunity.no_private_messaging === true ||
+      opportunity.risk_assessment_completed === true ||
+      hasText(opportunity.named_safeguarding_contact) ||
+      hasText(opportunity.legal_safeguarding_notes),
+  );
+}
+
+function needsSafeguardingReview(opportunity: Opportunity) {
+  return Boolean(
+    opportunity.suitable_for_pupils === true ||
+      opportunity.parent_carer_consent_required === true ||
+      opportunity.school_approval_required === true ||
+      opportunity.safeguarding_review_required === true ||
+      opportunity.role_frequency_pattern === "more_than_three_days_in_thirty" ||
+      opportunity.role_frequency_pattern === "overnight" ||
+      opportunity.role_frequency_pattern === "not_sure" ||
+      opportunity.safeguarding_check_region === "not_sure",
+  );
+}
+
+function hasSafeguardingSupportInfo(opportunity: Opportunity) {
+  return Boolean(
+    opportunity.risk_assessment_completed === true ||
+      opportunity.supervision_required === true ||
+      opportunity.no_lone_working === true ||
+      opportunity.no_home_visits === true ||
+      opportunity.no_money_handling === true ||
+      opportunity.no_personal_care === true ||
+      opportunity.no_private_messaging === true ||
+      hasText(opportunity.named_safeguarding_contact) ||
+      hasText(opportunity.legal_safeguarding_notes),
+  );
+}
+
+function getRoleSafetyReadiness(opportunity: Opportunity): RoleSafetyReadiness {
+  const hasReadiness = hasLegalSafeguardingReadiness(opportunity);
+  const needsReview = needsSafeguardingReview(opportunity);
+  const hasSupportInfo = hasSafeguardingSupportInfo(opportunity);
+
+  if (!hasReadiness) {
+    return {
+      icon: "⚖️",
+      label: "Safeguarding not started",
+      text: "Open the role and complete the legal and safeguarding readiness section.",
+      className: "role-safety-attention",
+    };
+  }
+
+  if (needsReview && !hasSupportInfo) {
+    return {
+      icon: "⚠️",
+      label: "Needs safeguarding review",
+      text: "This role has pupil or safeguarding flags. Add review notes, supervision, risk assessment or a named safeguarding contact.",
+      className: "role-safety-attention",
+    };
+  }
+
+  if (needsReview) {
+    return {
+      icon: "🏫",
+      label: "Safeguarding review flagged",
+      text: "This role includes pupil or safeguarding flags and supporting readiness information.",
+      className: "role-safety-warning",
+    };
+  }
+
+  return {
+    icon: "✅",
+    label: "Safeguarding ready",
+    text: "Role-level legal and safeguarding readiness has been started for this role.",
+    className: "role-safety-ready",
+  };
+}
+
+function getSafetyBadges(opportunity: Opportunity): SafetyBadge[] {
+  const badges: SafetyBadge[] = [];
+
+  badges.push({
+    icon: "👥",
+    label: getMinimumAgeStageLabel(opportunity.minimum_age_stage),
+    className:
+      opportunity.minimum_age_stage && opportunity.minimum_age_stage !== "not_set"
+        ? "safety-badge-ready"
+        : "safety-badge-muted",
+  });
+
+  badges.push({
+    icon: "🛡️",
+    label: getSafeguardingCheckRegionLabel(opportunity.safeguarding_check_region),
+    className:
+      opportunity.safeguarding_check_region &&
+      opportunity.safeguarding_check_region !== "organisation_default"
+        ? "safety-badge-ready"
+        : "safety-badge-muted",
+  });
+
+  badges.push({
+    icon: "🔁",
+    label: getFrequencyPatternLabel(opportunity.role_frequency_pattern),
+    className:
+      opportunity.role_frequency_pattern &&
+      opportunity.role_frequency_pattern !== "not_set"
+        ? "safety-badge-ready"
+        : "safety-badge-muted",
+  });
+
+  if (opportunity.suitable_for_pupils === true) {
+    badges.push({
+      icon: "🏫",
+      label: "Pupil suitable",
+      className: "safety-badge-warning",
+    });
+  }
+
+  if (opportunity.school_approval_required === true) {
+    badges.push({
+      icon: "✅",
+      label: "School approval",
+      className: "safety-badge-warning",
+    });
+  }
+
+  if (opportunity.parent_carer_consent_required === true) {
+    badges.push({
+      icon: "👪",
+      label: "Parent/carer consent",
+      className: "safety-badge-warning",
+    });
+  }
+
+  if (opportunity.safeguarding_review_required === true) {
+    badges.push({
+      icon: "⚖️",
+      label: "Review required",
+      className: "safety-badge-warning",
+    });
+  }
+
+  if (opportunity.risk_assessment_completed === true) {
+    badges.push({
+      icon: "📋",
+      label: "Risk assessment",
+      className: "safety-badge-ready",
+    });
+  }
+
+  if (opportunity.supervision_required === true) {
+    badges.push({
+      icon: "👀",
+      label: "Supervision",
+      className: "safety-badge-ready",
+    });
+  }
+
+  if (opportunity.no_lone_working === true) {
+    badges.push({
+      icon: "🚫",
+      label: "No lone working",
+      className: "safety-badge-ready",
+    });
+  }
+
+  if (opportunity.no_home_visits === true) {
+    badges.push({
+      icon: "🏠",
+      label: "No home visits",
+      className: "safety-badge-ready",
+    });
+  }
+
+  if (opportunity.no_money_handling === true) {
+    badges.push({
+      icon: "💷",
+      label: "No money handling",
+      className: "safety-badge-ready",
+    });
+  }
+
+  if (opportunity.no_personal_care === true) {
+    badges.push({
+      icon: "🤲",
+      label: "No personal care",
+      className: "safety-badge-ready",
+    });
+  }
+
+  if (opportunity.no_private_messaging === true) {
+    badges.push({
+      icon: "📵",
+      label: "No private messaging",
+      className: "safety-badge-ready",
+    });
+  }
+
+  if (hasText(opportunity.named_safeguarding_contact)) {
+    badges.push({
+      icon: "👤",
+      label: "Named contact",
+      className: "safety-badge-ready",
+    });
+  }
+
+  return badges;
 }
 
 function getRoleReadiness(opportunity: Opportunity, counts: RoleCounts) {
@@ -303,7 +596,7 @@ export default async function OrganisationOpportunitiesPage() {
   const { data: opportunities } = await supabase
     .from("opportunities")
     .select(
-      "id,title,summary,location_type,location,time_commitment,status,created_at",
+      "id,title,summary,location_type,location,time_commitment,status,created_at,minimum_age_stage,suitable_for_pupils,parent_carer_consent_required,school_approval_required,safeguarding_check_region,safeguarding_review_required,supervision_required,no_lone_working,no_home_visits,no_money_handling,no_personal_care,no_private_messaging,risk_assessment_completed,named_safeguarding_contact,legal_safeguarding_notes,role_frequency_pattern",
     )
     .eq("organisation_user_id", user.id)
     .order("created_at", { ascending: false });
@@ -350,12 +643,29 @@ export default async function OrganisationOpportunitiesPage() {
     return counts.total > 0;
   }).length;
 
+  const rolesWithSafeguardingStarted = rows.filter((opportunity) =>
+    hasLegalSafeguardingReadiness(opportunity),
+  ).length;
+
+  const rolesNeedingSafeguardingReview = rows.filter((opportunity) => {
+    return (
+      needsSafeguardingReview(opportunity) &&
+      !hasSafeguardingSupportInfo(opportunity)
+    );
+  }).length;
+
   const guideSteps: RoleGuideStep[] = [
     {
       icon: "📝",
       title: "Create a clear draft",
       text: "Start with plain language, safe location wording, support offered and realistic time commitment.",
       isComplete: rows.length > 0,
+    },
+    {
+      icon: "⚖️",
+      title: "Check safeguarding",
+      text: "Use the role-level legal and safeguarding fields before relying on a role for pupils or younger volunteers.",
+      isComplete: rows.length > 0 && rolesWithSafeguardingStarted === rows.length,
     },
     {
       icon: "✅",
@@ -372,13 +682,13 @@ export default async function OrganisationOpportunitiesPage() {
     {
       icon: "⭐",
       title: "Add positive evidence",
-      text: "After activity, use skills reviews to support each volunteer’s Positive Pathway CV.",
+      text: "After activity, use skills reviews to support each volunteer's Positive Pathway CV.",
       isComplete: acceptedInterestCount > 0,
     },
   ];
 
   const listenText =
-    "This is your organisation opportunities page. It shows the volunteering roles your organisation has created. Draft roles are private. Published roles are visible to volunteers. Closed roles are no longer active. Each role card shows status, readiness, interest counts, role details, and actions. Use Edit role to change the role. Use Skills reviews after a volunteer has completed activity. Use Interest inbox to reply to volunteers who have expressed interest.";
+    "This is your organisation opportunities page. It shows the volunteering roles your organisation has created. Draft roles are private. Published roles are visible to volunteers. Closed roles are no longer active. Each role card shows status, readiness, legal and safeguarding readiness, interest counts, role details, and actions. Legal and safeguarding readiness is for review only at this stage. It does not change public visibility or pupil filtering yet. Use Edit role to change the role. Use Skills reviews after a volunteer has completed activity. Use Interest inbox to reply to volunteers who have expressed interest.";
 
   return (
     <main className="dashboard-bg organisation-opportunities-page">
@@ -504,6 +814,14 @@ export default async function OrganisationOpportunitiesPage() {
             <p className="dashboard-progress-note">
               Active interests: <strong>{activeInterestCount}</strong>
             </p>
+            <p className="dashboard-progress-note">
+              Safeguarding started:{" "}
+              <strong>{rolesWithSafeguardingStarted}</strong>
+            </p>
+            <p className="dashboard-progress-note">
+              Needs safeguarding review:{" "}
+              <strong>{rolesNeedingSafeguardingReview}</strong>
+            </p>
           </aside>
         </section>
 
@@ -526,6 +844,29 @@ export default async function OrganisationOpportunitiesPage() {
           </div>
         </section>
 
+        <section
+          className="role-legal-list-panel"
+          aria-labelledby="role-legal-list-title"
+        >
+          <div className="role-legal-list-icon" aria-hidden="true">
+            ⚖️
+          </div>
+
+          <div>
+            <p className="dashboard-kicker">School safety layer phase 1B</p>
+            <h2 id="role-legal-list-title">
+              Role-level legal and safeguarding readiness
+            </h2>
+            <p>
+              These badges show whether each saved role has safeguarding
+              readiness started. This does not change public visibility or pupil
+              filtering yet. Roles involving pupils, younger volunteers,
+              supervision, care, coaching, mentoring, transport, repeated
+              activity or overnight activity should be reviewed before use.
+            </p>
+          </div>
+        </section>
+
         <section className="role-count-grid" aria-label="Role summary">
           <CountCard
             icon="✅"
@@ -542,11 +883,11 @@ export default async function OrganisationOpportunitiesPage() {
             className="role-count-draft"
           />
           <CountCard
-            icon="🌙"
-            label="Closed"
-            value={closedCount}
-            helper="No longer active"
-            className="role-count-closed"
+            icon="⚖️"
+            label="Safeguarding"
+            value={rolesWithSafeguardingStarted}
+            helper="Roles with readiness started"
+            className="role-count-safeguarding"
           />
           <CountCard
             icon="📬"
@@ -584,6 +925,8 @@ export default async function OrganisationOpportunitiesPage() {
               const counts =
                 interestCountMap.get(opportunity.id) || emptyRoleCounts();
               const readiness = getRoleReadiness(opportunity, counts);
+              const safetyReadiness = getRoleSafetyReadiness(opportunity);
+              const safetyBadges = getSafetyBadges(opportunity);
               const statusClass = getStatusClass(opportunity.status);
 
               return (
@@ -616,6 +959,28 @@ export default async function OrganisationOpportunitiesPage() {
                           <strong>{readiness.label}</strong>
                           <p>{readiness.text}</p>
                         </div>
+                      </div>
+
+                      <div
+                        className={`role-safety-card ${safetyReadiness.className}`}
+                      >
+                        <span aria-hidden="true">{safetyReadiness.icon}</span>
+                        <div>
+                          <strong>{safetyReadiness.label}</strong>
+                          <p>{safetyReadiness.text}</p>
+                        </div>
+                      </div>
+
+                      <div className="role-safety-badge-grid">
+                        {safetyBadges.map((badge) => (
+                          <span
+                            key={`${opportunity.id}-${badge.icon}-${badge.label}`}
+                            className={`role-safety-badge ${badge.className}`}
+                          >
+                            <span aria-hidden="true">{badge.icon}</span>
+                            {badge.label}
+                          </span>
+                        ))}
                       </div>
 
                       <div className="role-detail-strip">
@@ -731,7 +1096,8 @@ export default async function OrganisationOpportunitiesPage() {
         }
 
         .role-guide-panel,
-        .role-privacy-panel {
+        .role-privacy-panel,
+        .role-legal-list-panel {
           display: grid;
           gap: 18px;
           padding: 22px;
@@ -748,7 +1114,8 @@ export default async function OrganisationOpportunitiesPage() {
         }
 
         .role-guide-heading,
-        .role-privacy-panel {
+        .role-privacy-panel,
+        .role-legal-list-panel {
           display: grid;
           grid-template-columns: auto 1fr;
           gap: 16px;
@@ -756,7 +1123,8 @@ export default async function OrganisationOpportunitiesPage() {
         }
 
         .role-guide-heading > span,
-        .role-privacy-icon {
+        .role-privacy-icon,
+        .role-legal-list-icon {
           display: inline-flex;
           width: 62px;
           height: 62px;
@@ -766,7 +1134,8 @@ export default async function OrganisationOpportunitiesPage() {
           font-size: 1.9rem;
         }
 
-        .role-guide-heading > span {
+        .role-guide-heading > span,
+        .role-legal-list-icon {
           background: rgba(108, 92, 160, 0.12);
           box-shadow: inset 0 0 0 1px rgba(108, 92, 160, 0.14);
         }
@@ -783,8 +1152,16 @@ export default async function OrganisationOpportunitiesPage() {
           box-shadow: inset 0 0 0 1px rgba(34, 124, 78, 0.16);
         }
 
+        .role-legal-list-panel {
+          border: 1px solid rgba(108, 92, 160, 0.18);
+          background:
+            radial-gradient(circle at top left, rgba(222, 214, 255, 0.32), transparent 34%),
+            linear-gradient(135deg, rgba(248, 245, 255, 0.94), rgba(255, 255, 255, 0.9));
+        }
+
         .role-guide-heading h2,
-        .role-privacy-panel h2 {
+        .role-privacy-panel h2,
+        .role-legal-list-panel h2 {
           margin: 0 0 8px;
           color: #315f48;
           font-size: clamp(1.3rem, 3vw, 1.75rem);
@@ -797,8 +1174,13 @@ export default async function OrganisationOpportunitiesPage() {
           color: #145c38;
         }
 
+        .role-legal-list-panel h2 {
+          color: #4f4b82;
+        }
+
         .role-guide-heading p,
-        .role-privacy-panel p {
+        .role-privacy-panel p,
+        .role-legal-list-panel p {
           margin: 0;
           color: #60706a;
           font-weight: 780;
@@ -809,9 +1191,13 @@ export default async function OrganisationOpportunitiesPage() {
           color: #275f45;
         }
 
+        .role-legal-list-panel p {
+          color: #5f6072;
+        }
+
         .role-guide-grid {
           display: grid;
-          grid-template-columns: repeat(4, minmax(0, 1fr));
+          grid-template-columns: repeat(5, minmax(0, 1fr));
           gap: 12px;
         }
 
@@ -989,7 +1375,8 @@ export default async function OrganisationOpportunitiesPage() {
           background: rgba(244, 255, 249, 0.92);
         }
 
-        .role-count-draft {
+        .role-count-draft,
+        .role-count-safeguarding {
           background: rgba(248, 245, 255, 0.9);
         }
 
@@ -1078,7 +1465,8 @@ export default async function OrganisationOpportunitiesPage() {
           color: #5d6677;
         }
 
-        .role-readiness-card {
+        .role-readiness-card,
+        .role-safety-card {
           display: grid;
           grid-template-columns: auto 1fr;
           gap: 10px;
@@ -1088,7 +1476,8 @@ export default async function OrganisationOpportunitiesPage() {
           border: 1px solid rgba(108, 92, 160, 0.12);
         }
 
-        .role-readiness-card > span {
+        .role-readiness-card > span,
+        .role-safety-card > span {
           display: inline-flex;
           width: 34px;
           height: 34px;
@@ -1099,7 +1488,8 @@ export default async function OrganisationOpportunitiesPage() {
           box-shadow: 0 8px 18px rgba(33, 56, 48, 0.05);
         }
 
-        .role-readiness-card strong {
+        .role-readiness-card strong,
+        .role-safety-card strong {
           display: block;
           color: #35453f;
           font-size: 0.94rem;
@@ -1107,7 +1497,8 @@ export default async function OrganisationOpportunitiesPage() {
           line-height: 1.2;
         }
 
-        .role-readiness-card p {
+        .role-readiness-card p,
+        .role-safety-card p {
           margin-top: 3px;
           color: #5d6677;
           font-size: 0.88rem;
@@ -1115,19 +1506,63 @@ export default async function OrganisationOpportunitiesPage() {
           line-height: 1.35;
         }
 
-        .role-readiness-ready {
+        .role-readiness-ready,
+        .role-safety-ready {
           border-color: rgba(83, 111, 99, 0.22);
           background: rgba(244, 255, 249, 0.86);
         }
 
-        .role-readiness-warning {
+        .role-readiness-warning,
+        .role-safety-warning {
           border-color: rgba(108, 92, 160, 0.18);
           background: rgba(248, 245, 255, 0.86);
+        }
+
+        .role-safety-attention {
+          border-color: rgba(190, 118, 76, 0.28);
+          background: rgba(255, 248, 241, 0.9);
         }
 
         .role-readiness-closed {
           border-color: rgba(100, 100, 110, 0.16);
           background: rgba(248, 248, 252, 0.86);
+        }
+
+        .role-safety-badge-grid {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+        }
+
+        .role-safety-badge {
+          display: inline-flex;
+          min-height: 32px;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+          padding: 7px 10px;
+          border-radius: 999px;
+          font-size: 0.78rem;
+          font-weight: 950;
+          line-height: 1.1;
+        }
+
+        .safety-badge-ready {
+          border: 1px solid rgba(83, 111, 99, 0.2);
+          background: rgba(244, 255, 249, 0.92);
+          color: #536f63;
+        }
+
+        .safety-badge-warning {
+          border: 1px solid rgba(191, 146, 72, 0.24);
+          background: rgba(255, 250, 241, 0.92);
+          color: #8a6630;
+        }
+
+        .safety-badge-muted {
+          border: 1px solid rgba(108, 92, 160, 0.12);
+          background: rgba(248, 248, 252, 0.88);
+          color: #5d6677;
         }
 
         .role-detail-strip {
@@ -1200,8 +1635,13 @@ export default async function OrganisationOpportunitiesPage() {
           min-height: 230px;
         }
 
+        @media (max-width: 1180px) {
+          .role-guide-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+          }
+        }
+
         @media (max-width: 1080px) {
-          .role-guide-grid,
           .role-count-grid {
             grid-template-columns: repeat(2, minmax(0, 1fr));
           }
@@ -1232,18 +1672,21 @@ export default async function OrganisationOpportunitiesPage() {
           }
 
           .role-guide-heading,
-          .role-privacy-panel {
+          .role-privacy-panel,
+          .role-legal-list-panel {
             grid-template-columns: 1fr;
           }
 
           .role-guide-panel,
-          .role-privacy-panel {
+          .role-privacy-panel,
+          .role-legal-list-panel {
             border-radius: 24px;
             padding: 18px;
           }
 
           .role-guide-heading > span,
-          .role-privacy-icon {
+          .role-privacy-icon,
+          .role-legal-list-icon {
             width: 56px;
             height: 56px;
             border-radius: 20px;
@@ -1262,7 +1705,8 @@ export default async function OrganisationOpportunitiesPage() {
             width: 100%;
           }
 
-          .role-readiness-card {
+          .role-readiness-card,
+          .role-safety-card {
             grid-template-columns: 1fr;
           }
 
