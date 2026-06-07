@@ -34,6 +34,27 @@ type VolunteerPreferences = {
   listen_mode: string | null;
 };
 
+type SchoolPupilMembership = {
+  school_user_id: string;
+  membership_status: string;
+};
+
+type SchoolFilteringProfile = {
+  user_id: string;
+  organisation_name: string | null;
+  school_visibility_mode: string | null;
+};
+
+type SchoolOrganisationApproval = {
+  approved_organisation_user_id: string;
+  approval_status: string;
+};
+
+type SchoolOpportunityApproval = {
+  opportunity_id: string;
+  approval_status: string;
+};
+
 type Opportunity = {
   id: string;
   organisation_user_id: string;
@@ -695,6 +716,84 @@ export default async function OpportunityDetailPage({
     redirect("/opportunities");
   }
 
+  const { data: activeSchoolMembershipsData } = await supabase
+    .from("school_pupil_memberships")
+    .select("school_user_id,membership_status")
+    .eq("volunteer_user_id", user.id)
+    .eq("membership_status", "active");
+
+  const activeSchoolMemberships =
+    (activeSchoolMembershipsData as SchoolPupilMembership[] | null) ?? [];
+
+  const activeSchoolUserIds = Array.from(
+    new Set(
+      activeSchoolMemberships
+        .map((membership) => membership.school_user_id)
+        .filter((value): value is string => Boolean(value)),
+    ),
+  );
+
+  let schoolFilteringProfiles: SchoolFilteringProfile[] = [];
+
+  if (activeSchoolUserIds.length > 0) {
+    const { data: schoolProfilesData } = await supabase
+      .from("organisation_profiles")
+      .select("user_id,organisation_name,school_visibility_mode")
+      .in("user_id", activeSchoolUserIds);
+
+    schoolFilteringProfiles =
+      (schoolProfilesData as SchoolFilteringProfile[] | null) ?? [];
+  }
+
+  const schoolApprovedOnlyUserIds = schoolFilteringProfiles
+    .filter(
+      (schoolProfile) =>
+        schoolProfile.school_visibility_mode === "school_approved_only",
+    )
+    .map((schoolProfile) => schoolProfile.user_id);
+
+  let schoolApprovedDetailActive = false;
+
+  if (schoolApprovedOnlyUserIds.length > 0) {
+    const { data: organisationApprovalsData } = await supabase
+      .from("school_approval_organisations")
+      .select("approved_organisation_user_id,approval_status")
+      .in("school_user_id", schoolApprovedOnlyUserIds)
+      .eq("approval_status", "approved")
+      .eq("approved_organisation_user_id", opportunity.organisation_user_id);
+
+    const { data: opportunityApprovalsData } = await supabase
+      .from("school_approval_opportunities")
+      .select("opportunity_id,approval_status")
+      .in("school_user_id", schoolApprovedOnlyUserIds)
+      .eq("approval_status", "approved")
+      .eq("opportunity_id", opportunity.id);
+
+    const organisationApprovals =
+      (organisationApprovalsData as SchoolOrganisationApproval[] | null) ?? [];
+    const opportunityApprovals =
+      (opportunityApprovalsData as SchoolOpportunityApproval[] | null) ?? [];
+
+    schoolApprovedDetailActive = true;
+
+    const isApprovedForLinkedSchool =
+      organisationApprovals.some(
+        (approval) =>
+          approval.approved_organisation_user_id ===
+            opportunity.organisation_user_id &&
+          approval.approval_status === "approved",
+      ) ||
+      opportunityApprovals.some(
+        (approval) =>
+          approval.opportunity_id === opportunity.id &&
+          approval.approval_status === "approved",
+      );
+
+    if (!isApprovedForLinkedSchool) {
+      redirect("/opportunities");
+    }
+  }
+
   const { data: organisationProfile } = await supabase
     .from("organisation_profiles")
     .select("organisation_name,logo_url,website,location,purpose")
@@ -738,8 +837,10 @@ export default async function OpportunityDetailPage({
     {
       icon: "🏢",
       title: "Check the organisation",
-      text: "Look for the organisation name, logo, purpose and location.",
-      isComplete: Boolean(organisationProfile?.organisation_name?.trim()),
+      text: schoolApprovedDetailActive
+        ? "This organisation or role has been approved by your linked school."
+        : "Look for the organisation name, logo, purpose and location.",
+      isComplete: Boolean(organisationProfile?.organisation_name?.trim()) || schoolApprovedDetailActive,
     },
     {
       icon: "📍",
@@ -773,8 +874,8 @@ export default async function OpportunityDetailPage({
   ];
 
   const listenText = simpleView
-    ? `You are on an opportunity details page. Read the role. The organisation card shows who posted the role. Your preferred contact method is ${preferredContactLabel}. The safety card explains that SO Volunteering and organisations using this platform will never ask you for money, bank details, passwords, or financial information. The role safety card shows any safety information added by the organisation, such as supervision, no lone working, no home visits, no money handling, no personal care, no private messaging outside approved routes, minimum age or safeguarding review wording. If it feels right, go to the Interest section and press I'm interested.`
-    : `You are on an opportunity details page. First, read the role title and short description at the top. The organisation card shows the organisation name and logo when it has been added. Your preferred contact method is ${preferredContactLabel}. The safety statement explains that SO Volunteering and organisations using this platform will never ask you for money, bank details, passwords, or financial information. An organisation may need to confirm practical details such as where you should go for an in-person volunteering role, but they should not ask for your full home address through the app. The role safety card shows any safety information added by the organisation, such as supervision, no lone working, no home visits, no money handling, no personal care, no private messaging outside approved routes, minimum age or safeguarding review wording. The location section shows safe location information, travel notes and accessibility notes where provided. Exact venue or postcode details may be hidden until the organisation has contacted or accepted a volunteer. The Why this may suit you card explains the match using your interests, skills, volunteering preference and support information. If the role feels right for you, go to the Interest section and press I'm interested.`;
+    ? `You are on an opportunity details page. ${schoolApprovedDetailActive ? "Your school-approved view is active, and this role has been approved for your linked school. " : ""}Read the role. The organisation card shows who posted the role. Your preferred contact method is ${preferredContactLabel}. The safety card explains that SO Volunteering and organisations using this platform will never ask you for money, bank details, passwords, or financial information. The role safety card shows any safety information added by the organisation, such as supervision, no lone working, no home visits, no money handling, no personal care, no private messaging outside approved routes, minimum age or safeguarding review wording. If it feels right, go to the Interest section and press I'm interested.`
+    : `You are on an opportunity details page. ${schoolApprovedDetailActive ? "Your school-approved view is active, and this role has been approved for your linked school. " : ""}First, read the role title and short description at the top. The organisation card shows the organisation name and logo when it has been added. Your preferred contact method is ${preferredContactLabel}. The safety statement explains that SO Volunteering and organisations using this platform will never ask you for money, bank details, passwords, or financial information. An organisation may need to confirm practical details such as where you should go for an in-person volunteering role, but they should not ask for your full home address through the app. The role safety card shows any safety information added by the organisation, such as supervision, no lone working, no home visits, no money handling, no personal care, no private messaging outside approved routes, minimum age or safeguarding review wording. The location section shows safe location information, travel notes and accessibility notes where provided. Exact venue or postcode details may be hidden until the organisation has contacted or accepted a volunteer. The Why this may suit you card explains the match using your interests, skills, volunteering preference and support information. If the role feels right for you, go to the Interest section and press I'm interested.`;
 
   const shellClassName = [
     "dashboard-bg",
@@ -911,6 +1012,12 @@ export default async function OpportunityDetailPage({
                 Phone/text number:{" "}
                 <strong>{hasPhoneNumber ? "Added" : "Not added"}</strong>
               </p>
+
+              {schoolApprovedDetailActive ? (
+                <p className="dashboard-progress-note">
+                  School-approved view: <strong>Approved role</strong>
+                </p>
+              ) : null}
             </div>
 
             {existingInterest ? (
@@ -942,6 +1049,29 @@ export default async function OpportunityDetailPage({
 
         {errorMessage ? (
           <div className="alert alert-error">{errorMessage}</div>
+        ) : null}
+
+        {schoolApprovedDetailActive ? (
+          <section
+            className="school-approved-detail-panel"
+            aria-labelledby="school-approved-detail-title"
+          >
+            <div className="school-approved-detail-icon" aria-hidden="true">
+              🏫
+            </div>
+
+            <div>
+              <p className="dashboard-kicker">School-approved view</p>
+              <h2 id="school-approved-detail-title">
+                This role is approved for your linked school
+              </h2>
+              <p>
+                Your linked school is using a school-approved-only pathway. This
+                role is available because the organisation or this specific
+                opportunity has been approved by your school.
+              </p>
+            </div>
+          </section>
         ) : null}
 
         <RoleGuide steps={guideSteps} />
@@ -1459,6 +1589,7 @@ export default async function OpportunityDetailPage({
           margin: 0;
         }
 
+        .school-approved-detail-panel,
         .role-detail-guide-panel {
           padding: clamp(20px, 4vw, 28px);
           border: 1px solid rgba(108, 92, 160, 0.16);
@@ -1472,13 +1603,16 @@ export default async function OpportunityDetailPage({
           overflow: hidden;
         }
 
-        .role-detail-guide-heading {
-          display: grid;
+        .school-approved-detail-panel {
           grid-template-columns: auto 1fr;
-          gap: 14px;
           align-items: start;
+          border-color: rgba(34, 124, 78, 0.24);
+          background:
+            radial-gradient(circle at top left, rgba(155, 232, 190, 0.36), transparent 34%),
+            linear-gradient(135deg, rgba(244, 255, 249, 0.94), rgba(255, 255, 255, 0.9));
         }
 
+        .school-approved-detail-icon,
         .role-detail-guide-heading > span {
           display: inline-flex;
           width: 62px;
@@ -1491,6 +1625,12 @@ export default async function OpportunityDetailPage({
           font-size: 1.85rem;
         }
 
+        .school-approved-detail-icon {
+          background: rgba(34, 124, 78, 0.12);
+          box-shadow: inset 0 0 0 1px rgba(34, 124, 78, 0.16);
+        }
+
+        .school-approved-detail-panel h2,
         .role-detail-guide-heading h2 {
           margin: 2px 0 8px;
           color: #315f48;
@@ -1500,12 +1640,20 @@ export default async function OpportunityDetailPage({
           line-height: 1.1;
         }
 
+        .school-approved-detail-panel p,
         .role-detail-guide-heading p {
           margin: 0;
           max-width: 760px;
           color: #60706a;
           font-weight: 750;
           line-height: 1.55;
+        }
+
+        .role-detail-guide-heading {
+          display: grid;
+          grid-template-columns: auto 1fr;
+          gap: 14px;
+          align-items: start;
         }
 
         .role-detail-guide-grid {
@@ -2113,7 +2261,8 @@ export default async function OpportunityDetailPage({
         .preference-text-large .match-helper-note,
         .preference-text-large .volunteer-safety-copy p,
         .preference-text-large .organisation-identity-copy p,
-        .preference-text-large .role-public-safety-copy p {
+        .preference-text-large .role-public-safety-copy p,
+        .preference-text-large .school-approved-detail-panel p {
           font-size: 1.04em;
         }
 
@@ -2150,6 +2299,7 @@ export default async function OpportunityDetailPage({
         .preference-theme-calm_green .organisation-identity-card,
         .preference-theme-calm_green .volunteer-safety-card,
         .preference-theme-calm_green .role-public-safety-panel,
+        .preference-theme-calm_green .school-approved-detail-panel,
         .preference-theme-calm_green .role-detail-guide-panel {
           border-color: rgba(83, 111, 99, 0.2);
         }
@@ -2174,6 +2324,7 @@ export default async function OpportunityDetailPage({
         .preference-theme-soft_blue .organisation-identity-card,
         .preference-theme-soft_blue .volunteer-safety-card,
         .preference-theme-soft_blue .role-public-safety-panel,
+        .preference-theme-soft_blue .school-approved-detail-panel,
         .preference-theme-soft_blue .role-detail-guide-panel {
           border-color: rgba(74, 112, 160, 0.2);
         }
@@ -2198,6 +2349,7 @@ export default async function OpportunityDetailPage({
         .preference-theme-warm_peach .organisation-identity-card,
         .preference-theme-warm_peach .volunteer-safety-card,
         .preference-theme-warm_peach .role-public-safety-panel,
+        .preference-theme-warm_peach .school-approved-detail-panel,
         .preference-theme-warm_peach .role-detail-guide-panel {
           border-color: rgba(190, 118, 76, 0.2);
         }
@@ -2219,11 +2371,10 @@ export default async function OpportunityDetailPage({
         .preference-theme-high_contrast .opportunity-chip,
         .preference-theme-high_contrast .supporting-statement-box,
         .preference-theme-high_contrast .match-detail-card,
-        .preference-theme-high_contrast .match-reason-list span,
-        .preference-theme-high_contrast .safe-location-note,
         .preference-theme-high_contrast .organisation-identity-card,
         .preference-theme-high_contrast .volunteer-safety-card,
         .preference-theme-high_contrast .role-public-safety-panel,
+        .preference-theme-high_contrast .school-approved-detail-panel,
         .preference-theme-high_contrast .role-public-safety-note,
         .preference-theme-high_contrast .role-public-safety-empty,
         .preference-theme-high_contrast .role-public-safety-badge,
@@ -2242,6 +2393,7 @@ export default async function OpportunityDetailPage({
         .preference-theme-high_contrast .organisation-identity-copy h2,
         .preference-theme-high_contrast .volunteer-safety-copy h2,
         .preference-theme-high_contrast .role-public-safety-copy h2,
+        .preference-theme-high_contrast .school-approved-detail-panel h2,
         .preference-theme-high_contrast .role-detail-guide-heading h2,
         .preference-theme-high_contrast .role-detail-guide-step-copy h3 {
           color: #111827;
@@ -2259,6 +2411,7 @@ export default async function OpportunityDetailPage({
         .preference-theme-high_contrast .organisation-identity-copy p,
         .preference-theme-high_contrast .volunteer-safety-copy p,
         .preference-theme-high_contrast .role-public-safety-copy p,
+        .preference-theme-high_contrast .school-approved-detail-panel p,
         .preference-theme-high_contrast .role-public-safety-badge,
         .preference-theme-high_contrast .interest-safety-reminder,
         .preference-theme-high_contrast .interest-safety-reminder p,
@@ -2275,6 +2428,7 @@ export default async function OpportunityDetailPage({
         .preference-theme-high_contrast .organisation-identity-logo,
         .preference-theme-high_contrast .volunteer-safety-icon,
         .preference-theme-high_contrast .role-public-safety-icon,
+        .preference-theme-high_contrast .school-approved-detail-icon,
         .preference-theme-high_contrast .role-detail-guide-heading > span,
         .preference-theme-high_contrast .role-detail-guide-step-icon {
           border: 2px solid #1f2937;
@@ -2297,6 +2451,7 @@ export default async function OpportunityDetailPage({
         .preference-theme-neon_arcade .organisation-identity-card,
         .preference-theme-neon_arcade .volunteer-safety-card,
         .preference-theme-neon_arcade .role-public-safety-panel,
+        .preference-theme-neon_arcade .school-approved-detail-panel,
         .preference-theme-neon_arcade .role-public-safety-note,
         .preference-theme-neon_arcade .role-public-safety-empty,
         .preference-theme-neon_arcade .interest-safety-reminder,
@@ -2319,6 +2474,7 @@ export default async function OpportunityDetailPage({
         .preference-theme-neon_arcade .organisation-identity-copy h2,
         .preference-theme-neon_arcade .volunteer-safety-copy h2,
         .preference-theme-neon_arcade .role-public-safety-copy h2,
+        .preference-theme-neon_arcade .school-approved-detail-panel h2,
         .preference-theme-neon_arcade .role-detail-guide-heading h2,
         .preference-theme-neon_arcade .role-detail-guide-step-copy h3 {
           color: #e0f2fe;
@@ -2335,6 +2491,7 @@ export default async function OpportunityDetailPage({
         .preference-theme-neon_arcade .organisation-identity-copy p,
         .preference-theme-neon_arcade .volunteer-safety-copy p,
         .preference-theme-neon_arcade .role-public-safety-copy p,
+        .preference-theme-neon_arcade .school-approved-detail-panel p,
         .preference-theme-neon_arcade .interest-safety-reminder p,
         .preference-theme-neon_arcade .interest-contact-reminder p,
         .preference-theme-neon_arcade .role-detail-guide-heading p,
@@ -2348,6 +2505,7 @@ export default async function OpportunityDetailPage({
         .preference-theme-neon_arcade .organisation-identity-logo,
         .preference-theme-neon_arcade .volunteer-safety-icon,
         .preference-theme-neon_arcade .role-public-safety-icon,
+        .preference-theme-neon_arcade .school-approved-detail-icon,
         .preference-theme-neon_arcade .role-detail-guide-heading > span,
         .preference-theme-neon_arcade .role-detail-guide-step-icon {
           border: 1px solid rgba(34, 211, 238, 0.42);
@@ -2391,11 +2549,13 @@ export default async function OpportunityDetailPage({
             width: 100%;
           }
 
+          .school-approved-detail-panel,
           .role-detail-guide-heading,
           .role-public-safety-panel {
             grid-template-columns: 1fr;
           }
 
+          .school-approved-detail-icon,
           .role-detail-guide-heading > span,
           .role-public-safety-icon {
             width: 56px;
@@ -2420,6 +2580,7 @@ export default async function OpportunityDetailPage({
             grid-template-columns: 1fr;
           }
 
+          .school-approved-detail-panel,
           .organisation-identity-card,
           .volunteer-safety-card,
           .role-public-safety-panel,
