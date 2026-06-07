@@ -419,9 +419,6 @@ export default async function OrganisationDashboardPage() {
   const hasSafeguardingRegion = Boolean(organisationProfile?.safeguarding_region);
   const worksWithChildrenOrPupils =
     organisationProfile?.works_with_children_or_pupils === true;
-  const hasLegalSafeguardingNotes = Boolean(
-    organisationProfile?.legal_safeguarding_notes?.trim(),
-  );
   const isSchoolOrCollege = currentOrganisationType === "school_college";
   const hasSchoolVisibilityMode =
     !isSchoolOrCollege ||
@@ -467,7 +464,7 @@ export default async function OrganisationDashboardPage() {
   );
 
   const listenText =
-    `You are on the organisation dashboard. This is your workspace for creating volunteering roles, reviewing volunteer interest, accepting or contacting volunteers, and adding positive skills evidence. First, check the Workspace status card. The organisation type is currently ${getOrganisationTypeLabel(currentOrganisationType)}. The safeguarding region is currently ${getSafeguardingRegionLabel(currentSafeguardingRegion)}. Scotland uses PVG wording. England and Wales use DBS wording. Northern Ireland uses AccessNI wording. The School Safety Layer is in phase 1A, which means organisation-level readiness is saved but pupil filtering and role visibility changes are not active yet. Then use the Organisation readiness checklist to see what is ready and what needs action. The checklist includes organisation logo, volunteer safety statement, legal and safeguarding readiness, role setup, interest flow and positive pathway evidence. Below that, the summary cards show role, interest and skills review counts. Use Create role to make a new inclusive volunteering role. Use Interest inbox to review volunteers who clicked I'm interested. Use Roles and reviews to edit roles and open volunteers and reviews for each role. Use Volunteer connections to see people who have already interacted with your organisation through role interest or positive skills reviews. This is not a public volunteer database. The install card explains how to add SO Volunteering to your phone, tablet or computer home screen so it opens more like an app. Help using the app is for getting support if you are stuck, something is not working, or you want to report a problem with SO Volunteering.`;
+    `You are on the organisation dashboard. This is your workspace for creating volunteering roles, reviewing volunteer interest, accepting or contacting volunteers, and adding positive skills evidence. First, check the Workspace status card. The organisation type is currently ${getOrganisationTypeLabel(currentOrganisationType)}. The safeguarding region is currently ${getSafeguardingRegionLabel(currentSafeguardingRegion)}. Scotland uses PVG wording. England and Wales use DBS wording. Northern Ireland uses AccessNI wording. The School Safety Layer is in phase 1C. Organisation-level readiness and role-level readiness are now recorded. School and college organisations can also use School approvals to record approved organisations and approved opportunities. Public visibility and pupil filtering are not active yet. Then use the Organisation readiness checklist to see what is ready and what needs action. The checklist includes organisation logo, volunteer safety statement, legal and safeguarding readiness, role setup, interest flow and positive pathway evidence. Below that, the summary cards show role, interest and skills review counts. Use Create role to make a new inclusive volunteering role. Use Interest inbox to review volunteers who clicked I'm interested. Use Roles and reviews to edit roles and open volunteers and reviews for each role. Use Volunteer connections to see people who have already interacted with your organisation through role interest or positive skills reviews. This is not a public volunteer database. If this is a school or college account, use School approvals to manage approved organisations and approved opportunities for the later school-approved-only pathway. The install card explains how to add SO Volunteering to your phone, tablet or computer home screen so it opens more like an app. Help using the app is for getting support if you are stuck, something is not working, or you want to report a problem with SO Volunteering.`;
 
   return (
     <main className="dashboard-bg organisation-dashboard-page">
@@ -566,12 +563,24 @@ export default async function OrganisationDashboardPage() {
                 </span>
               </Link>
 
-              <Link href="/help" className="secondary-button dashboard-main-action">
-                <span className="dashboard-button-inner">
-                  <span aria-hidden="true">🧭</span>
-                  <span>Help using the app</span>
-                </span>
-              </Link>
+              {isSchoolOrCollege ? (
+                <Link
+                  href="/organisation/school-approvals"
+                  className="secondary-button dashboard-main-action"
+                >
+                  <span className="dashboard-button-inner">
+                    <span aria-hidden="true">🏫</span>
+                    <span>School approvals</span>
+                  </span>
+                </Link>
+              ) : (
+                <Link href="/help" className="secondary-button dashboard-main-action">
+                  <span className="dashboard-button-inner">
+                    <span aria-hidden="true">🧭</span>
+                    <span>Help using the app</span>
+                  </span>
+                </Link>
+              )}
             </div>
           </div>
 
@@ -659,15 +668,15 @@ export default async function OrganisationDashboardPage() {
             </span>
 
             <div>
-              <p className="dashboard-kicker">School safety layer phase 1A</p>
+              <p className="dashboard-kicker">School safety layer phase 1C</p>
               <h2 id="organisation-safeguarding-title">
-                Legal and safeguarding readiness
+                Legal, safeguarding and school approval readiness
               </h2>
               <p>
-                This is an organisation-level readiness layer only. It records
-                organisation type, UK safeguarding wording, children/pupil
-                involvement and future school visibility mode. It does not yet
-                change what volunteers or pupils can see.
+                Organisation-level and role-level readiness are now recorded.
+                School and college accounts can also record approved
+                organisations and approved opportunities. Public visibility and
+                pupil filtering are still not active.
               </p>
             </div>
           </div>
@@ -711,12 +720,15 @@ export default async function OrganisationDashboardPage() {
           <div className="organisation-safeguarding-note">
             <span aria-hidden="true">🧭</span>
             <div>
-              <strong>Next controlled phase</strong>
+              <strong>
+                {isSchoolOrCollege
+                  ? "School approvals are ready to record"
+                  : "Role-level safety checks are active"}
+              </strong>
               <p>
-                Phase 1B will add role-level legal and safeguarding fields. For
-                now, keep using clear safety notes and review any role involving
-                children, pupils, supervision or regulated work/activity before
-                publishing.
+                {isSchoolOrCollege
+                  ? "Use School approvals to record approved organisations and approved opportunities for a later school-approved-only pathway. This does not change public pages or pupil filtering yet."
+                  : "Use the role create and edit pages to record legal and safeguarding readiness for each opportunity. Schools can later approve suitable organisations and opportunities without changing public visibility yet."}
               </p>
             </div>
           </div>
@@ -826,6 +838,17 @@ export default async function OrganisationDashboardPage() {
               action="Review school safety"
               isReady={hasSchoolVisibilityMode}
             />
+
+            {isSchoolOrCollege ? (
+              <ReadinessItem
+                icon="✅"
+                title="School approvals dashboard"
+                description="Record approved organisations and approved opportunities for the later school-approved-only pathway. This does not change public visibility yet."
+                href="/organisation/school-approvals"
+                action="Open school approvals"
+                isReady={true}
+              />
+            ) : null}
 
             <ReadinessItem
               icon="📣"
@@ -1024,6 +1047,17 @@ export default async function OrganisationDashboardPage() {
             description={`Review organisation type, ${getSafeguardingRegionLabel(currentSafeguardingRegion)}, children/pupil readiness and future school-safe visibility.`}
             action="Review safeguarding setup"
           />
+
+          {isSchoolOrCollege ? (
+            <OrganisationCard
+              href="/organisation/school-approvals"
+              icon="🏫"
+              label="School approvals"
+              title="Approved organisations and roles"
+              description="Record approved organisations, approved opportunities and safety conditions for the later school-approved-only pathway."
+              action="Open school approvals"
+            />
+          ) : null}
 
           <OrganisationCard
             href="/organisation/profile"
