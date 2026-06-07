@@ -41,6 +41,13 @@ type OpportunityRow = {
 
 type InterestStatus = "new" | "contacted" | "accepted" | "closed";
 
+type GuideStep = {
+  icon: string;
+  title: string;
+  text: string;
+  isComplete: boolean;
+};
+
 function normaliseUserType(value: string | null | undefined) {
   return value?.trim().toLowerCase() === "organisation"
     ? "organisation"
@@ -113,6 +120,14 @@ function shouldShowPhone(value: string | null | undefined) {
 
 function getSafePhoneHref(phoneNumber: string) {
   return phoneNumber.replace(/[^\d+]/g, "");
+}
+
+function hasAny(values: string[] | null | undefined) {
+  return Array.isArray(values) && values.length > 0;
+}
+
+function hasText(value: string | null | undefined) {
+  return Boolean(value && value.trim().length > 0);
 }
 
 function formatDate(value: string) {
@@ -337,6 +352,52 @@ function DetailCard({
   );
 }
 
+function GuidedSection({
+  stepNumber,
+  icon,
+  title,
+  description,
+  isComplete,
+  children,
+}: {
+  stepNumber: number;
+  icon: string;
+  title: string;
+  description: string;
+  isComplete: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <section
+      className={
+        isComplete
+          ? "interest-step-section interest-step-complete"
+          : "interest-step-section"
+      }
+    >
+      <div className="interest-step-heading">
+        <span className="interest-step-icon" aria-hidden="true">
+          {icon}
+        </span>
+
+        <div className="interest-step-copy">
+          <p className="interest-step-kicker">
+            Step {stepNumber}
+            <span>
+              <span aria-hidden="true">{isComplete ? "✅" : "○"}</span>
+              {isComplete ? "Complete" : "To do"}
+            </span>
+          </p>
+          <h2>{title}</h2>
+          <p>{description}</p>
+        </div>
+      </div>
+
+      <div className="interest-step-body">{children}</div>
+    </section>
+  );
+}
+
 export default async function OrganisationInterestDetailPage({
   params,
   searchParams,
@@ -473,9 +534,74 @@ export default async function OrganisationInterestDetailPage({
   const hasAcceptedVolunteer = normalisedStatus === "accepted";
   const hasSharedProfile =
     goalsCount > 0 || interestsCount > 0 || skillsCount > 0;
+  const hasContactRoute =
+    Boolean(contactMailtoHref) ||
+    Boolean(contactSmsHref) ||
+    (contactHelperMode === "phone" && Boolean(safePhoneHref));
+  const hasSupportReviewed =
+    interest.volunteer_support_shared === true
+      ? hasText(interest.volunteer_support_needs)
+      : true;
+
+  const step1Complete = Boolean(opportunity);
+  const step2Complete =
+    hasText(interest.volunteer_name) ||
+    hasText(interest.volunteer_email) ||
+    hasSharedProfile ||
+    hasText(interest.message);
+  const step3Complete =
+    hasText(interest.volunteer_preferred_contact_method) &&
+    (contactHelperMode === "email" ||
+      ((contactHelperMode === "sms" || contactHelperMode === "phone") &&
+        hasText(phoneNumber)));
+  const step4Complete = hasContactRoute;
+  const step5Complete = normalisedStatus !== "new";
+  const step6Complete = hasAcceptedVolunteer;
+
+  const guideSteps: GuideStep[] = [
+    {
+      icon: "📣",
+      title: "Review the role",
+      text: "Check which opportunity this volunteer is interested in.",
+      isComplete: step1Complete,
+    },
+    {
+      icon: "👤",
+      title: "Read volunteer snapshot",
+      text: "Review goals, interests, skills, statement and shared support.",
+      isComplete: step2Complete,
+    },
+    {
+      icon: "📞",
+      title: "Check contact preference",
+      text: "Use the volunteer’s preferred contact method where possible.",
+      isComplete: step3Complete,
+    },
+    {
+      icon: "🛡️",
+      title: "Contact safely",
+      text: "Use the helper and do not ask for money, bank details, passwords or financial information.",
+      isComplete: step4Complete,
+    },
+    {
+      icon: "📌",
+      title: "Update status",
+      text: "Mark as Contacted, Accepted or Closed when the next step is clear.",
+      isComplete: step5Complete,
+    },
+    {
+      icon: "⭐",
+      title: "Add pathway evidence",
+      text: "If accepted, add a positive skills review after meaningful activity.",
+      isComplete: step6Complete,
+    },
+  ];
+
+  const completedSteps = guideSteps.filter((step) => step.isComplete).length;
+  const completionPercent = Math.round((completedSteps / guideSteps.length) * 100);
 
   const listenText =
-    "You are on a volunteer interest detail page. This page helps an organisation review one volunteer interest. The top section shows the volunteer, current status, preferred contact method and next step. The contact helper prepares an email, text or call notes depending on the volunteer’s preferred contact method. If the volunteer is accepted, the green pathway panel explains how to add positive skills evidence after they complete a task. Use Update status to mark the interest as New interest, Contacted, Accepted or Closed.";
+    "You are on a volunteer interest detail page. This page now has a step by step guide. Step 1 is reviewing the role. Step 2 is reading the volunteer snapshot. Step 3 is checking the preferred contact method. Step 4 is contacting safely. Step 5 is updating the status. Step 6 is adding positive pathway evidence if the volunteer is accepted. The contact helper prepares an email, text or call notes depending on the volunteer’s preferred contact method. SO Volunteering and organisations using this platform should never ask volunteers for money, bank details, passwords or financial information. If the volunteer is accepted, the green pathway panel explains how to add positive skills evidence after they complete a task. Use Update status to mark the interest as New interest, Contacted, Accepted or Closed.";
 
   return (
     <main className="dashboard-bg organisation-interest-page">
@@ -633,6 +759,16 @@ export default async function OrganisationInterestDetailPage({
               </span>
             </div>
 
+            <div className="interest-progress-summary">
+              <div className="interest-progress-label">
+                <span>Interest progress</span>
+                <strong>{completedSteps}/6 steps</strong>
+              </div>
+              <div className="interest-progress-meter" aria-hidden="true">
+                <span style={{ width: `${completionPercent}%` }} />
+              </div>
+            </div>
+
             <p className="dashboard-progress-note organisation-interest-status-note">
               <strong>Next step:</strong> {getNextStepText(normalisedStatus)}
             </p>
@@ -646,6 +782,77 @@ export default async function OrganisationInterestDetailPage({
         {errorMessage ? (
           <div className="alert alert-error">{errorMessage}</div>
         ) : null}
+
+        <section
+          className="interest-guide-panel"
+          aria-labelledby="interest-guide-title"
+        >
+          <div className="interest-guide-heading">
+            <span aria-hidden="true">🧭</span>
+
+            <div>
+              <p className="dashboard-kicker">Step-by-step guide</p>
+              <h2 id="interest-guide-title">How to handle this interest</h2>
+              <p>
+                Work through the steps in order. Completed steps are green and
+                show a tick. Keep contact kind, clear and safe.
+              </p>
+            </div>
+          </div>
+
+          <div className="interest-guide-grid">
+            {guideSteps.map((step, index) => (
+              <article
+                key={step.title}
+                className={
+                  step.isComplete
+                    ? "interest-guide-step interest-guide-step-complete"
+                    : "interest-guide-step"
+                }
+              >
+                <span className="interest-guide-step-number">
+                  {step.isComplete ? "✓" : index + 1}
+                </span>
+
+                <div className="interest-guide-step-icon" aria-hidden="true">
+                  {step.icon}
+                </div>
+
+                <div className="interest-guide-step-copy">
+                  <p className="interest-guide-step-kicker">
+                    Step {index + 1}
+                    <span>{step.isComplete ? "Complete" : "To do"}</span>
+                  </p>
+                  <h3>{step.title}</h3>
+                  <p>{step.text}</p>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section
+          className="organisation-contact-safety-card"
+          aria-labelledby="organisation-contact-safety-title"
+        >
+          <div className="organisation-contact-safety-icon" aria-hidden="true">
+            🛡️
+          </div>
+
+          <div>
+            <p className="dashboard-kicker">Safe contact reminder</p>
+            <h2 id="organisation-contact-safety-title">
+              Keep first contact safe and supportive
+            </h2>
+            <p>
+              SO Volunteering and organisations using this platform should never
+              ask volunteers for money, bank details, passwords or financial
+              information. For in-person volunteering, you can agree practical
+              meeting details, but do not ask for a volunteer’s full home
+              address through the app.
+            </p>
+          </div>
+        </section>
 
         {hasAcceptedVolunteer ? (
           <section
@@ -712,394 +919,503 @@ export default async function OrganisationInterestDetailPage({
           </section>
         ) : null}
 
-        <section
-          className="dashboard-grid interest-detail-grid"
-          aria-label="Interest detail"
-        >
-          <DetailCard icon="📣" label="Role" title="Opportunity">
-            {opportunity ? (
-              <>
-                <p>
-                  Role: <strong>{opportunity.title}</strong>
-                </p>
-                <p>{opportunity.summary}</p>
+        <div className="interest-guided-flow">
+          <GuidedSection
+            stepNumber={1}
+            icon="📣"
+            title="Review the role"
+            description="Check which opportunity this volunteer is interested in."
+            isComplete={step1Complete}
+          >
+            <DetailCard icon="📣" label="Role" title="Opportunity">
+              {opportunity ? (
+                <>
+                  <p>
+                    Role: <strong>{opportunity.title}</strong>
+                  </p>
+                  <p>{opportunity.summary}</p>
+                  <p className="dashboard-muted-action">
+                    {formatLocationType(opportunity.location_type)}
+                    {opportunity.location ? ` · ${opportunity.location}` : ""}
+                    {opportunity.time_commitment
+                      ? ` · ${opportunity.time_commitment}`
+                      : ""}
+                  </p>
+                </>
+              ) : (
                 <p className="dashboard-muted-action">
-                  {formatLocationType(opportunity.location_type)}
-                  {opportunity.location ? ` · ${opportunity.location}` : ""}
-                  {opportunity.time_commitment
-                    ? ` · ${opportunity.time_commitment}`
-                    : ""}
+                  This opportunity could not be loaded.
                 </p>
-              </>
-            ) : (
-              <p className="dashboard-muted-action">
-                This opportunity could not be loaded.
-              </p>
-            )}
-          </DetailCard>
+              )}
+            </DetailCard>
+          </GuidedSection>
 
-          <DetailCard icon="👤" label="Volunteer" title="Contact details">
-            <p>
-              Name:{" "}
-              <strong>
-                {interest.volunteer_name || "Volunteer name not shared"}
-              </strong>
-            </p>
-            <p>
-              Email:{" "}
-              <strong>{interest.volunteer_email || "Email not available"}</strong>
-            </p>
-            <p>
-              Preferred contact: <strong>{preferredContactMethod}</strong>
-            </p>
-            {showPhoneNumber ? (
-              <p>
-                Phone/text number:{" "}
-                <strong>{phoneNumber || "Not supplied"}</strong>
-              </p>
-            ) : null}
-            <p>
-              Area: <strong>{interest.volunteer_city || "Area not shared"}</strong>
-            </p>
-          </DetailCard>
-
-          <DetailCard
-            icon={
-              contactHelperMode === "sms"
-                ? "💬"
-                : contactHelperMode === "phone"
-                  ? "📞"
-                  : "✉️"
-            }
-            label="Contact helper"
-            title={
-              contactHelperMode === "sms"
-                ? "Prepare text"
-                : contactHelperMode === "phone"
-                  ? "Prepare call"
-                  : "Prepare email"
-            }
+          <GuidedSection
+            stepNumber={2}
+            icon="👤"
+            title="Read volunteer snapshot"
+            description="Review the volunteer’s contact details, statement, goals, interests, skills and shared support."
+            isComplete={step2Complete}
           >
-            {contactHelperMode === "sms" ? (
-              <>
-                <p>
-                  The volunteer chose text message. Use a short, friendly first
-                  message and keep the next step clear.
-                </p>
-
-                <p>
-                  Phone/text number:{" "}
-                  <strong>{phoneNumber || "Not supplied"}</strong>
-                </p>
-
-                <div className="contact-email-preview" aria-label="Suggested text">
-                  <pre>{contactTextBody}</pre>
-                </div>
-
-                {contactSmsHref ? (
-                  <a href={contactSmsHref} className="contact-email-button">
-                    Open text app
-                  </a>
-                ) : (
-                  <p className="dashboard-muted-action">
-                    No phone number is available, so a text link cannot be
-                    prepared.
-                  </p>
-                )}
-              </>
-            ) : null}
-
-            {contactHelperMode === "phone" ? (
-              <>
-                <p>
-                  The volunteer chose phone call. Use these notes to keep the
-                  call clear, kind and supportive.
-                </p>
-
-                <p>
-                  Phone number: <strong>{phoneNumber || "Not supplied"}</strong>
-                </p>
-
-                <div className="call-notes-box" aria-label="Suggested call notes">
-                  <ol>
-                    {callNotes.map((note) => (
-                      <li key={note}>{note}</li>
-                    ))}
-                  </ol>
-                </div>
-
-                {safePhoneHref ? (
-                  <a
-                    href={`tel:${safePhoneHref}`}
-                    className="contact-email-button"
-                  >
-                    Open phone app
-                  </a>
-                ) : (
-                  <p className="dashboard-muted-action">
-                    No phone number is available, so a phone link cannot be
-                    prepared.
-                  </p>
-                )}
-              </>
-            ) : null}
-
-            {contactHelperMode === "email" ? (
-              <>
-                <p>
-                  The volunteer chose email or has not chosen a method yet. A
-                  friendly first message is ready. Open the preview only if you
-                  want to check or copy the full wording.
-                </p>
-
-                <p>
-                  Suggested subject: <strong>{contactEmailSubject}</strong>
-                </p>
-
-                <details className="contact-email-details">
-                  <summary>Preview suggested email</summary>
-                  <div
-                    className="contact-email-preview"
-                    aria-label="Suggested email"
-                  >
-                    <pre>{contactEmailBody}</pre>
-                  </div>
-                </details>
-
-                {contactMailtoHref ? (
-                  <a href={contactMailtoHref} className="contact-email-button">
-                    Open email app
-                  </a>
-                ) : (
-                  <p className="dashboard-muted-action">
-                    No volunteer email is available, so an email link cannot be
-                    prepared.
-                  </p>
-                )}
-              </>
-            ) : null}
-          </DetailCard>
-
-          <DetailCard icon="📌" label="Status guide" title="Where this sits">
-            <div className="status-guide-list" aria-label="Interest status guide">
-              <div
-                className={
-                  normalisedStatus === "new"
-                    ? "status-guide-item status-guide-current"
-                    : "status-guide-item"
-                }
-              >
-                <span className="status-guide-badge">1</span>
-                <div>
-                  <p>
-                    <strong>New interest</strong>
-                  </p>
-                  <p>Waiting for first contact.</p>
-                </div>
-              </div>
-
-              <div
-                className={
-                  normalisedStatus === "contacted"
-                    ? "status-guide-item status-guide-current"
-                    : "status-guide-item"
-                }
-              >
-                <span className="status-guide-badge">2</span>
-                <div>
-                  <p>
-                    <strong>Contacted</strong>
-                  </p>
-                  <p>Conversation started.</p>
-                </div>
-              </div>
-
-              <div
-                className={
-                  normalisedStatus === "accepted"
-                    ? "status-guide-item status-guide-current"
-                    : "status-guide-item"
-                }
-              >
-                <span className="status-guide-badge">3</span>
-                <div>
-                  <p>
-                    <strong>Accepted</strong>
-                  </p>
-                  <p>Ready to move forward.</p>
-                </div>
-              </div>
-
-              <div
-                className={
-                  normalisedStatus === "closed"
-                    ? "status-guide-item status-guide-current"
-                    : "status-guide-item"
-                }
-              >
-                <span className="status-guide-badge">4</span>
-                <div>
-                  <p>
-                    <strong>Closed</strong>
-                  </p>
-                  <p>No further action.</p>
-                </div>
-              </div>
-            </div>
-          </DetailCard>
-
-          <DetailCard icon="💬" label="Statement" title="Supporting statement">
-            {interest.message ? (
-              <p>{interest.message}</p>
-            ) : (
-              <p className="dashboard-muted-action">
-                No supporting statement was added.
-              </p>
-            )}
-          </DetailCard>
-
-          <DetailCard icon="🌱" label="Goals" title="Volunteer goals">
-            <ChipList
-              values={interest.volunteer_goals}
-              emptyText="No goals shared."
-            />
-          </DetailCard>
-
-          <DetailCard icon="💚" label="Interests" title="Volunteer interests">
-            <ChipList
-              values={interest.volunteer_interests}
-              emptyText="No interests shared."
-            />
-          </DetailCard>
-
-          <DetailCard icon="⭐" label="Skills" title="Volunteer skills">
-            <ChipList
-              values={interest.volunteer_skills}
-              emptyText="No skills shared."
-            />
-          </DetailCard>
-
-          <DetailCard icon="💛" label="Support" title="Shared support">
-            {interest.volunteer_support_shared &&
-            interest.volunteer_support_needs ? (
-              <p>{interest.volunteer_support_needs}</p>
-            ) : (
-              <p className="dashboard-muted-action">
-                Support preferences were not shared with organisations.
-              </p>
-            )}
-          </DetailCard>
-
-          <DetailCard
-            icon={hasAcceptedVolunteer ? "🌱" : "🧭"}
-            label={hasAcceptedVolunteer ? "Pathway" : "Next steps"}
-            title={
-              hasAcceptedVolunteer
-                ? "Ready for positive pathway evidence"
-                : "What happens next?"
-            }
-          >
-            <p>{getNextStepText(normalisedStatus)}</p>
-
-            {hasAcceptedVolunteer ? (
-              <>
-                <p>
-                  Keep the first task manageable, agree what support will help,
-                  and add a positive skills review once the volunteer has
-                  completed a meaningful activity.
-                </p>
-
-                {hasSharedProfile ? (
-                  <p className="dashboard-muted-action">
-                    This volunteer has shared profile information that can help
-                    you choose a supportive first task.
-                  </p>
-                ) : (
-                  <p className="dashboard-muted-action">
-                    This volunteer has shared limited profile information, so
-                    use the first conversation to agree what feels comfortable.
-                  </p>
-                )}
-
-                {opportunity ? (
-                  <Link
-                    href={`/organisation/opportunities/${opportunity.id}/reviews`}
-                    className="contact-email-button"
-                  >
-                    Open positive skills reviews
-                  </Link>
-                ) : null}
-              </>
-            ) : (
-              <>
-                <p>
-                  Contact should stay kind, clear and supportive. Use the
-                  volunteer’s preferred contact method where possible.
-                </p>
-
-                {opportunity ? (
-                  <p>
-                    If this volunteer is accepted and later completes a task,
-                    use the role review page to add positive skills evidence.
-                  </p>
-                ) : null}
-
-                {opportunity ? (
-                  <Link
-                    href={`/organisation/opportunities/${opportunity.id}/reviews`}
-                    className="contact-email-button"
-                  >
-                    Open positive skills reviews
-                  </Link>
-                ) : null}
-              </>
-            )}
-          </DetailCard>
-
-          <article className="info-card dashboard-pathway-card interest-detail-card">
-            <div
-              className="dashboard-card-icon interest-detail-icon"
-              aria-hidden="true"
+            <section
+              className="dashboard-grid interest-detail-grid"
+              aria-label="Volunteer snapshot"
             >
-              ✅
-            </div>
+              <DetailCard icon="👤" label="Volunteer" title="Contact details">
+                <p>
+                  Name:{" "}
+                  <strong>
+                    {interest.volunteer_name || "Volunteer name not shared"}
+                  </strong>
+                </p>
+                <p>
+                  Email:{" "}
+                  <strong>
+                    {interest.volunteer_email || "Email not available"}
+                  </strong>
+                </p>
+                <p>
+                  Preferred contact: <strong>{preferredContactMethod}</strong>
+                </p>
+                {showPhoneNumber ? (
+                  <p>
+                    Phone/text number:{" "}
+                    <strong>{phoneNumber || "Not supplied"}</strong>
+                  </p>
+                ) : null}
+                <p>
+                  Area:{" "}
+                  <strong>{interest.volunteer_city || "Area not shared"}</strong>
+                </p>
+              </DetailCard>
 
-            <div className="dashboard-card-copy interest-detail-copy">
-              <div>
-                <p className="dashboard-card-label">Manage</p>
-                <h2>Update status</h2>
+              <DetailCard
+                icon="💬"
+                label="Statement"
+                title="Supporting statement"
+              >
+                {interest.message ? (
+                  <p>{interest.message}</p>
+                ) : (
+                  <p className="dashboard-muted-action">
+                    No supporting statement was added.
+                  </p>
+                )}
+              </DetailCard>
+
+              <DetailCard icon="🌱" label="Goals" title="Volunteer goals">
+                <ChipList
+                  values={interest.volunteer_goals}
+                  emptyText="No goals shared."
+                />
+              </DetailCard>
+
+              <DetailCard
+                icon="💚"
+                label="Interests"
+                title="Volunteer interests"
+              >
+                <ChipList
+                  values={interest.volunteer_interests}
+                  emptyText="No interests shared."
+                />
+              </DetailCard>
+
+              <DetailCard icon="⭐" label="Skills" title="Volunteer skills">
+                <ChipList
+                  values={interest.volunteer_skills}
+                  emptyText="No skills shared."
+                />
+              </DetailCard>
+
+              <DetailCard icon="💛" label="Support" title="Shared support">
+                {interest.volunteer_support_shared &&
+                interest.volunteer_support_needs ? (
+                  <p>{interest.volunteer_support_needs}</p>
+                ) : (
+                  <p className="dashboard-muted-action">
+                    Support preferences were not shared with organisations.
+                  </p>
+                )}
+
+                {!hasSupportReviewed ? (
+                  <p className="dashboard-muted-action">
+                    Support was marked as shared, but no support details are
+                    currently available.
+                  </p>
+                ) : null}
+              </DetailCard>
+            </section>
+          </GuidedSection>
+
+          <GuidedSection
+            stepNumber={3}
+            icon="📞"
+            title="Check contact preference"
+            description="Use the volunteer’s preferred contact method where possible."
+            isComplete={step3Complete}
+          >
+            <section
+              className="dashboard-grid interest-detail-grid"
+              aria-label="Contact preference"
+            >
+              <DetailCard
+                icon={
+                  contactHelperMode === "sms"
+                    ? "💬"
+                    : contactHelperMode === "phone"
+                      ? "📞"
+                      : "✉️"
+                }
+                label="Contact preference"
+                title={preferredContactMethod}
+              >
+                <p>
+                  Preferred method: <strong>{preferredContactMethod}</strong>
+                </p>
+                <p>
+                  Email:{" "}
+                  <strong>
+                    {interest.volunteer_email || "Email not available"}
+                  </strong>
+                </p>
+                {showPhoneNumber ? (
+                  <p>
+                    Phone/text number:{" "}
+                    <strong>{phoneNumber || "Not supplied"}</strong>
+                  </p>
+                ) : (
+                  <p className="dashboard-muted-action">
+                    Phone/text number is only shown when the volunteer has chosen
+                    text message or phone call.
+                  </p>
+                )}
+              </DetailCard>
+
+              <DetailCard icon="📌" label="Status guide" title="Where this sits">
+                <div
+                  className="status-guide-list"
+                  aria-label="Interest status guide"
+                >
+                  <div
+                    className={
+                      normalisedStatus === "new"
+                        ? "status-guide-item status-guide-current"
+                        : "status-guide-item"
+                    }
+                  >
+                    <span className="status-guide-badge">1</span>
+                    <div>
+                      <p>
+                        <strong>New interest</strong>
+                      </p>
+                      <p>Waiting for first contact.</p>
+                    </div>
+                  </div>
+
+                  <div
+                    className={
+                      normalisedStatus === "contacted"
+                        ? "status-guide-item status-guide-current"
+                        : "status-guide-item"
+                    }
+                  >
+                    <span className="status-guide-badge">2</span>
+                    <div>
+                      <p>
+                        <strong>Contacted</strong>
+                      </p>
+                      <p>Conversation started.</p>
+                    </div>
+                  </div>
+
+                  <div
+                    className={
+                      normalisedStatus === "accepted"
+                        ? "status-guide-item status-guide-current"
+                        : "status-guide-item"
+                    }
+                  >
+                    <span className="status-guide-badge">3</span>
+                    <div>
+                      <p>
+                        <strong>Accepted</strong>
+                      </p>
+                      <p>Ready to move forward.</p>
+                    </div>
+                  </div>
+
+                  <div
+                    className={
+                      normalisedStatus === "closed"
+                        ? "status-guide-item status-guide-current"
+                        : "status-guide-item"
+                    }
+                  >
+                    <span className="status-guide-badge">4</span>
+                    <div>
+                      <p>
+                        <strong>Closed</strong>
+                      </p>
+                      <p>No further action.</p>
+                    </div>
+                  </div>
+                </div>
+              </DetailCard>
+            </section>
+          </GuidedSection>
+
+          <GuidedSection
+            stepNumber={4}
+            icon="🛡️"
+            title="Contact safely"
+            description="Use the contact helper and keep the first message kind, clear and safe."
+            isComplete={step4Complete}
+          >
+            <DetailCard
+              icon={
+                contactHelperMode === "sms"
+                  ? "💬"
+                  : contactHelperMode === "phone"
+                    ? "📞"
+                    : "✉️"
+              }
+              label="Contact helper"
+              title={
+                contactHelperMode === "sms"
+                  ? "Prepare text"
+                  : contactHelperMode === "phone"
+                    ? "Prepare call"
+                    : "Prepare email"
+              }
+            >
+              {contactHelperMode === "sms" ? (
+                <>
+                  <p>
+                    The volunteer chose text message. Use a short, friendly first
+                    message and keep the next step clear.
+                  </p>
+
+                  <p>
+                    Phone/text number:{" "}
+                    <strong>{phoneNumber || "Not supplied"}</strong>
+                  </p>
+
+                  <div className="contact-email-preview" aria-label="Suggested text">
+                    <pre>{contactTextBody}</pre>
+                  </div>
+
+                  {contactSmsHref ? (
+                    <a href={contactSmsHref} className="contact-email-button">
+                      Open text app
+                    </a>
+                  ) : (
+                    <p className="dashboard-muted-action">
+                      No phone number is available, so a text link cannot be
+                      prepared.
+                    </p>
+                  )}
+                </>
+              ) : null}
+
+              {contactHelperMode === "phone" ? (
+                <>
+                  <p>
+                    The volunteer chose phone call. Use these notes to keep the
+                    call clear, kind and supportive.
+                  </p>
+
+                  <p>
+                    Phone number: <strong>{phoneNumber || "Not supplied"}</strong>
+                  </p>
+
+                  <div className="call-notes-box" aria-label="Suggested call notes">
+                    <ol>
+                      {callNotes.map((note) => (
+                        <li key={note}>{note}</li>
+                      ))}
+                    </ol>
+                  </div>
+
+                  {safePhoneHref ? (
+                    <a
+                      href={`tel:${safePhoneHref}`}
+                      className="contact-email-button"
+                    >
+                      Open phone app
+                    </a>
+                  ) : (
+                    <p className="dashboard-muted-action">
+                      No phone number is available, so a phone link cannot be
+                      prepared.
+                    </p>
+                  )}
+                </>
+              ) : null}
+
+              {contactHelperMode === "email" ? (
+                <>
+                  <p>
+                    The volunteer chose email or has not chosen a method yet. A
+                    friendly first message is ready. Open the preview only if you
+                    want to check or copy the full wording.
+                  </p>
+
+                  <p>
+                    Suggested subject: <strong>{contactEmailSubject}</strong>
+                  </p>
+
+                  <details className="contact-email-details">
+                    <summary>Preview suggested email</summary>
+                    <div
+                      className="contact-email-preview"
+                      aria-label="Suggested email"
+                    >
+                      <pre>{contactEmailBody}</pre>
+                    </div>
+                  </details>
+
+                  {contactMailtoHref ? (
+                    <a href={contactMailtoHref} className="contact-email-button">
+                      Open email app
+                    </a>
+                  ) : (
+                    <p className="dashboard-muted-action">
+                      No volunteer email is available, so an email link cannot be
+                      prepared.
+                    </p>
+                  )}
+                </>
+              ) : null}
+            </DetailCard>
+          </GuidedSection>
+
+          <GuidedSection
+            stepNumber={5}
+            icon="📌"
+            title="Update status"
+            description="Mark this interest as Contacted, Accepted or Closed when the next step is clear."
+            isComplete={step5Complete}
+          >
+            <article className="info-card dashboard-pathway-card interest-detail-card">
+              <div
+                className="dashboard-card-icon interest-detail-icon"
+                aria-hidden="true"
+              >
+                ✅
               </div>
 
-              <div className="interest-detail-body">
-                <form action={updateInterestStatus} className="form-stack">
-                  <input type="hidden" name="interest_id" value={interest.id} />
+              <div className="dashboard-card-copy interest-detail-copy">
+                <div>
+                  <p className="dashboard-card-label">Manage</p>
+                  <h2>Update status</h2>
+                </div>
 
-                  <label className="field-label">
-                    <span className="field-label-row">
-                      <span className="field-label-icon" aria-hidden="true">
-                        📌
+                <div className="interest-detail-body">
+                  <form action={updateInterestStatus} className="form-stack">
+                    <input type="hidden" name="interest_id" value={interest.id} />
+
+                    <label className="field-label">
+                      <span className="field-label-row">
+                        <span className="field-label-icon" aria-hidden="true">
+                          📌
+                        </span>
+                        <span>Interest status</span>
                       </span>
-                      <span>Interest status</span>
-                    </span>
-                    <select name="status" defaultValue={normalisedStatus}>
-                      <option value="new">New interest</option>
-                      <option value="contacted">Contacted</option>
-                      <option value="accepted">Accepted</option>
-                      <option value="closed">Closed</option>
-                    </select>
-                  </label>
+                      <select name="status" defaultValue={normalisedStatus}>
+                        <option value="new">New interest</option>
+                        <option value="contacted">Contacted</option>
+                        <option value="accepted">Accepted</option>
+                        <option value="closed">Closed</option>
+                      </select>
+                    </label>
 
-                  <button type="submit" className="primary-button">
-                    <span className="button-balanced-inner">
-                      <span aria-hidden="true">✅</span>
-                      <span>Save status</span>
-                    </span>
-                  </button>
-                </form>
+                    <button type="submit" className="primary-button">
+                      <span className="button-balanced-inner">
+                        <span aria-hidden="true">✅</span>
+                        <span>Save status</span>
+                      </span>
+                    </button>
+                  </form>
+                </div>
               </div>
-            </div>
-          </article>
-        </section>
+            </article>
+          </GuidedSection>
+
+          <GuidedSection
+            stepNumber={6}
+            icon="⭐"
+            title="Add positive pathway evidence"
+            description="If the volunteer is accepted, add a positive skills review after meaningful activity."
+            isComplete={step6Complete}
+          >
+            <DetailCard
+              icon={hasAcceptedVolunteer ? "🌱" : "🧭"}
+              label={hasAcceptedVolunteer ? "Pathway" : "Next steps"}
+              title={
+                hasAcceptedVolunteer
+                  ? "Ready for positive pathway evidence"
+                  : "What happens next?"
+              }
+            >
+              <p>{getNextStepText(normalisedStatus)}</p>
+
+              {hasAcceptedVolunteer ? (
+                <>
+                  <p>
+                    Keep the first task manageable, agree what support will help,
+                    and add a positive skills review once the volunteer has
+                    completed a meaningful activity.
+                  </p>
+
+                  {hasSharedProfile ? (
+                    <p className="dashboard-muted-action">
+                      This volunteer has shared profile information that can help
+                      you choose a supportive first task.
+                    </p>
+                  ) : (
+                    <p className="dashboard-muted-action">
+                      This volunteer has shared limited profile information, so
+                      use the first conversation to agree what feels comfortable.
+                    </p>
+                  )}
+
+                  {opportunity ? (
+                    <Link
+                      href={`/organisation/opportunities/${opportunity.id}/reviews`}
+                      className="contact-email-button"
+                    >
+                      Open positive skills reviews
+                    </Link>
+                  ) : null}
+                </>
+              ) : (
+                <>
+                  <p>
+                    Contact should stay kind, clear and supportive. Use the
+                    volunteer’s preferred contact method where possible.
+                  </p>
+
+                  {opportunity ? (
+                    <p>
+                      If this volunteer is accepted and later completes a task,
+                      use the role review page to add positive skills evidence.
+                    </p>
+                  ) : null}
+
+                  {opportunity ? (
+                    <Link
+                      href={`/organisation/opportunities/${opportunity.id}/reviews`}
+                      className="contact-email-button"
+                    >
+                      Open positive skills reviews
+                    </Link>
+                  ) : null}
+                </>
+              )}
+            </DetailCard>
+          </GuidedSection>
+        </div>
       </section>
 
       <style>{`
@@ -1111,7 +1427,10 @@ export default async function OrganisationInterestDetailPage({
         .organisation-interest-hero,
         .organisation-interest-status-card,
         .interest-detail-card,
-        .accepted-pathway-panel {
+        .accepted-pathway-panel,
+        .interest-guide-panel,
+        .organisation-contact-safety-card,
+        .interest-step-section {
           overflow: hidden;
         }
 
@@ -1121,7 +1440,13 @@ export default async function OrganisationInterestDetailPage({
         .interest-detail-card,
         .interest-detail-card *,
         .accepted-pathway-panel,
-        .accepted-pathway-panel * {
+        .accepted-pathway-panel *,
+        .interest-guide-panel,
+        .interest-guide-panel *,
+        .organisation-contact-safety-card,
+        .organisation-contact-safety-card *,
+        .interest-step-section,
+        .interest-step-section * {
           min-width: 0;
         }
 
@@ -1209,6 +1534,365 @@ export default async function OrganisationInterestDetailPage({
           font-size: 1.35rem;
           font-weight: 950;
           line-height: 1;
+        }
+
+        .interest-progress-summary {
+          display: grid;
+          gap: 8px;
+          margin: 12px 0;
+        }
+
+        .interest-progress-label {
+          display: flex;
+          gap: 10px;
+          align-items: center;
+          justify-content: space-between;
+          color: #60706a;
+          font-size: 0.88rem;
+          font-weight: 900;
+        }
+
+        .interest-progress-label strong {
+          color: #315f48;
+        }
+
+        .interest-progress-meter {
+          width: 100%;
+          height: 10px;
+          overflow: hidden;
+          border-radius: 999px;
+          background: rgba(108, 92, 160, 0.12);
+        }
+
+        .interest-progress-meter span {
+          display: block;
+          height: 100%;
+          border-radius: inherit;
+          background: linear-gradient(90deg, #8fb29e, #4f8d68);
+        }
+
+        .interest-guide-panel {
+          display: grid;
+          gap: 18px;
+          margin: 22px 0;
+          padding: 20px;
+          border: 1px solid rgba(108, 92, 160, 0.16);
+          border-radius: 28px;
+          background:
+            radial-gradient(circle at top left, rgba(222, 214, 255, 0.34), transparent 34%),
+            linear-gradient(135deg, rgba(248, 245, 255, 0.92), rgba(255, 255, 255, 0.9));
+          box-shadow: 0 18px 42px rgba(33, 56, 48, 0.07);
+        }
+
+        .interest-guide-heading {
+          display: grid;
+          grid-template-columns: auto 1fr;
+          gap: 14px;
+          align-items: start;
+        }
+
+        .interest-guide-heading > span {
+          display: inline-flex;
+          width: 62px;
+          height: 62px;
+          align-items: center;
+          justify-content: center;
+          border-radius: 22px;
+          background: rgba(108, 92, 160, 0.12);
+          box-shadow: inset 0 0 0 1px rgba(108, 92, 160, 0.14);
+          font-size: 1.85rem;
+        }
+
+        .interest-guide-heading h2 {
+          margin: 0 0 8px;
+          color: #4f4b82;
+          font-size: clamp(1.3rem, 3vw, 1.75rem);
+          font-weight: 950;
+          letter-spacing: -0.035em;
+          line-height: 1.1;
+        }
+
+        .interest-guide-heading p {
+          margin: 0;
+          color: #5f6072;
+          font-weight: 760;
+          line-height: 1.5;
+        }
+
+        .interest-guide-grid {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 12px;
+        }
+
+        .interest-guide-step {
+          position: relative;
+          display: grid;
+          gap: 10px;
+          min-height: 178px;
+          padding: 15px;
+          border: 1px solid rgba(108, 92, 160, 0.14);
+          border-radius: 22px;
+          background: rgba(255, 255, 255, 0.78);
+          box-shadow: 0 12px 28px rgba(33, 56, 48, 0.05);
+        }
+
+        .interest-guide-step-complete {
+          border-color: rgba(34, 124, 78, 0.26);
+          background:
+            radial-gradient(circle at top left, rgba(155, 232, 190, 0.28), transparent 34%),
+            rgba(244, 255, 249, 0.92);
+          box-shadow: 0 14px 30px rgba(33, 96, 61, 0.08);
+        }
+
+        .interest-guide-step-number {
+          position: absolute;
+          top: 12px;
+          right: 12px;
+          display: inline-flex;
+          width: 30px;
+          height: 30px;
+          align-items: center;
+          justify-content: center;
+          border-radius: 999px;
+          background: rgba(108, 92, 160, 0.12);
+          color: #4f4b82;
+          font-size: 0.82rem;
+          font-weight: 950;
+          line-height: 1;
+        }
+
+        .interest-guide-step-complete .interest-guide-step-number {
+          background: rgba(34, 124, 78, 0.14);
+          color: #145c38;
+        }
+
+        .interest-guide-step-icon {
+          display: inline-flex;
+          width: 52px;
+          height: 52px;
+          align-items: center;
+          justify-content: center;
+          border-radius: 18px;
+          background: rgba(248, 248, 252, 0.96);
+          box-shadow: inset 0 0 0 1px rgba(108, 92, 160, 0.08);
+          font-size: 1.55rem;
+        }
+
+        .interest-guide-step-complete .interest-guide-step-icon {
+          background: rgba(34, 124, 78, 0.12);
+          box-shadow: inset 0 0 0 1px rgba(34, 124, 78, 0.14);
+        }
+
+        .interest-guide-step-copy {
+          display: grid;
+          gap: 6px;
+        }
+
+        .interest-guide-step-kicker {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+          align-items: center;
+          margin: 0;
+          padding-right: 34px;
+          color: #6c5ca0;
+          font-size: 0.78rem;
+          font-weight: 950;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+        }
+
+        .interest-guide-step-kicker span {
+          display: inline-flex;
+          min-height: 24px;
+          align-items: center;
+          justify-content: center;
+          padding: 5px 8px;
+          border-radius: 999px;
+          background: rgba(108, 92, 160, 0.1);
+          color: #6c5ca0;
+          font-size: 0.68rem;
+          letter-spacing: 0;
+          text-transform: none;
+        }
+
+        .interest-guide-step-complete .interest-guide-step-kicker,
+        .interest-guide-step-complete .interest-guide-step-kicker span {
+          color: #145c38;
+        }
+
+        .interest-guide-step-complete .interest-guide-step-kicker span {
+          background: rgba(34, 124, 78, 0.12);
+        }
+
+        .interest-guide-step-copy h3 {
+          margin: 0;
+          padding-right: 32px;
+          color: #315f48;
+          font-size: 1rem;
+          font-weight: 950;
+          line-height: 1.14;
+        }
+
+        .interest-guide-step-copy p {
+          margin: 0;
+          color: #60706a;
+          font-size: 0.92rem;
+          font-weight: 740;
+          line-height: 1.42;
+        }
+
+        .organisation-contact-safety-card {
+          display: grid;
+          grid-template-columns: auto 1fr;
+          gap: 16px;
+          align-items: start;
+          margin: 22px 0;
+          padding: 20px;
+          border: 1px solid rgba(34, 124, 78, 0.24);
+          border-radius: 28px;
+          background:
+            radial-gradient(circle at top left, rgba(155, 232, 190, 0.4), transparent 32%),
+            linear-gradient(135deg, rgba(244, 255, 249, 0.94), rgba(255, 255, 255, 0.9));
+          box-shadow: 0 18px 42px rgba(33, 96, 61, 0.1);
+        }
+
+        .organisation-contact-safety-icon {
+          display: inline-flex;
+          width: 62px;
+          height: 62px;
+          align-items: center;
+          justify-content: center;
+          border-radius: 22px;
+          background: rgba(34, 124, 78, 0.12);
+          box-shadow: inset 0 0 0 1px rgba(34, 124, 78, 0.16);
+          font-size: 1.9rem;
+        }
+
+        .organisation-contact-safety-card h2 {
+          margin: 0 0 8px;
+          color: #145c38;
+          font-size: clamp(1.3rem, 3vw, 1.75rem);
+          font-weight: 950;
+          letter-spacing: -0.035em;
+          line-height: 1.1;
+        }
+
+        .organisation-contact-safety-card p {
+          margin: 0;
+          color: #275f45;
+          font-weight: 780;
+          line-height: 1.5;
+        }
+
+        .interest-guided-flow {
+          display: grid;
+          gap: 22px;
+        }
+
+        .interest-step-section {
+          display: grid;
+          gap: 18px;
+          padding: 20px;
+          border: 1px solid rgba(108, 92, 160, 0.14);
+          border-radius: 28px;
+          background: rgba(255, 255, 255, 0.68);
+          box-shadow: 0 14px 34px rgba(33, 56, 48, 0.05);
+        }
+
+        .interest-step-complete {
+          border-color: rgba(34, 124, 78, 0.24);
+          background:
+            radial-gradient(circle at top left, rgba(155, 232, 190, 0.22), transparent 34%),
+            rgba(244, 255, 249, 0.86);
+        }
+
+        .interest-step-heading {
+          display: grid;
+          grid-template-columns: auto 1fr;
+          gap: 14px;
+          align-items: start;
+        }
+
+        .interest-step-icon {
+          display: inline-flex;
+          width: 58px;
+          height: 58px;
+          align-items: center;
+          justify-content: center;
+          border-radius: 20px;
+          background: rgba(143, 178, 158, 0.14);
+          box-shadow: inset 0 0 0 1px rgba(83, 111, 99, 0.08);
+          font-size: 1.75rem;
+        }
+
+        .interest-step-complete .interest-step-icon {
+          background: rgba(34, 124, 78, 0.12);
+          box-shadow: inset 0 0 0 1px rgba(34, 124, 78, 0.14);
+        }
+
+        .interest-step-copy {
+          display: grid;
+          gap: 7px;
+        }
+
+        .interest-step-kicker {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 10px;
+          align-items: center;
+          margin: 0;
+          color: #6c5ca0;
+          font-size: 0.8rem;
+          font-weight: 950;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
+        }
+
+        .interest-step-kicker span {
+          display: inline-flex;
+          min-height: 26px;
+          align-items: center;
+          justify-content: center;
+          gap: 5px;
+          padding: 5px 9px;
+          border-radius: 999px;
+          background: rgba(108, 92, 160, 0.1);
+          color: #6c5ca0;
+          font-size: 0.72rem;
+          letter-spacing: 0;
+          text-transform: none;
+        }
+
+        .interest-step-complete .interest-step-kicker,
+        .interest-step-complete .interest-step-kicker span {
+          color: #145c38;
+        }
+
+        .interest-step-complete .interest-step-kicker span {
+          background: rgba(34, 124, 78, 0.12);
+        }
+
+        .interest-step-copy h2 {
+          margin: 0;
+          color: #315f48;
+          font-size: clamp(1.22rem, 3vw, 1.55rem);
+          font-weight: 950;
+          letter-spacing: -0.03em;
+          line-height: 1.12;
+        }
+
+        .interest-step-copy p {
+          margin: 0;
+          color: #60706a;
+          font-weight: 750;
+          line-height: 1.45;
+        }
+
+        .interest-step-body {
+          display: grid;
+          gap: 16px;
         }
 
         .accepted-pathway-panel {
@@ -1507,6 +2191,12 @@ export default async function OrganisationInterestDetailPage({
           background: rgba(244, 255, 249, 0.96);
         }
 
+        @media (max-width: 980px) {
+          .interest-guide-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+        }
+
         @media (max-width: 760px) {
           .organisation-interest-page .dashboard-shell {
             width: min(100%, 100vw);
@@ -1611,6 +2301,35 @@ export default async function OrganisationInterestDetailPage({
             grid-template-columns: auto 1fr;
             align-items: center;
             text-align: left;
+          }
+
+          .interest-guide-panel,
+          .organisation-contact-safety-card,
+          .interest-step-section {
+            padding: 18px;
+            border-radius: 24px;
+          }
+
+          .interest-guide-heading,
+          .organisation-contact-safety-card,
+          .interest-step-heading {
+            grid-template-columns: 1fr;
+          }
+
+          .interest-guide-heading > span,
+          .organisation-contact-safety-icon,
+          .interest-step-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 20px;
+          }
+
+          .interest-guide-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .interest-guide-step {
+            min-height: 0;
           }
 
           .accepted-pathway-panel {
