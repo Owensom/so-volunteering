@@ -15,6 +15,7 @@ type Profile = {
 type OrganisationProfile = {
   organisation_name: string | null;
   contact_email: string | null;
+  logo_url: string | null;
   profile_completed: boolean | null;
 };
 
@@ -214,7 +215,7 @@ export default async function OrganisationDashboardPage() {
 
   const { data: organisationProfile } = await supabase
     .from("organisation_profiles")
-    .select("organisation_name,contact_email,profile_completed")
+    .select("organisation_name,contact_email,logo_url,profile_completed")
     .eq("user_id", user.id)
     .maybeSingle<OrganisationProfile>();
 
@@ -288,6 +289,7 @@ export default async function OrganisationDashboardPage() {
     "";
 
   const profileCompleted = organisationProfile?.profile_completed === true;
+  const hasOrganisationLogo = Boolean(organisationProfile?.logo_url?.trim());
   const totalRoleCount = opportunityRows.length;
   const totalInterestCount = interestRows.length;
 
@@ -305,9 +307,12 @@ export default async function OrganisationDashboardPage() {
     closedInterestCount > 0;
   const hasAcceptedVolunteer = acceptedInterestCount > 0;
   const hasPathwayEvidence = sharedReviewCount > 0;
+  const volunteerSafetyStatementActive = true;
 
   const readinessItems = [
     profileCompleted,
+    hasOrganisationLogo,
+    volunteerSafetyStatementActive,
     hasAnyRole,
     hasPublishedRole,
     true,
@@ -323,7 +328,7 @@ export default async function OrganisationDashboardPage() {
   );
 
   const listenText =
-    "You are on the organisation dashboard. This is your workspace for creating volunteering roles, reviewing volunteer interest, accepting or contacting volunteers, and adding positive skills evidence. First, check the Workspace status card. Then use the Organisation readiness checklist to see what is ready and what needs action. Below that, the summary cards show role, interest and skills review counts. Use Create role to make a new inclusive volunteering role. Use Interest inbox to review volunteers who clicked I’m interested. Use Roles and reviews to edit roles and open volunteers and reviews for each role. Help using the app is for getting support if you are stuck, something is not working, or you want to report a problem with SO Volunteering.";
+    "You are on the organisation dashboard. This is your workspace for creating volunteering roles, reviewing volunteer interest, accepting or contacting volunteers, and adding positive skills evidence. First, check the Workspace status card. Then use the Organisation readiness checklist to see what is ready and what needs action. The checklist now includes organisation logo and volunteer safety statement readiness. Below that, the summary cards show role, interest and skills review counts. Use Create role to make a new inclusive volunteering role. Use Interest inbox to review volunteers who clicked I’m interested. Use Roles and reviews to edit roles and open volunteers and reviews for each role. Help using the app is for getting support if you are stuck, something is not working, or you want to report a problem with SO Volunteering.";
 
   return (
     <main className="dashboard-bg organisation-dashboard-page">
@@ -471,6 +476,9 @@ export default async function OrganisationDashboardPage() {
                 <strong>{profileCompleted ? "Complete" : "Needs setup"}</strong>
               </p>
               <p className="dashboard-progress-note organisation-status-note">
+                Logo: <strong>{hasOrganisationLogo ? "Added" : "Not added"}</strong>
+              </p>
+              <p className="dashboard-progress-note organisation-status-note">
                 Roles: <strong>{totalRoleCount}</strong>
               </p>
               <p className="dashboard-progress-note organisation-status-note">
@@ -502,8 +510,8 @@ export default async function OrganisationDashboardPage() {
               </h2>
               <p>
                 Use this checklist to make sure your organisation is ready to
-                publish roles, review interest, contact volunteers kindly and add
-                positive pathway evidence.
+                publish roles, build volunteer trust, review interest, contact
+                volunteers kindly and add positive pathway evidence.
               </p>
             </div>
 
@@ -529,6 +537,28 @@ export default async function OrganisationDashboardPage() {
               href="/organisation/profile"
               action={profileCompleted ? "Review profile" : "Complete profile"}
               isReady={profileCompleted}
+            />
+
+            <ReadinessItem
+              icon="🖼️"
+              title="Organisation logo added"
+              description={
+                hasOrganisationLogo
+                  ? "Your logo is saved and can appear on volunteer-facing role pages."
+                  : "Upload a logo so volunteers can recognise your organisation and feel safer reviewing your roles."
+              }
+              href="/organisation/profile"
+              action={hasOrganisationLogo ? "Review logo" : "Add logo"}
+              isReady={hasOrganisationLogo}
+            />
+
+            <ReadinessItem
+              icon="🛡️"
+              title="Volunteer safety statement active"
+              description="Role pages now tell volunteers that SO Volunteering and organisations using the platform will never ask for money, bank details, passwords or financial information."
+              href="/organisation/profile"
+              action="Review safety wording"
+              isReady={volunteerSafetyStatementActive}
             />
 
             <ReadinessItem
@@ -716,8 +746,17 @@ export default async function OrganisationDashboardPage() {
             icon="🏢"
             label="Profile"
             title="Organisation profile"
-            description="Review your name, purpose, location, contact details and support approach."
+            description="Review your name, logo, purpose, location, contact details and support approach."
             action={profileCompleted ? "Review profile" : "Start profile"}
+          />
+
+          <OrganisationCard
+            href="/organisation/profile"
+            icon="🖼️"
+            label="Trust"
+            title="Logo and volunteer safety"
+            description="Add or review your organisation logo and check the volunteer-facing safety wording."
+            action={hasOrganisationLogo ? "Review trust setup" : "Add logo"}
           />
 
           <OrganisationCard
@@ -962,7 +1001,7 @@ export default async function OrganisationDashboardPage() {
 
         .organisation-readiness-list {
           display: grid;
-          grid-template-columns: repeat(2, minmax(0, 1fr));
+          grid-template-columns: repeat(3, minmax(0, 1fr));
           gap: 12px;
         }
 
@@ -1214,7 +1253,8 @@ export default async function OrganisationDashboardPage() {
         }
 
         @media (max-width: 1180px) {
-          .organisation-stat-grid {
+          .organisation-stat-grid,
+          .organisation-readiness-list {
             grid-template-columns: repeat(3, minmax(0, 1fr));
           }
         }
