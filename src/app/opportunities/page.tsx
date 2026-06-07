@@ -22,6 +22,8 @@ type VolunteerProfile = {
   support_needs: string | null;
   availability_notes: string | null;
   volunteering_preference: string | null;
+  preferred_contact_method: string | null;
+  phone_number: string | null;
 };
 
 type VolunteerPreferences = {
@@ -34,6 +36,7 @@ type VolunteerPreferences = {
 
 type Opportunity = {
   id: string;
+  organisation_user_id: string;
   title: string;
   summary: string;
   location_type: string;
@@ -54,9 +57,23 @@ type Opportunity = {
   created_at: string;
 };
 
+type OrganisationProfile = {
+  user_id: string;
+  organisation_name: string | null;
+  contact_email: string | null;
+  logo_url: string | null;
+};
+
 type MatchedOpportunity = {
   opportunity: Opportunity;
   match: OpportunityMatchResult;
+};
+
+type RoleGuideStep = {
+  icon: string;
+  title: string;
+  text: string;
+  isComplete: boolean;
 };
 
 function normaliseUserType(value: string | null | undefined) {
@@ -129,6 +146,13 @@ function formatLocationType(value: string | null | undefined) {
   if (value === "remote") return "Remote";
   if (value === "hybrid") return "Hybrid";
   return "In-person";
+}
+
+function formatContactMethod(value: string | null | undefined) {
+  if (value === "sms") return "Text message";
+  if (value === "phone") return "Phone call";
+  if (value === "email") return "Email";
+  return "Not chosen yet";
 }
 
 function formatPublicLocation(opportunity: Opportunity) {
@@ -238,6 +262,112 @@ function OpportunityMatchPanel({
   );
 }
 
+function RoleGuide({ steps }: { steps: RoleGuideStep[] }) {
+  return (
+    <section className="role-guide-panel" aria-labelledby="role-guide-title">
+      <div className="role-guide-heading">
+        <span aria-hidden="true">🧭</span>
+
+        <div>
+          <p className="dashboard-kicker">Step-by-step guide</p>
+          <h2 id="role-guide-title">How to choose a role</h2>
+          <p>
+            Use the match label as a guide, read the role details, check support
+            and safety information, then choose “I’m interested” only when a role
+            feels right.
+          </p>
+        </div>
+      </div>
+
+      <div className="role-guide-grid">
+        {steps.map((step, index) => (
+          <article
+            key={step.title}
+            className={
+              step.isComplete
+                ? "role-guide-step role-guide-step-complete"
+                : "role-guide-step"
+            }
+          >
+            <span className="role-guide-step-number">
+              {step.isComplete ? "✓" : index + 1}
+            </span>
+
+            <div className="role-guide-step-icon" aria-hidden="true">
+              {step.icon}
+            </div>
+
+            <div className="role-guide-step-copy">
+              <p className="role-guide-step-kicker">
+                Step {index + 1}
+                <span>{step.isComplete ? "Ready" : "Guide"}</span>
+              </p>
+              <h3>{step.title}</h3>
+              <p>{step.text}</p>
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function StatCard({
+  icon,
+  label,
+  value,
+  helper,
+}: {
+  icon: string;
+  label: string;
+  value: number;
+  helper: string;
+}) {
+  return (
+    <article className="role-stat-card">
+      <span aria-hidden="true">{icon}</span>
+      <div>
+        <p>{label}</p>
+        <strong>{value}</strong>
+        <small>{helper}</small>
+      </div>
+    </article>
+  );
+}
+
+function ChipList({
+  values,
+  emptyText,
+  max = 4,
+}: {
+  values: string[] | null;
+  emptyText: string;
+  max?: number;
+}) {
+  if (!Array.isArray(values) || values.length === 0) {
+    return <p className="role-muted-text">{emptyText}</p>;
+  }
+
+  const visibleValues = values.slice(0, max);
+  const remainingCount = values.length - visibleValues.length;
+
+  return (
+    <div className="role-chip-list">
+      {visibleValues.map((value) => (
+        <span key={value} className="role-chip">
+          {value}
+        </span>
+      ))}
+
+      {remainingCount > 0 ? (
+        <span className="role-chip role-chip-more">
+          +{remainingCount} more
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
 export default async function OpportunitiesPage() {
   const supabase = await createClient();
 
@@ -269,7 +399,7 @@ export default async function OpportunitiesPage() {
   const { data: volunteerProfile } = await supabase
     .from("volunteer_profiles")
     .select(
-      "goals,interests,skills,support_needs,availability_notes,volunteering_preference",
+      "goals,interests,skills,support_needs,availability_notes,volunteering_preference,preferred_contact_method,phone_number",
     )
     .eq("user_id", user.id)
     .maybeSingle<VolunteerProfile>();
@@ -283,12 +413,33 @@ export default async function OpportunitiesPage() {
   const { data: opportunities } = await supabase
     .from("opportunities")
     .select(
-      "id,title,summary,location_type,location,location_town_city,location_area,location_venue,location_postcode,travel_notes,accessibility_notes,hide_exact_location,time_commitment,interests,skills,support_offered,contact_name,status,created_at",
+      "id,organisation_user_id,title,summary,location_type,location,location_town_city,location_area,location_venue,location_postcode,travel_notes,accessibility_notes,hide_exact_location,time_commitment,interests,skills,support_offered,contact_name,status,created_at",
     )
     .eq("status", "published")
     .order("created_at", { ascending: false });
 
   const rows = (opportunities as Opportunity[] | null) ?? [];
+
+  const organisationUserIds = Array.from(
+    new Set(
+      rows
+        .map((row) => row.organisation_user_id)
+        .filter((value): value is string => Boolean(value)),
+    ),
+  );
+
+  const { data: organisationProfiles } = organisationUserIds.length
+    ? await supabase
+        .from("organisation_profiles")
+        .select("user_id,organisation_name,contact_email,logo_url")
+        .in("user_id", organisationUserIds)
+    : { data: [] as OrganisationProfile[] };
+
+  const organisationProfileMap = new Map(
+    ((organisationProfiles as OrganisationProfile[] | null) ?? []).map(
+      (organisationProfile) => [organisationProfile.user_id, organisationProfile],
+    ),
+  );
 
   const viewMode = normaliseViewMode(preferences?.view_mode);
   const colourTheme = normaliseColourTheme(preferences?.colour_theme);
@@ -313,9 +464,46 @@ export default async function OpportunitiesPage() {
     (row) => row.match.tone === "explore",
   ).length;
 
+  const preferredContactLabel = formatContactMethod(
+    volunteerProfile?.preferred_contact_method,
+  );
+  const hasPhoneNumber = Boolean(volunteerProfile?.phone_number?.trim());
+  const hasProfileMatchingData = Boolean(
+    (volunteerProfile?.goals?.length ?? 0) > 0 ||
+      (volunteerProfile?.interests?.length ?? 0) > 0 ||
+      (volunteerProfile?.skills?.length ?? 0) > 0,
+  );
+
+  const guideSteps: RoleGuideStep[] = [
+    {
+      icon: "👤",
+      title: "Build your profile",
+      text: "Goals, interests and skills help the app sort better matches first.",
+      isComplete: hasProfileMatchingData,
+    },
+    {
+      icon: "🔎",
+      title: "Compare matches",
+      text: "Strong, good and explore labels are guides. You can open any role.",
+      isComplete: rows.length > 0,
+    },
+    {
+      icon: "🛡️",
+      title: "Check safety",
+      text: "Look for organisation details, support offered and safe location wording.",
+      isComplete: true,
+    },
+    {
+      icon: "📬",
+      title: "Show interest",
+      text: "When a role feels right, open it and choose I’m interested.",
+      isComplete: false,
+    },
+  ];
+
   const listenText = simpleView
-    ? "You are on the Find opportunities page. This page shows volunteering roles. Best matches are shown first. Each card shows a safe location summary and a match label. Choose Read more when a role sounds right. Use Dashboard to go back."
-    : "You are on the Find opportunities page. This page shows published volunteering roles. Roles are shown with the strongest profile matches first. Each card includes a safe location summary, time commitment and gentle match information based on your profile. Match labels are only a guide, and you can explore any role that interests you. Exact venues or postcodes may be hidden until the organisation has contacted or accepted a volunteer. Select Read more to open the full opportunity details page.";
+    ? "You are on the Best roles for me page. Best matches are shown first. Each card shows an organisation, safe location, time commitment and match label. Choose Read more when a role sounds right. Use Dashboard to go back."
+    : `You are on the Best roles for me page. This page shows published volunteering roles, with the strongest profile matches first. You currently have ${rows.length} published role${rows.length === 1 ? "" : "s"}, ${strongMatchCount} strong match${strongMatchCount === 1 ? "" : "es"}, ${goodMatchCount} good match${goodMatchCount === 1 ? "" : "es"} and ${exploreMatchCount} explore role${exploreMatchCount === 1 ? "" : "s"}. Each card includes the organisation name or logo when available, safe location summary, time commitment, support offered, and gentle match information based on your profile. Match labels are only a guide, and you can explore any role that interests you. Your preferred contact method is ${preferredContactLabel}. Remember that SO Volunteering and organisations using the app should never ask for money, bank details, passwords or financial information. Select Read more to open the full opportunity details page.`;
 
   const shellClassName = [
     "dashboard-bg",
@@ -366,11 +554,11 @@ export default async function OpportunitiesPage() {
         </header>
 
         <section
-          className="dashboard-welcome-card"
+          className="dashboard-welcome-card opportunities-hero"
           aria-labelledby="opportunities-title"
         >
           <div className="dashboard-welcome-copy">
-            <p className="dashboard-kicker">Find opportunities</p>
+            <p className="dashboard-kicker">Best roles for me</p>
 
             <h1 id="opportunities-title" className="dashboard-title">
               <span aria-hidden="true">{avatarIcon}</span>
@@ -383,7 +571,7 @@ export default async function OpportunitiesPage() {
                 : "Browse published opportunities from organisations. Best matches are shown first, but every role is open to explore."}
             </p>
 
-            <div className="dashboard-primary-actions">
+            <div className="dashboard-primary-actions opportunities-primary-actions">
               <Link
                 href="/profile"
                 className="primary-button dashboard-main-action"
@@ -391,6 +579,26 @@ export default async function OpportunitiesPage() {
                 <span className="dashboard-button-inner">
                   <span aria-hidden="true">👤</span>
                   <span>View my profile</span>
+                </span>
+              </Link>
+
+              <Link
+                href="/pathway/cv"
+                className="secondary-button dashboard-main-action"
+              >
+                <span className="dashboard-button-inner">
+                  <span aria-hidden="true">📄</span>
+                  <span>Positive Pathway CV</span>
+                </span>
+              </Link>
+
+              <Link
+                href="/my-interests"
+                className="secondary-button dashboard-main-action"
+              >
+                <span className="dashboard-button-inner">
+                  <span aria-hidden="true">📬</span>
+                  <span>Roles I am interested in</span>
                 </span>
               </Link>
 
@@ -419,25 +627,31 @@ export default async function OpportunitiesPage() {
               </div>
             </div>
 
-            <p className="dashboard-progress-note">
-              Strong matches: <strong>{strongMatchCount}</strong>
-            </p>
-
-            <p className="dashboard-progress-note">
-              Good matches: <strong>{goodMatchCount}</strong>
-            </p>
-
-            {!simpleView ? (
+            <div className="role-status-mini">
               <p className="dashboard-progress-note">
-                Explore roles: <strong>{exploreMatchCount}</strong>
+                Strong matches: <strong>{strongMatchCount}</strong>
               </p>
-            ) : null}
 
-            <p className="dashboard-progress-note">
-              {simpleView
-                ? "Open a role to read more."
-                : "Location summaries are shown safely. Exact venue details may be shared later by the organisation."}
-            </p>
+              <p className="dashboard-progress-note">
+                Good matches: <strong>{goodMatchCount}</strong>
+              </p>
+
+              {!simpleView ? (
+                <p className="dashboard-progress-note">
+                  Explore roles: <strong>{exploreMatchCount}</strong>
+                </p>
+              ) : null}
+            </div>
+
+            <div className="role-contact-summary">
+              <p className="dashboard-progress-note">
+                Preferred contact: <strong>{preferredContactLabel}</strong>
+              </p>
+              <p className="dashboard-progress-note">
+                Phone/text number:{" "}
+                <strong>{hasPhoneNumber ? "Added" : "Not added"}</strong>
+              </p>
+            </div>
 
             {detailedView ? (
               <p className="dashboard-progress-note">
@@ -446,6 +660,55 @@ export default async function OpportunitiesPage() {
               </p>
             ) : null}
           </aside>
+        </section>
+
+        <RoleGuide steps={guideSteps} />
+
+        <section
+          className="role-safety-panel"
+          aria-labelledby="role-safety-title"
+        >
+          <div className="role-safety-icon" aria-hidden="true">
+            🛡️
+          </div>
+
+          <div>
+            <p className="dashboard-kicker">Safety reminder</p>
+            <h2 id="role-safety-title">Choose roles safely</h2>
+            <p>
+              SO Volunteering and organisations using the app should never ask
+              you for money, bank details, passwords or financial information. A
+              home address may only be discussed safely and privately when it is
+              genuinely needed for an in-person volunteering arrangement.
+            </p>
+          </div>
+        </section>
+
+        <section className="role-stat-grid" aria-label="Role match summary">
+          <StatCard
+            icon="🌟"
+            label="Strong"
+            value={strongMatchCount}
+            helper="Closest to your profile"
+          />
+          <StatCard
+            icon="💚"
+            label="Good"
+            value={goodMatchCount}
+            helper="Worth exploring"
+          />
+          <StatCard
+            icon="🧭"
+            label="Explore"
+            value={exploreMatchCount}
+            helper="Try something different"
+          />
+          <StatCard
+            icon="📣"
+            label="Total"
+            value={rows.length}
+            helper="Published roles available"
+          />
         </section>
 
         {rows.length === 0 ? (
@@ -472,9 +735,19 @@ export default async function OpportunitiesPage() {
             </article>
           </section>
         ) : (
-          <section className="dashboard-grid" aria-label="Published opportunities">
+          <section
+            className="dashboard-grid"
+            aria-label="Published opportunities"
+          >
             {matchedRows.map(({ opportunity, match }) => {
               const privacyNote = formatLocationPrivacyNote(opportunity);
+              const organisationProfile = organisationProfileMap.get(
+                opportunity.organisation_user_id,
+              );
+              const organisationName =
+                organisationProfile?.organisation_name?.trim() ||
+                opportunity.contact_name?.trim() ||
+                "Organisation";
 
               return (
                 <Link
@@ -482,16 +755,37 @@ export default async function OpportunitiesPage() {
                   href={`/opportunities/${opportunity.id}`}
                   className="info-card dashboard-pathway-card opportunities-card"
                 >
-                  <div className="dashboard-card-icon" aria-hidden="true">
-                    📣
+                  <div className="opportunity-card-header">
+                    <div className="opportunity-organisation">
+                      {organisationProfile?.logo_url?.trim() ? (
+                        <img
+                          src={organisationProfile.logo_url}
+                          alt=""
+                          className="opportunity-organisation-logo"
+                          aria-hidden="true"
+                        />
+                      ) : (
+                        <span
+                          className="opportunity-organisation-logo-fallback"
+                          aria-hidden="true"
+                        >
+                          🏢
+                        </span>
+                      )}
+
+                      <div>
+                        <p className="dashboard-card-label">Organisation</p>
+                        <h3>{organisationName}</h3>
+                      </div>
+                    </div>
+
+                    <span className="opportunity-location-type">
+                      {formatLocationType(opportunity.location_type)}
+                    </span>
                   </div>
 
                   <div className="dashboard-card-copy">
                     <div className="dashboard-card-main">
-                      <p className="dashboard-card-label">
-                        {formatLocationType(opportunity.location_type)}
-                      </p>
-
                       <h2>{opportunity.title}</h2>
 
                       <p>{opportunity.summary}</p>
@@ -510,10 +804,50 @@ export default async function OpportunitiesPage() {
                         simpleView={simpleView}
                       />
 
-                      <p className="dashboard-muted-action">
-                        {opportunity.time_commitment ||
-                          "Time commitment not listed"}
-                      </p>
+                      <div className="role-info-strip">
+                        <span>
+                          <strong>Time:</strong>{" "}
+                          {opportunity.time_commitment ||
+                            "Time commitment not listed"}
+                        </span>
+
+                        <span>
+                          <strong>Type:</strong>{" "}
+                          {formatLocationType(opportunity.location_type)}
+                        </span>
+                      </div>
+
+                      {!simpleView ? (
+                        <div className="role-support-preview">
+                          <p className="dashboard-card-label">Support offered</p>
+                          <ChipList
+                            values={opportunity.support_offered}
+                            emptyText="Support details are on the role page."
+                          />
+                        </div>
+                      ) : null}
+
+                      {!simpleView ? (
+                        <div className="role-tags-preview">
+                          <div>
+                            <p className="dashboard-card-label">Interests</p>
+                            <ChipList
+                              values={opportunity.interests}
+                              emptyText="No interest tags listed."
+                              max={3}
+                            />
+                          </div>
+
+                          <div>
+                            <p className="dashboard-card-label">Skills</p>
+                            <ChipList
+                              values={opportunity.skills}
+                              emptyText="No skill tags listed."
+                              max={3}
+                            />
+                          </div>
+                        </div>
+                      ) : null}
                     </div>
 
                     <span className="dashboard-card-action-pill">Read more</span>
@@ -535,9 +869,28 @@ export default async function OpportunitiesPage() {
           align-items: stretch;
         }
 
+        .opportunities-primary-actions {
+          display: grid !important;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 10px;
+          width: min(100%, 620px);
+          align-items: stretch;
+        }
+
+        .opportunities-primary-actions .dashboard-main-action {
+          width: 100%;
+          min-height: 54px;
+          justify-content: center;
+          text-align: center;
+        }
+
         .opportunities-page .dashboard-pathway-card {
           height: 100%;
           align-items: stretch;
+        }
+
+        .opportunities-card {
+          min-height: 440px;
         }
 
         .opportunities-page .dashboard-card-copy {
@@ -555,12 +908,340 @@ export default async function OpportunitiesPage() {
 
         .opportunities-page .dashboard-card-main h2 {
           margin-bottom: 0;
+          color: #315f48;
           overflow-wrap: anywhere;
         }
 
         .opportunities-page .dashboard-card-main p {
           margin: 0;
           overflow-wrap: anywhere;
+        }
+
+        .role-status-mini,
+        .role-contact-summary {
+          display: grid;
+          gap: 7px;
+          margin-top: 12px;
+          padding-top: 12px;
+          border-top: 1px solid rgba(83, 111, 99, 0.12);
+        }
+
+        .role-status-mini .dashboard-progress-note,
+        .role-contact-summary .dashboard-progress-note {
+          margin: 0;
+        }
+
+        .role-guide-panel,
+        .role-safety-panel {
+          padding: clamp(20px, 4vw, 28px);
+          border: 1px solid rgba(143, 178, 158, 0.22);
+          border-radius: 30px;
+          background: rgba(255, 255, 255, 0.86);
+          box-shadow: 0 18px 56px rgba(38, 50, 56, 0.07);
+          display: grid;
+          gap: 18px;
+          overflow: hidden;
+        }
+
+        .role-guide-panel {
+          border-color: rgba(108, 92, 160, 0.16);
+          background:
+            radial-gradient(circle at top left, rgba(222, 214, 255, 0.34), transparent 34%),
+            linear-gradient(135deg, rgba(248, 245, 255, 0.92), rgba(255, 255, 255, 0.9));
+        }
+
+        .role-safety-panel {
+          grid-template-columns: auto 1fr;
+          align-items: start;
+          border-color: rgba(34, 124, 78, 0.24);
+          background:
+            radial-gradient(circle at top left, rgba(155, 232, 190, 0.38), transparent 34%),
+            linear-gradient(135deg, rgba(244, 255, 249, 0.94), rgba(255, 255, 255, 0.9));
+        }
+
+        .role-guide-heading {
+          display: grid;
+          grid-template-columns: auto 1fr;
+          gap: 14px;
+          align-items: start;
+        }
+
+        .role-guide-heading > span,
+        .role-safety-icon {
+          display: inline-flex;
+          width: 62px;
+          height: 62px;
+          align-items: center;
+          justify-content: center;
+          border-radius: 22px;
+          background: rgba(108, 92, 160, 0.12);
+          box-shadow: inset 0 0 0 1px rgba(108, 92, 160, 0.14);
+          font-size: 1.85rem;
+        }
+
+        .role-safety-icon {
+          background: rgba(34, 124, 78, 0.12);
+          box-shadow: inset 0 0 0 1px rgba(34, 124, 78, 0.16);
+        }
+
+        .role-guide-heading h2,
+        .role-safety-panel h2 {
+          margin: 2px 0 8px;
+          color: #315f48;
+          font-size: clamp(1.35rem, 3vw, 1.8rem);
+          font-weight: 950;
+          letter-spacing: -0.035em;
+          line-height: 1.1;
+        }
+
+        .role-guide-heading p,
+        .role-safety-panel p {
+          margin: 0;
+          max-width: 760px;
+          color: #60706a;
+          font-weight: 750;
+          line-height: 1.55;
+        }
+
+        .role-guide-grid {
+          display: grid;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 12px;
+        }
+
+        .role-guide-step {
+          position: relative;
+          display: grid;
+          gap: 10px;
+          min-height: 178px;
+          padding: 15px;
+          border: 1px solid rgba(108, 92, 160, 0.14);
+          border-radius: 22px;
+          background: rgba(255, 255, 255, 0.78);
+          box-shadow: 0 12px 28px rgba(33, 56, 48, 0.05);
+        }
+
+        .role-guide-step-complete {
+          border-color: rgba(34, 124, 78, 0.26);
+          background:
+            radial-gradient(circle at top left, rgba(155, 232, 190, 0.28), transparent 34%),
+            rgba(244, 255, 249, 0.92);
+          box-shadow: 0 14px 30px rgba(33, 96, 61, 0.08);
+        }
+
+        .role-guide-step-number {
+          position: absolute;
+          top: 12px;
+          right: 12px;
+          display: inline-flex;
+          width: 30px;
+          height: 30px;
+          align-items: center;
+          justify-content: center;
+          border-radius: 999px;
+          background: rgba(108, 92, 160, 0.12);
+          color: #4f4b82;
+          font-size: 0.82rem;
+          font-weight: 950;
+          line-height: 1;
+        }
+
+        .role-guide-step-complete .role-guide-step-number {
+          background: rgba(34, 124, 78, 0.14);
+          color: #145c38;
+        }
+
+        .role-guide-step-icon {
+          display: inline-flex;
+          width: 52px;
+          height: 52px;
+          align-items: center;
+          justify-content: center;
+          border-radius: 18px;
+          background: rgba(248, 248, 252, 0.96);
+          box-shadow: inset 0 0 0 1px rgba(108, 92, 160, 0.08);
+          font-size: 1.55rem;
+        }
+
+        .role-guide-step-complete .role-guide-step-icon {
+          background: rgba(34, 124, 78, 0.12);
+          box-shadow: inset 0 0 0 1px rgba(34, 124, 78, 0.14);
+        }
+
+        .role-guide-step-copy {
+          display: grid;
+          gap: 6px;
+        }
+
+        .role-guide-step-kicker {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+          align-items: center;
+          margin: 0;
+          padding-right: 34px;
+          color: #6c5ca0;
+          font-size: 0.78rem;
+          font-weight: 950;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+        }
+
+        .role-guide-step-kicker span {
+          display: inline-flex;
+          min-height: 24px;
+          align-items: center;
+          justify-content: center;
+          padding: 5px 8px;
+          border-radius: 999px;
+          background: rgba(108, 92, 160, 0.1);
+          color: #6c5ca0;
+          font-size: 0.68rem;
+          letter-spacing: 0;
+          text-transform: none;
+        }
+
+        .role-guide-step-complete .role-guide-step-kicker,
+        .role-guide-step-complete .role-guide-step-kicker span {
+          color: #145c38;
+        }
+
+        .role-guide-step-complete .role-guide-step-kicker span {
+          background: rgba(34, 124, 78, 0.12);
+        }
+
+        .role-guide-step-copy h3 {
+          margin: 0;
+          padding-right: 32px;
+          color: #315f48;
+          font-size: 1rem;
+          font-weight: 950;
+          line-height: 1.14;
+        }
+
+        .role-guide-step-copy p {
+          margin: 0;
+          color: #60706a;
+          font-size: 0.92rem;
+          font-weight: 740;
+          line-height: 1.42;
+        }
+
+        .role-stat-grid {
+          display: grid;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 12px;
+        }
+
+        .role-stat-card {
+          display: grid;
+          grid-template-columns: auto 1fr;
+          gap: 12px;
+          min-height: 126px;
+          padding: 14px;
+          border: 1px solid rgba(83, 111, 99, 0.18);
+          border-radius: 20px;
+          background: rgba(255, 255, 255, 0.78);
+          box-shadow: 0 14px 36px rgba(33, 56, 48, 0.06);
+        }
+
+        .role-stat-card > span {
+          display: inline-flex;
+          width: 44px;
+          height: 44px;
+          align-items: center;
+          justify-content: center;
+          border-radius: 16px;
+          background: rgba(143, 178, 158, 0.14);
+          font-size: 1.35rem;
+        }
+
+        .role-stat-card p {
+          margin: 0 0 5px;
+          color: #60706a;
+          font-size: 0.82rem;
+          font-weight: 900;
+          line-height: 1.15;
+        }
+
+        .role-stat-card strong {
+          display: block;
+          color: #315f48;
+          font-size: 1.75rem;
+          line-height: 1;
+        }
+
+        .role-stat-card small {
+          display: block;
+          margin-top: 8px;
+          color: #60706a;
+          font-size: 0.78rem;
+          font-weight: 750;
+          line-height: 1.25;
+        }
+
+        .opportunity-card-header {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 14px;
+          align-items: flex-start;
+          justify-content: space-between;
+          margin-bottom: 16px;
+        }
+
+        .opportunity-organisation {
+          display: grid;
+          grid-template-columns: auto 1fr;
+          gap: 12px;
+          align-items: center;
+          min-width: 0;
+        }
+
+        .opportunity-organisation-logo,
+        .opportunity-organisation-logo-fallback {
+          width: 54px;
+          height: 54px;
+          border-radius: 18px;
+          object-fit: contain;
+          background: rgba(255, 255, 255, 0.88);
+          border: 1px solid rgba(83, 111, 99, 0.16);
+          box-shadow: 0 12px 24px rgba(33, 56, 48, 0.08);
+        }
+
+        .opportunity-organisation-logo {
+          padding: 7px;
+        }
+
+        .opportunity-organisation-logo-fallback {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 1.55rem;
+        }
+
+        .opportunity-organisation h3 {
+          margin: 0;
+          color: #315f48;
+          font-size: 1rem;
+          font-weight: 950;
+          line-height: 1.15;
+          overflow-wrap: anywhere;
+        }
+
+        .opportunity-location-type {
+          display: inline-flex;
+          min-height: 38px;
+          align-items: center;
+          justify-content: center;
+          padding: 8px 12px;
+          border: 1px solid rgba(83, 111, 99, 0.16);
+          border-radius: 999px;
+          background: rgba(244, 255, 249, 0.9);
+          color: #536f63;
+          font-size: 0.86rem;
+          font-weight: 950;
+          line-height: 1.1;
+          white-space: nowrap;
         }
 
         .safe-location-strip {
@@ -632,7 +1313,8 @@ export default async function OpportunitiesPage() {
           gap: 7px;
         }
 
-        .opportunity-match-reasons span {
+        .opportunity-match-reasons span,
+        .role-chip {
           display: inline-flex;
           min-height: 30px;
           align-items: center;
@@ -660,6 +1342,53 @@ export default async function OpportunitiesPage() {
         .match-tone-explore {
           border-color: rgba(108, 92, 160, 0.16);
           background: rgba(248, 245, 255, 0.82);
+        }
+
+        .role-info-strip {
+          display: grid;
+          gap: 8px;
+          padding: 12px;
+          border: 1px solid rgba(108, 92, 160, 0.12);
+          border-radius: 18px;
+          background: rgba(255, 255, 255, 0.72);
+          color: #60706a;
+          font-size: 0.9rem;
+          font-weight: 780;
+          line-height: 1.4;
+        }
+
+        .role-info-strip strong {
+          color: #315f48;
+        }
+
+        .role-support-preview,
+        .role-tags-preview {
+          display: grid;
+          gap: 8px;
+        }
+
+        .role-tags-preview {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 12px;
+        }
+
+        .role-chip-list {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 7px;
+        }
+
+        .role-chip-more {
+          background: rgba(248, 245, 255, 0.86);
+          color: #6c5ca0;
+        }
+
+        .role-muted-text {
+          margin: 0;
+          color: #60706a;
+          font-size: 0.88rem;
+          font-weight: 760;
+          line-height: 1.35;
         }
 
         .opportunities-page .dashboard-card-action-pill {
@@ -722,8 +1451,12 @@ export default async function OpportunitiesPage() {
           align-items: center;
         }
 
+        .preference-view-simple .opportunities-card {
+          min-height: 280px;
+        }
+
         .preference-view-detailed .dashboard-pathway-card {
-          min-height: 230px;
+          min-height: 460px;
         }
 
         .preference-theme-calm_green {
@@ -735,7 +1468,10 @@ export default async function OpportunitiesPage() {
         .preference-theme-calm_green .dashboard-welcome-card,
         .preference-theme-calm_green .info-card,
         .preference-theme-calm_green .dashboard-progress-card,
-        .preference-theme-calm_green .opportunity-match-panel {
+        .preference-theme-calm_green .opportunity-match-panel,
+        .preference-theme-calm_green .role-guide-panel,
+        .preference-theme-calm_green .role-safety-panel,
+        .preference-theme-calm_green .role-stat-card {
           border-color: rgba(83, 111, 99, 0.2);
         }
 
@@ -754,7 +1490,10 @@ export default async function OpportunitiesPage() {
         .preference-theme-soft_blue .dashboard-welcome-card,
         .preference-theme-soft_blue .info-card,
         .preference-theme-soft_blue .dashboard-progress-card,
-        .preference-theme-soft_blue .opportunity-match-panel {
+        .preference-theme-soft_blue .opportunity-match-panel,
+        .preference-theme-soft_blue .role-guide-panel,
+        .preference-theme-soft_blue .role-safety-panel,
+        .preference-theme-soft_blue .role-stat-card {
           border-color: rgba(74, 112, 160, 0.2);
         }
 
@@ -773,7 +1512,10 @@ export default async function OpportunitiesPage() {
         .preference-theme-warm_peach .dashboard-welcome-card,
         .preference-theme-warm_peach .info-card,
         .preference-theme-warm_peach .dashboard-progress-card,
-        .preference-theme-warm_peach .opportunity-match-panel {
+        .preference-theme-warm_peach .opportunity-match-panel,
+        .preference-theme-warm_peach .role-guide-panel,
+        .preference-theme-warm_peach .role-safety-panel,
+        .preference-theme-warm_peach .role-stat-card {
           border-color: rgba(190, 118, 76, 0.2);
         }
 
@@ -792,7 +1534,13 @@ export default async function OpportunitiesPage() {
         .preference-theme-high_contrast .dashboard-progress-card,
         .preference-theme-high_contrast .opportunity-match-panel,
         .preference-theme-high_contrast .opportunity-match-reasons span,
-        .preference-theme-high_contrast .safe-location-strip {
+        .preference-theme-high_contrast .safe-location-strip,
+        .preference-theme-high_contrast .role-guide-panel,
+        .preference-theme-high_contrast .role-guide-step,
+        .preference-theme-high_contrast .role-safety-panel,
+        .preference-theme-high_contrast .role-stat-card,
+        .preference-theme-high_contrast .role-info-strip,
+        .preference-theme-high_contrast .role-chip {
           border: 2px solid #1f2937;
           background: rgba(255, 255, 255, 0.98);
         }
@@ -800,7 +1548,12 @@ export default async function OpportunitiesPage() {
         .preference-theme-high_contrast .dashboard-title,
         .preference-theme-high_contrast .dashboard-card-copy h2,
         .preference-theme-high_contrast .dashboard-progress-card h2,
-        .preference-theme-high_contrast .opportunity-match-label {
+        .preference-theme-high_contrast .opportunity-match-label,
+        .preference-theme-high_contrast .role-guide-heading h2,
+        .preference-theme-high_contrast .role-guide-step-copy h3,
+        .preference-theme-high_contrast .role-safety-panel h2,
+        .preference-theme-high_contrast .role-stat-card strong,
+        .preference-theme-high_contrast .opportunity-organisation h3 {
           color: #111827;
         }
 
@@ -811,13 +1564,27 @@ export default async function OpportunitiesPage() {
         .preference-theme-high_contrast .opportunity-match-header p,
         .preference-theme-high_contrast .opportunity-match-reasons span,
         .preference-theme-high_contrast .safe-location-strip,
-        .preference-theme-high_contrast .location-privacy-note {
+        .preference-theme-high_contrast .location-privacy-note,
+        .preference-theme-high_contrast .role-guide-heading p,
+        .preference-theme-high_contrast .role-guide-step-copy p,
+        .preference-theme-high_contrast .role-safety-panel p,
+        .preference-theme-high_contrast .role-stat-card p,
+        .preference-theme-high_contrast .role-stat-card small,
+        .preference-theme-high_contrast .role-info-strip,
+        .preference-theme-high_contrast .role-muted-text,
+        .preference-theme-high_contrast .role-chip {
           color: #1f2937;
         }
 
         .preference-theme-high_contrast .dashboard-card-icon,
         .preference-theme-high_contrast .dashboard-progress-icon,
-        .preference-theme-high_contrast .opportunity-match-icon {
+        .preference-theme-high_contrast .opportunity-match-icon,
+        .preference-theme-high_contrast .role-guide-heading > span,
+        .preference-theme-high_contrast .role-guide-step-icon,
+        .preference-theme-high_contrast .role-safety-icon,
+        .preference-theme-high_contrast .role-stat-card > span,
+        .preference-theme-high_contrast .opportunity-organisation-logo,
+        .preference-theme-high_contrast .opportunity-organisation-logo-fallback {
           border: 2px solid #1f2937;
           background: #ffffff;
           color: #111827;
@@ -839,7 +1606,12 @@ export default async function OpportunitiesPage() {
         .preference-theme-neon_arcade .dashboard-welcome-card,
         .preference-theme-neon_arcade .dashboard-progress-card,
         .preference-theme-neon_arcade .info-card,
-        .preference-theme-neon_arcade .opportunity-match-panel {
+        .preference-theme-neon_arcade .opportunity-match-panel,
+        .preference-theme-neon_arcade .role-guide-panel,
+        .preference-theme-neon_arcade .role-guide-step,
+        .preference-theme-neon_arcade .role-safety-panel,
+        .preference-theme-neon_arcade .role-stat-card,
+        .preference-theme-neon_arcade .role-info-strip {
           border-color: rgba(34, 211, 238, 0.42);
           background: rgba(15, 23, 42, 0.86);
           box-shadow:
@@ -851,7 +1623,12 @@ export default async function OpportunitiesPage() {
         .preference-theme-neon_arcade .dashboard-card-copy h2,
         .preference-theme-neon_arcade .dashboard-progress-card h2,
         .preference-theme-neon_arcade .dashboard-progress-note strong,
-        .preference-theme-neon_arcade .opportunity-match-label {
+        .preference-theme-neon_arcade .opportunity-match-label,
+        .preference-theme-neon_arcade .role-guide-heading h2,
+        .preference-theme-neon_arcade .role-guide-step-copy h3,
+        .preference-theme-neon_arcade .role-safety-panel h2,
+        .preference-theme-neon_arcade .role-stat-card strong,
+        .preference-theme-neon_arcade .opportunity-organisation h3 {
           color: #e0f2fe;
         }
 
@@ -862,13 +1639,26 @@ export default async function OpportunitiesPage() {
         .preference-theme-neon_arcade .dashboard-progress-note,
         .preference-theme-neon_arcade .dashboard-muted-action,
         .preference-theme-neon_arcade .opportunity-match-header p,
-        .preference-theme-neon_arcade .location-privacy-note {
+        .preference-theme-neon_arcade .location-privacy-note,
+        .preference-theme-neon_arcade .role-guide-heading p,
+        .preference-theme-neon_arcade .role-guide-step-copy p,
+        .preference-theme-neon_arcade .role-safety-panel p,
+        .preference-theme-neon_arcade .role-stat-card p,
+        .preference-theme-neon_arcade .role-stat-card small,
+        .preference-theme-neon_arcade .role-info-strip,
+        .preference-theme-neon_arcade .role-muted-text {
           color: #dbeafe;
         }
 
         .preference-theme-neon_arcade .dashboard-card-icon,
         .preference-theme-neon_arcade .dashboard-progress-icon,
-        .preference-theme-neon_arcade .opportunity-match-icon {
+        .preference-theme-neon_arcade .opportunity-match-icon,
+        .preference-theme-neon_arcade .role-guide-heading > span,
+        .preference-theme-neon_arcade .role-guide-step-icon,
+        .preference-theme-neon_arcade .role-safety-icon,
+        .preference-theme-neon_arcade .role-stat-card > span,
+        .preference-theme-neon_arcade .opportunity-organisation-logo,
+        .preference-theme-neon_arcade .opportunity-organisation-logo-fallback {
           border: 1px solid rgba(34, 211, 238, 0.42);
           background: rgba(34, 211, 238, 0.12);
           color: #a7f3d0;
@@ -877,7 +1667,9 @@ export default async function OpportunitiesPage() {
 
         .preference-theme-neon_arcade .opportunity-match-reasons span,
         .preference-theme-neon_arcade .dashboard-card-action-pill,
-        .preference-theme-neon_arcade .safe-location-strip {
+        .preference-theme-neon_arcade .safe-location-strip,
+        .preference-theme-neon_arcade .role-chip,
+        .preference-theme-neon_arcade .opportunity-location-type {
           border-color: rgba(34, 211, 238, 0.42);
           background: rgba(34, 211, 238, 0.12);
           color: #a7f3d0;
@@ -891,14 +1683,63 @@ export default async function OpportunitiesPage() {
           background: rgba(30, 41, 59, 0.92);
         }
 
+        @media (max-width: 1180px) {
+          .role-guide-grid,
+          .role-stat-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+        }
+
+        @media (max-width: 760px) {
+          .opportunities-primary-actions {
+            grid-template-columns: 1fr;
+            width: 100%;
+          }
+
+          .role-safety-panel,
+          .role-guide-heading {
+            grid-template-columns: 1fr;
+          }
+
+          .role-guide-heading > span,
+          .role-safety-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 20px;
+          }
+
+          .role-guide-grid,
+          .role-stat-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .role-tags-preview {
+            grid-template-columns: 1fr;
+          }
+
+          .opportunities-primary-actions .primary-button,
+          .opportunities-primary-actions .secondary-button {
+            width: 100%;
+          }
+        }
+
         @media (max-width: 640px) {
           .preference-text-large {
             font-size: 1.03rem;
           }
 
-          .preference-view-simple .dashboard-pathway-card,
-          .preference-view-detailed .dashboard-pathway-card {
+          .opportunities-card,
+          .preference-view-simple .opportunities-card,
+          .preference-view-detailed .opportunities-card {
             min-height: 0;
+          }
+
+          .opportunity-card-header {
+            display: grid;
+          }
+
+          .opportunity-location-type {
+            width: 100%;
           }
 
           .opportunities-page .dashboard-card-copy {
@@ -914,10 +1755,17 @@ export default async function OpportunitiesPage() {
             border-radius: 16px;
           }
 
-          .opportunity-match-reasons span {
+          .opportunity-match-reasons span,
+          .role-chip {
             width: 100%;
             justify-content: center;
             text-align: center;
+          }
+
+          .role-guide-panel,
+          .role-safety-panel {
+            border-radius: 26px;
+            padding: 18px;
           }
         }
       `}</style>
