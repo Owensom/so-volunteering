@@ -91,6 +91,13 @@ type SkillOption = {
   helpText: string;
 };
 
+type ReviewGuideStep = {
+  icon: string;
+  title: string;
+  text: string;
+  isComplete: boolean;
+};
+
 const skillOptions: SkillOption[] = [
   {
     key: "reliability",
@@ -277,6 +284,18 @@ function hasAnySkill(review: SkillReview | undefined) {
   return skillOptions.some((option) => review[option.key] === true);
 }
 
+function hasPositiveComment(review: SkillReview | undefined) {
+  return Boolean(review?.positive_comment?.trim());
+}
+
+function hasSavedReview(review: SkillReview | undefined) {
+  return Boolean(review?.id);
+}
+
+function isAccepted(status: string | null | undefined) {
+  return normaliseInterestStatus(status) === "accepted";
+}
+
 function ReviewSkillGrid({ review }: { review: SkillReview | undefined }) {
   return (
     <div className="review-skill-grid">
@@ -316,6 +335,106 @@ function CountCard({
       <span>{label}</span>
       <strong>{value}</strong>
     </article>
+  );
+}
+
+function ReviewGuide({
+  steps,
+}: {
+  steps: ReviewGuideStep[];
+}) {
+  return (
+    <section className="review-guide-panel" aria-labelledby="review-guide-title">
+      <div className="review-guide-heading">
+        <span aria-hidden="true">🧭</span>
+
+        <div>
+          <p className="dashboard-kicker">Step-by-step guide</p>
+          <h2 id="review-guide-title">How to complete positive reviews</h2>
+          <p>
+            Work through the steps for each volunteer. Completed saved steps turn
+            green and show a tick. Reviews should stay positive, factual and
+            useful for the volunteer’s pathway.
+          </p>
+        </div>
+      </div>
+
+      <div className="review-guide-grid">
+        {steps.map((step, index) => (
+          <article
+            key={step.title}
+            className={
+              step.isComplete
+                ? "review-guide-step review-guide-step-complete"
+                : "review-guide-step"
+            }
+          >
+            <span className="review-guide-step-number">
+              {step.isComplete ? "✓" : index + 1}
+            </span>
+
+            <div className="review-guide-step-icon" aria-hidden="true">
+              {step.icon}
+            </div>
+
+            <div className="review-guide-step-copy">
+              <p className="review-guide-step-kicker">
+                Step {index + 1}
+                <span>{step.isComplete ? "Complete" : "To do"}</span>
+              </p>
+              <h3>{step.title}</h3>
+              <p>{step.text}</p>
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function ReviewStepSection({
+  stepNumber,
+  icon,
+  title,
+  description,
+  isComplete,
+  children,
+}: {
+  stepNumber: number;
+  icon: string;
+  title: string;
+  description: string;
+  isComplete: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <section
+      className={
+        isComplete
+          ? "review-step-section review-step-complete"
+          : "review-step-section"
+      }
+    >
+      <div className="review-step-heading">
+        <span className="review-step-icon" aria-hidden="true">
+          {icon}
+        </span>
+
+        <div className="review-step-copy">
+          <p className="review-step-kicker">
+            Step {stepNumber}
+            <span>
+              <span aria-hidden="true">{isComplete ? "✅" : "○"}</span>
+              {isComplete ? "Complete" : "To do"}
+            </span>
+          </p>
+          <h3>{title}</h3>
+          <p>{description}</p>
+        </div>
+      </div>
+
+      <div className="review-step-body">{children}</div>
+    </section>
   );
 }
 
@@ -577,8 +696,63 @@ export default async function OpportunityReviewsPage({
     (review) => review.status === "draft",
   ).length;
 
+  const hiddenReviewCount = reviewRows.filter(
+    (review) => review.status === "hidden",
+  ).length;
+
+  const hasAnyVolunteer = interestRows.length > 0;
+  const hasAcceptedVolunteer = acceptedCount > 0;
+  const hasAnySavedReview = reviewRows.length > 0;
+  const hasAnySkillEvidence = reviewRows.some((review) => hasAnySkill(review));
+  const hasAnyPositiveComment = reviewRows.some((review) =>
+    hasPositiveComment(review),
+  );
+  const hasSharedReview = sharedReviewCount > 0;
+
+  const pageGuideSteps: ReviewGuideStep[] = [
+    {
+      icon: "👤",
+      title: "Choose a volunteer",
+      text: "Open a volunteer card and check their interest, goals, skills and fit notes.",
+      isComplete: hasAnyVolunteer,
+    },
+    {
+      icon: "✅",
+      title: "Update status",
+      text: "Mark the volunteer as Contacted, Accepted or Closed when the next step is clear.",
+      isComplete: contactedCount + acceptedCount + closedCount > 0,
+    },
+    {
+      icon: "⭐",
+      title: "Choose positive skills",
+      text: "Tick the positive skills the volunteer has shown or started to build.",
+      isComplete: hasAnySkillEvidence,
+    },
+    {
+      icon: "💬",
+      title: "Add a supportive comment",
+      text: "Optional, but helpful for the volunteer’s confidence and Pathway CV.",
+      isComplete: hasAnyPositiveComment,
+    },
+    {
+      icon: "📌",
+      title: "Choose review visibility",
+      text: "Share with pathway, save as draft, or keep hidden from the volunteer.",
+      isComplete: hasAnySavedReview,
+    },
+    {
+      icon: "🌱",
+      title: "Support the Pathway CV",
+      text: "Shared reviews can appear as positive evidence in the volunteer’s pathway.",
+      isComplete: hasSharedReview,
+    },
+  ];
+
+  const completedGuideSteps = pageGuideSteps.filter((step) => step.isComplete)
+    .length;
+
   const listenText =
-    "This is the organiser volunteer management and positive skills review page for this opportunity. It shows volunteers who registered interest. Each volunteer card includes a supportive fit summary with shared interests, relevant skills, location clue and positive review history. This is not a ranking. You can update each volunteer status to new, contacted, accepted, or closed. Accepted means your organisation is ready to move forward with that volunteer. You can also tick positive skills, add an optional encouraging comment, choose whether the review is shared with the volunteer, and save. Shared reviews can become part of the volunteer pathway. Private organisation notes are only for the organisation.";
+    "This is the organiser volunteer management and positive skills review page for this opportunity. The page has a step by step guide. Step 1 is choose a volunteer. Step 2 is update their status. Step 3 is choose positive skills. Step 4 is add a supportive comment. Step 5 is choose review visibility. Step 6 is support the volunteer’s Positive Pathway CV. Each volunteer card also uses the same step labels. Shared reviews can become part of the volunteer pathway. Private organisation notes are only for the organisation.";
 
   return (
     <main className="dashboard-bg review-page">
@@ -682,6 +856,22 @@ export default async function OpportunityReviewsPage({
               </div>
             </div>
 
+            <div className="review-progress-summary">
+              <div className="review-progress-label">
+                <span>Review progress</span>
+                <strong>{completedGuideSteps}/6 steps</strong>
+              </div>
+              <div className="review-progress-meter" aria-hidden="true">
+                <span
+                  style={{
+                    width: `${Math.round(
+                      (completedGuideSteps / pageGuideSteps.length) * 100,
+                    )}%`,
+                  }}
+                />
+              </div>
+            </div>
+
             <p className="dashboard-progress-note">
               Accepted: <strong>{acceptedCount}</strong>
             </p>
@@ -691,7 +881,31 @@ export default async function OpportunityReviewsPage({
             <p className="dashboard-progress-note">
               Draft reviews: <strong>{draftReviewCount}</strong>
             </p>
+            <p className="dashboard-progress-note">
+              Hidden reviews: <strong>{hiddenReviewCount}</strong>
+            </p>
           </aside>
+        </section>
+
+        <ReviewGuide steps={pageGuideSteps} />
+
+        <section
+          className="review-pathway-explainer"
+          aria-labelledby="review-pathway-title"
+        >
+          <div className="review-pathway-icon" aria-hidden="true">
+            🌱
+          </div>
+
+          <div>
+            <p className="dashboard-kicker">Positive Pathway CV</p>
+            <h2 id="review-pathway-title">Keep reviews positive and useful</h2>
+            <p>
+              Shared reviews can become evidence for a volunteer’s Positive
+              Pathway CV. Focus on what the volunteer showed, practised, improved
+              or contributed. Keep private notes separate.
+            </p>
+          </div>
         </section>
 
         <section className="review-count-grid" aria-label="Volunteer status counts">
@@ -740,9 +954,21 @@ export default async function OpportunityReviewsPage({
             {interestRows.map((interest) => {
               const review = reviewByInterestId.get(interest.id);
               const hasSavedSkill = hasAnySkill(review);
+              const hasComment = hasPositiveComment(review);
+              const hasReview = hasSavedReview(review);
+              const reviewShared = review?.status === "shared";
+              const volunteerAccepted = isAccepted(interest.status);
+              const volunteerStatusMoved =
+                normaliseInterestStatus(interest.status) !== "new";
+
               const sharedReviewHistoryCount =
                 sharedReviewCountByVolunteerId.get(interest.volunteer_user_id) ??
                 0;
+
+              const volunteerName =
+                interest.volunteer_name ||
+                interest.volunteer_email ||
+                "Volunteer";
 
               return (
                 <article
@@ -764,11 +990,7 @@ export default async function OpportunityReviewsPage({
                         <p className="dashboard-card-label">
                           {formatInterestStatus(interest.status)}
                         </p>
-                        <h2>
-                          {interest.volunteer_name ||
-                            interest.volunteer_email ||
-                            "Volunteer"}
-                        </h2>
+                        <h2>{volunteerName}</h2>
                         <p>
                           {interest.volunteer_email || "No email supplied"}
                           {interest.volunteer_city
@@ -788,78 +1010,121 @@ export default async function OpportunityReviewsPage({
                     </div>
                   </div>
 
-                  <VolunteerFitSummary
-                    opportunity={opportunity}
-                    interest={interest}
-                    sharedReviewHistoryCount={sharedReviewHistoryCount}
-                  />
-
-                  <form
-                    action={updateOpportunityInterestStatus}
-                    className="interest-status-form"
-                  >
-                    <input
-                      type="hidden"
-                      name="opportunity_id"
-                      value={opportunity.id}
-                    />
-                    <input
-                      type="hidden"
-                      name="opportunity_interest_id"
-                      value={interest.id}
-                    />
-
-                    <label className="field-label">
-                      <span className="field-label-row">
-                        <span className="field-label-icon" aria-hidden="true">
-                          🧭
-                        </span>
-                        <span>Volunteer status</span>
-                      </span>
-                      <select
-                        name="interest_status"
-                        defaultValue={normaliseInterestStatus(interest.status)}
-                      >
-                        <option value="new">New interest</option>
-                        <option value="contacted">Contacted</option>
-                        <option value="accepted">Accepted / move forward</option>
-                        <option value="closed">Closed / not progressing</option>
-                      </select>
-                    </label>
-
-                    <button type="submit" className="secondary-button">
-                      <span className="button-balanced-inner">
-                        <span aria-hidden="true">✅</span>
-                        <span>Update volunteer status</span>
-                      </span>
-                    </button>
-                  </form>
-
-                  <div className="review-volunteer-meta">
-                    <p>
-                      <strong>Registered:</strong>{" "}
-                      {formatDate(interest.created_at)}
-                    </p>
-                    <p>
-                      <strong>Goals:</strong>{" "}
-                      {formatList(interest.volunteer_goals)}
-                    </p>
-                    <p>
-                      <strong>Interests:</strong>{" "}
-                      {formatList(interest.volunteer_interests)}
-                    </p>
-                    <p>
-                      <strong>Skills:</strong>{" "}
-                      {formatList(interest.volunteer_skills)}
-                    </p>
+                  <div className="review-card-progress">
+                    <span className={volunteerAccepted ? "complete" : ""}>
+                      <strong>1</strong>
+                      Choose volunteer
+                    </span>
+                    <span className={volunteerStatusMoved ? "complete" : ""}>
+                      <strong>2</strong>
+                      Update status
+                    </span>
+                    <span className={hasSavedSkill ? "complete" : ""}>
+                      <strong>3</strong>
+                      Choose skills
+                    </span>
+                    <span className={hasComment ? "complete" : ""}>
+                      <strong>4</strong>
+                      Add comment
+                    </span>
+                    <span className={hasReview ? "complete" : ""}>
+                      <strong>5</strong>
+                      Visibility
+                    </span>
+                    <span className={reviewShared ? "complete" : ""}>
+                      <strong>6</strong>
+                      Pathway evidence
+                    </span>
                   </div>
 
-                  {interest.message ? (
-                    <div className="review-message-box">
-                      <p className="dashboard-card-label">Volunteer message</p>
-                      <p>{interest.message}</p>
+                  <ReviewStepSection
+                    stepNumber={1}
+                    icon="👤"
+                    title="Choose and review this volunteer"
+                    description="Check the volunteer’s profile links, message, goals, interests and skills before deciding the next step."
+                    isComplete={true}
+                  >
+                    <VolunteerFitSummary
+                      opportunity={opportunity}
+                      interest={interest}
+                      sharedReviewHistoryCount={sharedReviewHistoryCount}
+                    />
+
+                    <div className="review-volunteer-meta">
+                      <p>
+                        <strong>Registered:</strong>{" "}
+                        {formatDate(interest.created_at)}
+                      </p>
+                      <p>
+                        <strong>Goals:</strong>{" "}
+                        {formatList(interest.volunteer_goals)}
+                      </p>
+                      <p>
+                        <strong>Interests:</strong>{" "}
+                        {formatList(interest.volunteer_interests)}
+                      </p>
+                      <p>
+                        <strong>Skills:</strong>{" "}
+                        {formatList(interest.volunteer_skills)}
+                      </p>
                     </div>
-                  ) : null}
+
+                    {interest.message ? (
+                      <div className="review-message-box">
+                        <p className="dashboard-card-label">Volunteer message</p>
+                        <p>{interest.message}</p>
+                      </div>
+                    ) : null}
+                  </ReviewStepSection>
+
+                  <ReviewStepSection
+                    stepNumber={2}
+                    icon="✅"
+                    title="Update volunteer status"
+                    description="Move the volunteer from new interest to contacted, accepted or closed when the next step is clear."
+                    isComplete={volunteerStatusMoved}
+                  >
+                    <form
+                      action={updateOpportunityInterestStatus}
+                      className="interest-status-form"
+                    >
+                      <input
+                        type="hidden"
+                        name="opportunity_id"
+                        value={opportunity.id}
+                      />
+                      <input
+                        type="hidden"
+                        name="opportunity_interest_id"
+                        value={interest.id}
+                      />
+
+                      <label className="field-label">
+                        <span className="field-label-row">
+                          <span className="field-label-icon" aria-hidden="true">
+                            🧭
+                          </span>
+                          <span>Volunteer status</span>
+                        </span>
+                        <select
+                          name="interest_status"
+                          defaultValue={normaliseInterestStatus(interest.status)}
+                        >
+                          <option value="new">New interest</option>
+                          <option value="contacted">Contacted</option>
+                          <option value="accepted">Accepted / move forward</option>
+                          <option value="closed">Closed / not progressing</option>
+                        </select>
+                      </label>
+
+                      <button type="submit" className="secondary-button">
+                        <span className="button-balanced-inner">
+                          <span aria-hidden="true">✅</span>
+                          <span>Update volunteer status</span>
+                        </span>
+                      </button>
+                    </form>
+                  </ReviewStepSection>
 
                   <form action={saveVolunteerSkillReview} className="review-form">
                     <input
@@ -873,71 +1138,115 @@ export default async function OpportunityReviewsPage({
                       value={interest.id}
                     />
 
-                    <fieldset className="review-fieldset">
-                      <legend>
+                    <ReviewStepSection
+                      stepNumber={3}
+                      icon="⭐"
+                      title="Choose positive skills shown"
+                      description="Tick the positive skills the volunteer has shown, practised or started to build."
+                      isComplete={hasSavedSkill}
+                    >
+                      <fieldset className="review-fieldset">
+                        <legend>
+                          <span className="field-label-row">
+                            <span className="field-label-icon" aria-hidden="true">
+                              ⭐
+                            </span>
+                            <span>Positive skills shown</span>
+                          </span>
+                        </legend>
+
+                        <ReviewSkillGrid review={review} />
+                      </fieldset>
+                    </ReviewStepSection>
+
+                    <ReviewStepSection
+                      stepNumber={4}
+                      icon="💬"
+                      title="Add a supportive comment"
+                      description="Optional, but very useful. Keep it positive, specific and encouraging."
+                      isComplete={hasComment}
+                    >
+                      <label className="field-label">
                         <span className="field-label-row">
                           <span className="field-label-icon" aria-hidden="true">
-                            ⭐
+                            💬
                           </span>
-                          <span>Positive skills shown</span>
+                          <span>Positive comment for the volunteer optional</span>
                         </span>
-                      </legend>
+                        <textarea
+                          name="positive_comment"
+                          rows={4}
+                          defaultValue={review?.positive_comment || ""}
+                          placeholder="Example: You were friendly, reliable and willing to try new tasks. Thank you for helping the team."
+                        />
+                      </label>
 
-                      <ReviewSkillGrid review={review} />
-                    </fieldset>
-
-                    <label className="field-label">
-                      <span className="field-label-row">
-                        <span className="field-label-icon" aria-hidden="true">
-                          💬
+                      <label className="field-label">
+                        <span className="field-label-row">
+                          <span className="field-label-icon" aria-hidden="true">
+                            📝
+                          </span>
+                          <span>Private organisation note optional</span>
                         </span>
-                        <span>Positive comment for the volunteer optional</span>
-                      </span>
-                      <textarea
-                        name="positive_comment"
-                        rows={4}
-                        defaultValue={review?.positive_comment || ""}
-                        placeholder="Example: You were friendly, reliable and willing to try new tasks. Thank you for helping the team."
-                      />
-                    </label>
+                        <textarea
+                          name="private_organisation_note"
+                          rows={3}
+                          defaultValue={review?.private_organisation_note || ""}
+                          placeholder="Optional note for your organisation only. This is not shown to the volunteer."
+                        />
+                      </label>
+                    </ReviewStepSection>
 
-                    <label className="field-label">
-                      <span className="field-label-row">
-                        <span className="field-label-icon" aria-hidden="true">
-                          📝
+                    <ReviewStepSection
+                      stepNumber={5}
+                      icon="📌"
+                      title="Choose review visibility"
+                      description="Choose whether this review is shared with the volunteer pathway, saved as draft, or hidden."
+                      isComplete={hasReview}
+                    >
+                      <label className="field-label">
+                        <span className="field-label-row">
+                          <span className="field-label-icon" aria-hidden="true">
+                            📌
+                          </span>
+                          <span>Review visibility</span>
                         </span>
-                        <span>Private organisation note optional</span>
-                      </span>
-                      <textarea
-                        name="private_organisation_note"
-                        rows={3}
-                        defaultValue={review?.private_organisation_note || ""}
-                        placeholder="Optional note for your organisation only. This is not shown to the volunteer."
-                      />
-                    </label>
+                        <select name="status" defaultValue={review?.status || "shared"}>
+                          <option value="shared">
+                            Shared with volunteer pathway
+                          </option>
+                          <option value="draft">Save as draft</option>
+                          <option value="hidden">Hidden from volunteer</option>
+                        </select>
+                      </label>
+                    </ReviewStepSection>
 
-                    <label className="field-label">
-                      <span className="field-label-row">
-                        <span className="field-label-icon" aria-hidden="true">
-                          📌
-                        </span>
-                        <span>Review visibility</span>
-                      </span>
-                      <select name="status" defaultValue={review?.status || "shared"}>
-                        <option value="shared">
-                          Shared with volunteer pathway
-                        </option>
-                        <option value="draft">Save as draft</option>
-                        <option value="hidden">Hidden from volunteer</option>
-                      </select>
-                    </label>
+                    <ReviewStepSection
+                      stepNumber={6}
+                      icon="🌱"
+                      title="Save pathway evidence"
+                      description="Save the review. Shared reviews can support the volunteer’s Positive Pathway CV."
+                      isComplete={reviewShared}
+                    >
+                      <div className="review-save-panel">
+                        <div>
+                          <p className="dashboard-card-label">Pathway evidence</p>
+                          <h3>Ready to save this positive review</h3>
+                          <p>
+                            Saving as shared can add positive evidence to the
+                            volunteer’s pathway. Draft and hidden reviews stay
+                            under organisation control.
+                          </p>
+                        </div>
 
-                    <button type="submit" className="primary-button">
-                      <span className="button-balanced-inner">
-                        <span aria-hidden="true">✅</span>
-                        <span>Save skills review</span>
-                      </span>
-                    </button>
+                        <button type="submit" className="primary-button">
+                          <span className="button-balanced-inner">
+                            <span aria-hidden="true">✅</span>
+                            <span>Save skills review</span>
+                          </span>
+                        </button>
+                      </div>
+                    </ReviewStepSection>
                   </form>
                 </article>
               );
@@ -955,6 +1264,256 @@ export default async function OpportunityReviewsPage({
         .review-topbar-actions,
         .review-hero-actions {
           gap: 12px;
+        }
+
+        .review-progress-summary {
+          display: grid;
+          gap: 8px;
+          margin: 14px 0;
+        }
+
+        .review-progress-label {
+          display: flex;
+          gap: 10px;
+          align-items: center;
+          justify-content: space-between;
+          color: #60706a;
+          font-size: 0.88rem;
+          font-weight: 900;
+        }
+
+        .review-progress-label strong {
+          color: #315f48;
+        }
+
+        .review-progress-meter {
+          width: 100%;
+          height: 10px;
+          overflow: hidden;
+          border-radius: 999px;
+          background: rgba(108, 92, 160, 0.12);
+        }
+
+        .review-progress-meter span {
+          display: block;
+          height: 100%;
+          border-radius: inherit;
+          background: linear-gradient(90deg, #8fb29e, #4f8d68);
+        }
+
+        .review-guide-panel {
+          display: grid;
+          gap: 18px;
+          margin: 22px 0;
+          padding: 20px;
+          border: 1px solid rgba(108, 92, 160, 0.16);
+          border-radius: 28px;
+          background:
+            radial-gradient(circle at top left, rgba(222, 214, 255, 0.34), transparent 34%),
+            linear-gradient(135deg, rgba(248, 245, 255, 0.92), rgba(255, 255, 255, 0.9));
+          box-shadow: 0 18px 42px rgba(33, 56, 48, 0.07);
+        }
+
+        .review-guide-heading {
+          display: grid;
+          grid-template-columns: auto 1fr;
+          gap: 14px;
+          align-items: start;
+        }
+
+        .review-guide-heading > span {
+          display: inline-flex;
+          width: 62px;
+          height: 62px;
+          align-items: center;
+          justify-content: center;
+          border-radius: 22px;
+          background: rgba(108, 92, 160, 0.12);
+          box-shadow: inset 0 0 0 1px rgba(108, 92, 160, 0.14);
+          font-size: 1.85rem;
+        }
+
+        .review-guide-heading h2 {
+          margin: 0 0 8px;
+          color: #4f4b82;
+          font-size: clamp(1.3rem, 3vw, 1.75rem);
+          font-weight: 950;
+          letter-spacing: -0.035em;
+          line-height: 1.1;
+        }
+
+        .review-guide-heading p {
+          margin: 0;
+          color: #5f6072;
+          font-weight: 760;
+          line-height: 1.5;
+        }
+
+        .review-guide-grid {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 12px;
+        }
+
+        .review-guide-step {
+          position: relative;
+          display: grid;
+          gap: 10px;
+          min-height: 178px;
+          padding: 15px;
+          border: 1px solid rgba(108, 92, 160, 0.14);
+          border-radius: 22px;
+          background: rgba(255, 255, 255, 0.78);
+          box-shadow: 0 12px 28px rgba(33, 56, 48, 0.05);
+        }
+
+        .review-guide-step-complete {
+          border-color: rgba(34, 124, 78, 0.26);
+          background:
+            radial-gradient(circle at top left, rgba(155, 232, 190, 0.28), transparent 34%),
+            rgba(244, 255, 249, 0.92);
+          box-shadow: 0 14px 30px rgba(33, 96, 61, 0.08);
+        }
+
+        .review-guide-step-number {
+          position: absolute;
+          top: 12px;
+          right: 12px;
+          display: inline-flex;
+          width: 30px;
+          height: 30px;
+          align-items: center;
+          justify-content: center;
+          border-radius: 999px;
+          background: rgba(108, 92, 160, 0.12);
+          color: #4f4b82;
+          font-size: 0.82rem;
+          font-weight: 950;
+          line-height: 1;
+        }
+
+        .review-guide-step-complete .review-guide-step-number {
+          background: rgba(34, 124, 78, 0.14);
+          color: #145c38;
+        }
+
+        .review-guide-step-icon {
+          display: inline-flex;
+          width: 52px;
+          height: 52px;
+          align-items: center;
+          justify-content: center;
+          border-radius: 18px;
+          background: rgba(248, 248, 252, 0.96);
+          box-shadow: inset 0 0 0 1px rgba(108, 92, 160, 0.08);
+          font-size: 1.55rem;
+        }
+
+        .review-guide-step-complete .review-guide-step-icon {
+          background: rgba(34, 124, 78, 0.12);
+          box-shadow: inset 0 0 0 1px rgba(34, 124, 78, 0.14);
+        }
+
+        .review-guide-step-copy {
+          display: grid;
+          gap: 6px;
+        }
+
+        .review-guide-step-kicker {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+          align-items: center;
+          margin: 0;
+          padding-right: 34px;
+          color: #6c5ca0;
+          font-size: 0.78rem;
+          font-weight: 950;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+        }
+
+        .review-guide-step-kicker span {
+          display: inline-flex;
+          min-height: 24px;
+          align-items: center;
+          justify-content: center;
+          padding: 5px 8px;
+          border-radius: 999px;
+          background: rgba(108, 92, 160, 0.1);
+          color: #6c5ca0;
+          font-size: 0.68rem;
+          letter-spacing: 0;
+          text-transform: none;
+        }
+
+        .review-guide-step-complete .review-guide-step-kicker,
+        .review-guide-step-complete .review-guide-step-kicker span {
+          color: #145c38;
+        }
+
+        .review-guide-step-complete .review-guide-step-kicker span {
+          background: rgba(34, 124, 78, 0.12);
+        }
+
+        .review-guide-step-copy h3 {
+          margin: 0;
+          padding-right: 32px;
+          color: #315f48;
+          font-size: 1rem;
+          font-weight: 950;
+          line-height: 1.14;
+        }
+
+        .review-guide-step-copy p {
+          margin: 0;
+          color: #60706a;
+          font-size: 0.92rem;
+          font-weight: 740;
+          line-height: 1.42;
+        }
+
+        .review-pathway-explainer {
+          display: grid;
+          grid-template-columns: auto 1fr;
+          gap: 16px;
+          align-items: start;
+          margin: 22px 0;
+          padding: 20px;
+          border: 1px solid rgba(34, 124, 78, 0.24);
+          border-radius: 28px;
+          background:
+            radial-gradient(circle at top left, rgba(155, 232, 190, 0.4), transparent 32%),
+            linear-gradient(135deg, rgba(244, 255, 249, 0.94), rgba(255, 255, 255, 0.9));
+          box-shadow: 0 18px 42px rgba(33, 96, 61, 0.1);
+        }
+
+        .review-pathway-icon {
+          display: inline-flex;
+          width: 62px;
+          height: 62px;
+          align-items: center;
+          justify-content: center;
+          border-radius: 22px;
+          background: rgba(34, 124, 78, 0.12);
+          box-shadow: inset 0 0 0 1px rgba(34, 124, 78, 0.16);
+          font-size: 1.9rem;
+        }
+
+        .review-pathway-explainer h2 {
+          margin: 0 0 8px;
+          color: #145c38;
+          font-size: clamp(1.3rem, 3vw, 1.75rem);
+          font-weight: 950;
+          letter-spacing: -0.035em;
+          line-height: 1.1;
+        }
+
+        .review-pathway-explainer p {
+          margin: 0;
+          color: #275f45;
+          font-weight: 780;
+          line-height: 1.5;
         }
 
         .review-count-grid {
@@ -1104,6 +1663,155 @@ export default async function OpportunityReviewsPage({
           border: 1px solid rgba(100, 100, 110, 0.18);
           background: rgba(248, 248, 252, 0.96);
           color: #5d6677;
+        }
+
+        .review-card-progress {
+          display: grid;
+          grid-template-columns: repeat(6, minmax(0, 1fr));
+          gap: 8px;
+        }
+
+        .review-card-progress span {
+          display: grid;
+          gap: 6px;
+          min-height: 76px;
+          padding: 10px;
+          border: 1px solid rgba(108, 92, 160, 0.12);
+          border-radius: 16px;
+          background: rgba(248, 248, 252, 0.88);
+          color: #60706a;
+          font-size: 0.78rem;
+          font-weight: 850;
+          line-height: 1.2;
+        }
+
+        .review-card-progress span.complete {
+          border-color: rgba(34, 124, 78, 0.24);
+          background: rgba(244, 255, 249, 0.94);
+          color: #145c38;
+        }
+
+        .review-card-progress strong {
+          display: inline-flex;
+          width: 28px;
+          height: 28px;
+          align-items: center;
+          justify-content: center;
+          border-radius: 999px;
+          background: rgba(108, 92, 160, 0.1);
+          color: #6c5ca0;
+          font-size: 0.78rem;
+          font-weight: 950;
+        }
+
+        .review-card-progress span.complete strong {
+          background: rgba(34, 124, 78, 0.14);
+          color: #145c38;
+        }
+
+        .review-step-section {
+          display: grid;
+          gap: 16px;
+          padding: 18px;
+          border: 1px solid rgba(108, 92, 160, 0.14);
+          border-radius: 24px;
+          background: rgba(255, 255, 255, 0.66);
+          box-shadow: 0 12px 28px rgba(33, 56, 48, 0.04);
+        }
+
+        .review-step-complete {
+          border-color: rgba(34, 124, 78, 0.24);
+          background:
+            radial-gradient(circle at top left, rgba(155, 232, 190, 0.18), transparent 34%),
+            rgba(244, 255, 249, 0.86);
+        }
+
+        .review-step-heading {
+          display: grid;
+          grid-template-columns: auto 1fr;
+          gap: 14px;
+          align-items: start;
+        }
+
+        .review-step-icon {
+          display: inline-flex;
+          width: 54px;
+          height: 54px;
+          align-items: center;
+          justify-content: center;
+          border-radius: 19px;
+          background: rgba(143, 178, 158, 0.14);
+          box-shadow: inset 0 0 0 1px rgba(83, 111, 99, 0.08);
+          font-size: 1.6rem;
+        }
+
+        .review-step-complete .review-step-icon {
+          background: rgba(34, 124, 78, 0.12);
+          box-shadow: inset 0 0 0 1px rgba(34, 124, 78, 0.14);
+        }
+
+        .review-step-copy {
+          display: grid;
+          gap: 7px;
+          min-width: 0;
+        }
+
+        .review-step-kicker {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 10px;
+          align-items: center;
+          margin: 0;
+          color: #6c5ca0;
+          font-size: 0.78rem;
+          font-weight: 950;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
+        }
+
+        .review-step-kicker span {
+          display: inline-flex;
+          min-height: 26px;
+          align-items: center;
+          justify-content: center;
+          gap: 5px;
+          padding: 5px 9px;
+          border-radius: 999px;
+          background: rgba(108, 92, 160, 0.1);
+          color: #6c5ca0;
+          font-size: 0.72rem;
+          letter-spacing: 0;
+          text-transform: none;
+        }
+
+        .review-step-complete .review-step-kicker,
+        .review-step-complete .review-step-kicker span {
+          color: #145c38;
+        }
+
+        .review-step-complete .review-step-kicker span {
+          background: rgba(34, 124, 78, 0.12);
+        }
+
+        .review-step-copy h3 {
+          margin: 0;
+          color: #315f48;
+          font-size: clamp(1.15rem, 3vw, 1.42rem);
+          font-weight: 950;
+          letter-spacing: -0.03em;
+          line-height: 1.12;
+        }
+
+        .review-step-copy p {
+          margin: 0;
+          color: #60706a;
+          font-weight: 750;
+          line-height: 1.45;
+        }
+
+        .review-step-body {
+          display: grid;
+          gap: 14px;
         }
 
         .volunteer-fit-panel {
@@ -1386,13 +2094,44 @@ export default async function OpportunityReviewsPage({
           align-items: center;
         }
 
-        .review-form .primary-button {
-          width: fit-content;
+        .review-save-panel {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) auto;
+          gap: 16px;
+          align-items: center;
+          padding: 16px;
+          border: 1px solid rgba(34, 124, 78, 0.2);
+          border-radius: 20px;
+          background: rgba(244, 255, 249, 0.88);
+        }
+
+        .review-save-panel h3 {
+          margin: 0 0 6px;
+          color: #145c38;
+          font-size: 1.12rem;
+          font-weight: 950;
+          line-height: 1.15;
+        }
+
+        .review-save-panel p {
+          margin: 0;
+          color: #275f45;
+          font-weight: 750;
+          line-height: 1.45;
+        }
+
+        .review-save-panel .primary-button {
+          white-space: nowrap;
         }
 
         @media (max-width: 1180px) {
           .volunteer-fit-grid {
             grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+
+          .review-card-progress,
+          .review-guide-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
           }
         }
 
@@ -1401,12 +2140,18 @@ export default async function OpportunityReviewsPage({
             grid-template-columns: repeat(2, minmax(0, 1fr));
           }
 
-          .interest-status-form {
+          .interest-status-form,
+          .review-save-panel {
             grid-template-columns: 1fr;
           }
 
-          .interest-status-form .secondary-button {
+          .interest-status-form .secondary-button,
+          .review-save-panel .primary-button {
             width: 100%;
+          }
+
+          .review-guide-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
           }
         }
 
@@ -1444,6 +2189,27 @@ export default async function OpportunityReviewsPage({
             width: 100%;
           }
 
+          .review-guide-heading,
+          .review-pathway-explainer,
+          .review-step-heading {
+            grid-template-columns: 1fr;
+          }
+
+          .review-guide-panel,
+          .review-pathway-explainer,
+          .review-step-section {
+            padding: 18px;
+            border-radius: 24px;
+          }
+
+          .review-guide-heading > span,
+          .review-pathway-icon,
+          .review-step-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 20px;
+          }
+
           .review-card {
             padding: 20px;
           }
@@ -1460,8 +2226,16 @@ export default async function OpportunityReviewsPage({
 
           .review-volunteer-meta,
           .review-skill-grid,
-          .volunteer-fit-grid {
+          .volunteer-fit-grid,
+          .review-card-progress,
+          .review-guide-grid {
             grid-template-columns: 1fr;
+          }
+
+          .review-card-progress span {
+            min-height: 0;
+            grid-template-columns: auto 1fr;
+            align-items: center;
           }
 
           .review-skill-card {
@@ -1482,10 +2256,6 @@ export default async function OpportunityReviewsPage({
 
           .review-skill-copy {
             padding-right: 82px;
-          }
-
-          .review-form .primary-button {
-            width: 100%;
           }
         }
 
