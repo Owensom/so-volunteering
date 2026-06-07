@@ -3,6 +3,9 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
+const ORGANISATION_ASSETS_BUCKET = "organisation-assets";
+const MAX_LOGO_SIZE_BYTES = 3 * 1024 * 1024;
+
 type Profile = {
   user_type: string | null;
 };
@@ -41,6 +44,89 @@ function cleanLogoUrl(value: string) {
   return "";
 }
 
+function getLogoExtension(file: File) {
+  if (file.type === "image/png") return "png";
+  if (file.type === "image/jpeg") return "jpg";
+  if (file.type === "image/webp") return "webp";
+  if (file.type === "image/svg+xml") return "svg";
+
+  const fileName = file.name.toLowerCase();
+
+  if (fileName.endsWith(".png")) return "png";
+  if (fileName.endsWith(".jpg") || fileName.endsWith(".jpeg")) return "jpg";
+  if (fileName.endsWith(".webp")) return "webp";
+  if (fileName.endsWith(".svg")) return "svg";
+
+  return "";
+}
+
+function isAllowedLogoFile(file: File) {
+  return (
+    file.type === "image/png" ||
+    file.type === "image/jpeg" ||
+    file.type === "image/webp" ||
+    file.type === "image/svg+xml"
+  );
+}
+
+async function uploadOrganisationLogo({
+  supabase,
+  userId,
+  logoFile,
+}: {
+  supabase: Awaited<ReturnType<typeof createClient>>;
+  userId: string;
+  logoFile: File;
+}) {
+  if (logoFile.size > MAX_LOGO_SIZE_BYTES) {
+    redirect(
+      `/organisation/profile?error=${encodeURIComponent(
+        "Please upload a logo smaller than 3MB.",
+      )}`,
+    );
+  }
+
+  if (!isAllowedLogoFile(logoFile)) {
+    redirect(
+      `/organisation/profile?error=${encodeURIComponent(
+        "Please upload a PNG, JPG, WEBP or SVG logo.",
+      )}`,
+    );
+  }
+
+  const extension = getLogoExtension(logoFile);
+
+  if (!extension) {
+    redirect(
+      `/organisation/profile?error=${encodeURIComponent(
+        "Please upload a PNG, JPG, WEBP or SVG logo.",
+      )}`,
+    );
+  }
+
+  const filePath = `organisation-logos/${userId}/logo-${Date.now()}.${extension}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from(ORGANISATION_ASSETS_BUCKET)
+    .upload(filePath, logoFile, {
+      cacheControl: "3600",
+      contentType: logoFile.type || undefined,
+      upsert: true,
+    });
+
+  if (uploadError) {
+    redirect(
+      `/organisation/profile?error=${encodeURIComponent(uploadError.message)}`,
+    );
+  }
+
+  const { data } = supabase.storage
+    .from(ORGANISATION_ASSETS_BUCKET)
+    .getPublicUrl(filePath);
+
+  return data.publicUrl;
+}
+
 export async function saveOrganisationProfile(formData: FormData) {
   const supabase = await createClient();
 
@@ -77,7 +163,10 @@ export async function saveOrganisationProfile(formData: FormData) {
 
   const phone = String(formData.get("phone") || "").trim();
   const website = cleanWebsite(String(formData.get("website") || ""));
-  const logoUrl = cleanLogoUrl(String(formData.get("logo_url") || ""));
+  const manualLogoUrl = cleanLogoUrl(String(formData.get("logo_url") || ""));
+  const rawManualLogoUrl = String(formData.get("logo_url") || "").trim();
+  const logoFileValue = formData.get("logo_file");
+
   const location = String(formData.get("location") || "").trim();
   const purpose = String(formData.get("purpose") || "").trim();
   const safeguardingNotes = String(
@@ -119,14 +208,22 @@ export async function saveOrganisationProfile(formData: FormData) {
     );
   }
 
-  const rawLogoUrl = String(formData.get("logo_url") || "").trim();
-
-  if (rawLogoUrl && !logoUrl) {
+  if (rawManualLogoUrl && !manualLogoUrl) {
     redirect(
       `/organisation/profile?error=${encodeURIComponent(
         "Please use a full logo URL starting with https:// or leave it blank.",
       )}`,
     );
+  }
+
+  let finalLogoUrl = manualLogoUrl || null;
+
+  if (logoFileValue instanceof File && logoFileValue.size > 0) {
+    finalLogoUrl = await uploadOrganisationLogo({
+      supabase,
+      userId: user.id,
+      logoFile: logoFileValue,
+    });
   }
 
   const profileCompleted = Boolean(
@@ -145,7 +242,7 @@ export async function saveOrganisationProfile(formData: FormData) {
       contact_email: contactEmail,
       phone: phone || null,
       website: website || null,
-      logo_url: logoUrl || null,
+      logo_url: finalLogoUrl,
       location,
       purpose,
       volunteer_types: volunteerTypes,
