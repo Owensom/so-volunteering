@@ -56,6 +56,13 @@ type ReadinessItem = {
   label: string;
 };
 
+type GuideStep = {
+  icon: string;
+  title: string;
+  text: string;
+  isComplete: boolean;
+};
+
 function normaliseUserType(value: string | null | undefined) {
   return value?.trim().toLowerCase() === "organisation"
     ? "organisation"
@@ -194,7 +201,9 @@ function getReadinessSummary(items: ReadinessItem[]) {
   return {
     icon: "🌱",
     title: "Role display needs a little more detail",
-    text: `${attentionCount} item${attentionCount === 1 ? "" : "s"} need attention before this role will feel fully clear and inclusive.`,
+    text: `${attentionCount} item${
+      attentionCount === 1 ? "" : "s"
+    } need attention before this role will feel fully clear and inclusive.`,
     readyCount,
     attentionCount,
   };
@@ -399,6 +408,52 @@ function ChoiceGrid({
   );
 }
 
+function StepSection({
+  stepNumber,
+  icon,
+  title,
+  description,
+  isComplete,
+  children,
+}: {
+  stepNumber: number;
+  icon: string;
+  title: string;
+  description: string;
+  isComplete: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <section
+      className={
+        isComplete
+          ? "role-step-section role-step-complete"
+          : "role-step-section"
+      }
+    >
+      <div className="role-step-heading">
+        <span className="role-step-icon" aria-hidden="true">
+          {icon}
+        </span>
+
+        <div className="role-step-copy">
+          <p className="role-step-kicker">
+            Step {stepNumber}
+            <span>
+              <span aria-hidden="true">{isComplete ? "✅" : "○"}</span>
+              {isComplete ? "Complete" : "To do"}
+            </span>
+          </p>
+          <h2>{title}</h2>
+          <p>{description}</p>
+        </div>
+      </div>
+
+      <div className="role-step-body">{children}</div>
+    </section>
+  );
+}
+
 export default async function EditOpportunityPage({
   params,
   searchParams,
@@ -463,8 +518,82 @@ export default async function EditOpportunityPage({
   const readinessItems = getReadinessItems(opportunity);
   const readinessSummary = getReadinessSummary(readinessItems);
 
+  const step1Complete = Boolean(hasText(opportunity.title) && hasText(opportunity.summary));
+  const step2Complete = Boolean(
+    opportunity.location_type === "remote" ||
+      hasText(opportunity.location_town_city) ||
+      hasText(opportunity.location_area) ||
+      hasText(opportunity.location) ||
+      hasText(opportunity.location_venue),
+  );
+  const step3Complete = hasText(opportunity.time_commitment);
+  const step4Complete = hasAny(opportunity.interests) && hasAny(opportunity.skills);
+  const step5Complete = hasAny(opportunity.support_offered);
+  const step6Complete = hasText(opportunity.contact_email);
+  const step7Complete = Boolean(
+    hasText(opportunity.safety_notes) ||
+      hasText(opportunity.travel_notes) ||
+      hasText(opportunity.accessibility_notes) ||
+      opportunity.hide_exact_location === true,
+  );
+  const step8Complete = hasText(opportunity.status);
+
+  const guideSteps: GuideStep[] = [
+    {
+      icon: "💬",
+      title: "Review title and summary",
+      text: "Check the role still explains what the volunteer will do.",
+      isComplete: step1Complete,
+    },
+    {
+      icon: "📍",
+      title: "Review location and travel",
+      text: "Check location, travel, access and privacy details are still helpful.",
+      isComplete: step2Complete,
+    },
+    {
+      icon: "🕒",
+      title: "Review time commitment",
+      text: "Make sure the timing is realistic and clear.",
+      isComplete: step3Complete,
+    },
+    {
+      icon: "⭐",
+      title: "Review interests and skills",
+      text: "These help matching and show what volunteers can build.",
+      isComplete: step4Complete,
+    },
+    {
+      icon: "💛",
+      title: "Review support offered",
+      text: "Check volunteers can see what support is available.",
+      isComplete: step5Complete,
+    },
+    {
+      icon: "👤",
+      title: "Review contact person",
+      text: "Use an inbox or contact person your organisation checks regularly.",
+      isComplete: step6Complete,
+    },
+    {
+      icon: "🛡️",
+      title: "Review safety notes",
+      text: "Explain welcome, supervision, first visit support or location privacy.",
+      isComplete: step7Complete,
+    },
+    {
+      icon: "✅",
+      title: "Save or publish",
+      text: "Keep as draft, publish when ready, or close the role.",
+      isComplete: step8Complete,
+    },
+  ];
+
+  const completedSteps = guideSteps.filter((step) => step.isComplete).length;
+  const completionPercent = Math.round((completedSteps / guideSteps.length) * 100);
+
   const listenText =
-    "This is the edit opportunity page. The role display readiness checklist shows whether the saved role has clear language, useful location details, support, skills, safety and privacy information. You can update the title, description, detailed location information, time commitment, interests, skills, support, contact details, safety notes and status. You can choose to hide the exact venue or postcode from the public page until a volunteer has been contacted or accepted. Use Skills reviews to add positive skills feedback for volunteers who registered interest in this role. Save changes returns you to the opportunities list.";
+    "This is the edit opportunity page. The role is split into eight sections. Step 1 is title and summary. Step 2 is location and travel. Step 3 is time commitment. Step 4 is interests and skills. Step 5 is support offered. Step 6 is contact person. Step 7 is safety notes. Step 8 is save or publish. Completed saved sections are green and show a tick. The role display readiness checklist shows whether the saved role has clear language, useful location details, support, skills, safety and privacy information. Use Skills reviews to add positive skills feedback for volunteers who registered interest in this role. Save changes returns you to the opportunities list.";
 
   return (
     <main className="onboarding-shell opportunity-edit-page">
@@ -509,7 +638,7 @@ export default async function EditOpportunityPage({
               <div>
                 <h1 className="onboarding-title">Edit volunteering role</h1>
                 <p className="onboarding-lead">
-                  Review the role before volunteers see it. Keep the language
+                  Review each step before volunteers see it. Keep the language
                   clear, supportive and practical.
                 </p>
 
@@ -538,7 +667,7 @@ export default async function EditOpportunityPage({
             </div>
           </div>
 
-          <div className="onboarding-progress-card">
+          <div className="onboarding-progress-card role-progress-card">
             <div className="dashboard-progress-header">
               <span className="dashboard-progress-icon" aria-hidden="true">
                 {readinessSummary.icon}
@@ -554,8 +683,67 @@ export default async function EditOpportunityPage({
                 </p>
               </div>
             </div>
+
+            <div className="role-progress-summary">
+              <div className="role-progress-label">
+                <span>Saved setup</span>
+                <strong>{completedSteps}/8 steps</strong>
+              </div>
+              <div className="role-progress-meter" aria-hidden="true">
+                <span style={{ width: `${completionPercent}%` }} />
+              </div>
+            </div>
           </div>
         </div>
+
+        <section
+          className="role-form-guide"
+          aria-labelledby="role-form-guide-title"
+        >
+          <div className="role-form-guide-heading">
+            <span aria-hidden="true">🧭</span>
+
+            <div>
+              <p className="brand-eyebrow">Step-by-step guide</p>
+              <h2 id="role-form-guide-title">How to review this role</h2>
+              <p>
+                Completed saved steps are green and show a tick. Edit any section
+                that needs clearer wording, more support detail, or safer
+                location information.
+              </p>
+            </div>
+          </div>
+
+          <div className="role-form-guide-grid">
+            {guideSteps.map((step, index) => (
+              <article
+                key={step.title}
+                className={
+                  step.isComplete
+                    ? "role-guide-step role-guide-step-complete"
+                    : "role-guide-step"
+                }
+              >
+                <span className="role-guide-step-number">
+                  {step.isComplete ? "✓" : index + 1}
+                </span>
+
+                <div className="role-guide-step-icon" aria-hidden="true">
+                  {step.icon}
+                </div>
+
+                <div className="role-guide-step-copy">
+                  <p className="role-guide-step-kicker">
+                    Step {index + 1}
+                    <span>{step.isComplete ? "Complete" : "To do"}</span>
+                  </p>
+                  <h3>{step.title}</h3>
+                  <p>{step.text}</p>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
 
         <section
           className="role-readiness-panel"
@@ -611,349 +799,415 @@ export default async function EditOpportunityPage({
         <form action={updateOpportunity} className="form-stack">
           <input type="hidden" name="opportunity_id" value={opportunity.id} />
 
-          <label className="field-label">
-            <span className="field-label-row">
-              <span className="field-label-icon" aria-hidden="true">
-                📣
-              </span>
-              <span>Opportunity title</span>
-            </span>
-            <input
-              name="title"
-              type="text"
-              required
-              defaultValue={opportunity.title}
-              placeholder="Example: Community café welcome volunteer"
-            />
-          </label>
-
-          <label className="field-label">
-            <span className="field-label-row">
-              <span className="field-label-icon" aria-hidden="true">
-                💬
-              </span>
-              <span>Short plain-language description</span>
-            </span>
-            <textarea
-              name="summary"
-              rows={5}
-              required
-              defaultValue={opportunity.summary}
-              placeholder="Example: Help welcome visitors, offer tea and coffee, and keep the café area calm and friendly."
-            />
-          </label>
-
-          <section
-            className="location-details-panel"
-            aria-labelledby="location-details-title"
+          <StepSection
+            stepNumber={1}
+            icon="💬"
+            title="Role title and summary"
+            description="Check the title and short description still make sense to a new volunteer."
+            isComplete={step1Complete}
           >
-            <div className="location-details-heading">
-              <span className="location-details-icon" aria-hidden="true">
-                📍
-              </span>
-              <div>
-                <p className="brand-eyebrow">Location details</p>
-                <h2 id="location-details-title">
-                  Help volunteers decide if the role is realistic
-                </h2>
-                <p>
-                  Add enough location information to help people plan safely. You
-                  can hide the exact venue or postcode from the public page until
-                  you have contacted or accepted a volunteer.
-                </p>
-              </div>
-            </div>
-
-            <div className="dashboard-grid">
-              <label className="field-label">
-                <span className="field-label-row">
-                  <span className="field-label-icon" aria-hidden="true">
-                    📍
-                  </span>
-                  <span>Location type</span>
-                </span>
-                <select
-                  name="location_type"
-                  defaultValue={opportunity.location_type || "in_person"}
-                >
-                  <option value="in_person">In-person</option>
-                  <option value="remote">Remote / online</option>
-                  <option value="hybrid">Hybrid</option>
-                </select>
-              </label>
-
-              <label className="field-label">
-                <span className="field-label-row">
-                  <span className="field-label-icon" aria-hidden="true">
-                    🏙️
-                  </span>
-                  <span>Town or city</span>
-                </span>
-                <input
-                  name="location_town_city"
-                  type="text"
-                  defaultValue={opportunity.location_town_city || ""}
-                  placeholder="Example: Aberdeen"
-                />
-              </label>
-
-              <label className="field-label">
-                <span className="field-label-row">
-                  <span className="field-label-icon" aria-hidden="true">
-                    🗺️
-                  </span>
-                  <span>Area or neighbourhood optional</span>
-                </span>
-                <input
-                  name="location_area"
-                  type="text"
-                  defaultValue={opportunity.location_area || ""}
-                  placeholder="Example: City centre, Torry, Rosemount"
-                />
-              </label>
-            </div>
-
-            <div className="dashboard-grid">
-              <label className="field-label">
-                <span className="field-label-row">
-                  <span className="field-label-icon" aria-hidden="true">
-                    🏢
-                  </span>
-                  <span>Venue or meeting place optional</span>
-                </span>
-                <input
-                  name="location_venue"
-                  type="text"
-                  defaultValue={opportunity.location_venue || ""}
-                  placeholder="Example: Community hub reception"
-                />
-              </label>
-
-              <label className="field-label">
-                <span className="field-label-row">
-                  <span className="field-label-icon" aria-hidden="true">
-                    📮
-                  </span>
-                  <span>Postcode optional</span>
-                </span>
-                <input
-                  name="location_postcode"
-                  type="text"
-                  defaultValue={opportunity.location_postcode || ""}
-                  placeholder="Example: AB10"
-                />
-              </label>
-
-              <label className="field-label legacy-location-field">
-                <span className="field-label-row">
-                  <span className="field-label-icon" aria-hidden="true">
-                    🗺️
-                  </span>
-                  <span>Public location summary fallback</span>
-                </span>
-                <input
-                  name="location"
-                  type="text"
-                  defaultValue={opportunity.location || ""}
-                  placeholder="Example: Aberdeen city centre"
-                />
-              </label>
-            </div>
-
-            <label className="field-label privacy-check-row">
-              <input
-                name="hide_exact_location"
-                type="checkbox"
-                defaultChecked={opportunity.hide_exact_location === true}
-              />
-              <span>
-                Hide exact venue and postcode from the public page until the
-                volunteer has been contacted or accepted.
-              </span>
-            </label>
-
-            <div className="dashboard-grid">
-              <label className="field-label">
-                <span className="field-label-row">
-                  <span className="field-label-icon" aria-hidden="true">
-                    🚌
-                  </span>
-                  <span>Travel notes optional</span>
-                </span>
-                <textarea
-                  name="travel_notes"
-                  rows={4}
-                  defaultValue={opportunity.travel_notes || ""}
-                  placeholder="Example: Close to bus routes. Parking nearby. Volunteers can ask for help planning the first visit."
-                />
-              </label>
-
-              <label className="field-label">
-                <span className="field-label-row">
-                  <span className="field-label-icon" aria-hidden="true">
-                    ♿
-                  </span>
-                  <span>Accessibility or building notes optional</span>
-                </span>
-                <textarea
-                  name="accessibility_notes"
-                  rows={4}
-                  defaultValue={opportunity.accessibility_notes || ""}
-                  placeholder="Example: Step-free entrance, quiet waiting area, accessible toilet, lift access, or any barriers volunteers should know about."
-                />
-              </label>
-            </div>
-          </section>
-
-          <label className="field-label">
-            <span className="field-label-row">
-              <span className="field-label-icon" aria-hidden="true">
-                🕒
-              </span>
-              <span>Time commitment</span>
-            </span>
-            <select
-              name="time_commitment"
-              defaultValue={opportunity.time_commitment || ""}
-            >
-              <option value="">Choose one</option>
-              <option value="One-off">One-off</option>
-              <option value="Weekly">Weekly</option>
-              <option value="Monthly">Monthly</option>
-              <option value="Flexible">Flexible</option>
-              <option value="Short shifts to start">Short shifts to start</option>
-            </select>
-          </label>
-
-          <fieldset className="choice-group">
-            <legend>
-              <span className="field-label-row">
-                <span className="field-label-icon" aria-hidden="true">
-                  💚
-                </span>
-                <span>Interests this role may suit</span>
-              </span>
-            </legend>
-            <ChoiceGrid
-              name="interests"
-              options={interestOptions}
-              savedValues={opportunity.interests}
-            />
-          </fieldset>
-
-          <fieldset className="choice-group">
-            <legend>
-              <span className="field-label-row">
-                <span className="field-label-icon" aria-hidden="true">
-                  ⭐
-                </span>
-                <span>Helpful skills or skills volunteers can build</span>
-              </span>
-            </legend>
-            <ChoiceGrid
-              name="skills"
-              options={skillOptions}
-              savedValues={opportunity.skills}
-            />
-          </fieldset>
-
-          <fieldset className="choice-group">
-            <legend>
-              <span className="field-label-row">
-                <span className="field-label-icon" aria-hidden="true">
-                  💛
-                </span>
-                <span>Support available for this role</span>
-              </span>
-            </legend>
-            <ChoiceGrid
-              name="support_offered"
-              options={supportOptions}
-              savedValues={opportunity.support_offered}
-            />
-          </fieldset>
-
-          <div className="dashboard-grid">
             <label className="field-label">
               <span className="field-label-row">
                 <span className="field-label-icon" aria-hidden="true">
-                  👤
+                  📣
                 </span>
-                <span>Contact name optional</span>
+                <span>Opportunity title</span>
               </span>
               <input
-                name="contact_name"
+                name="title"
                 type="text"
-                defaultValue={
-                  opportunity.contact_name ||
-                  organisationProfile?.organisation_name ||
-                  ""
-                }
-                placeholder="Example: Volunteer coordinator"
+                required
+                defaultValue={opportunity.title}
+                placeholder="Example: Community café welcome volunteer"
               />
             </label>
 
             <label className="field-label">
               <span className="field-label-row">
                 <span className="field-label-icon" aria-hidden="true">
-                  ✉️
+                  💬
                 </span>
-                <span>Contact email</span>
+                <span>Short plain-language description</span>
               </span>
-              <input
-                name="contact_email"
-                type="email"
+              <textarea
+                name="summary"
+                rows={5}
                 required
-                defaultValue={
-                  opportunity.contact_email ||
-                  organisationProfile?.contact_email ||
-                  profile?.email ||
-                  user.email ||
-                  ""
-                }
-                placeholder="volunteering@example.org"
+                defaultValue={opportunity.summary}
+                placeholder="Example: Help welcome visitors, offer tea and coffee, and keep the café area calm and friendly."
               />
             </label>
-          </div>
+          </StepSection>
 
-          <label className="field-label">
-            <span className="field-label-row">
-              <span className="field-label-icon" aria-hidden="true">
-                🛡️
-              </span>
-              <span>Safety or supervision notes optional</span>
-            </span>
-            <textarea
-              name="safety_notes"
-              rows={5}
-              defaultValue={opportunity.safety_notes || ""}
-              placeholder="Optional. Example: Volunteers will be welcomed by a named contact, shown the space, and told who to speak to if they need help."
-            />
-          </label>
-
-          <label className="field-label">
-            <span className="field-label-row">
-              <span className="field-label-icon" aria-hidden="true">
-                📝
-              </span>
-              <span>Status</span>
-            </span>
-            <select name="status" defaultValue={opportunity.status || "draft"}>
-              <option value="draft">Save as draft</option>
-              <option value="published">Publish opportunity</option>
-              <option value="closed">Close opportunity</option>
-            </select>
-          </label>
-
-          <button
-            type="submit"
-            className="primary-button onboarding-submit-button"
+          <StepSection
+            stepNumber={2}
+            icon="📍"
+            title="Location and travel"
+            description="Check location, travel, access and privacy details are safe and useful."
+            isComplete={step2Complete}
           >
-            <span className="button-balanced-inner">
-              <span aria-hidden="true">✅</span>
-              <span>Save changes</span>
-            </span>
-          </button>
+            <section
+              className="location-details-panel"
+              aria-labelledby="location-details-title"
+            >
+              <div className="location-details-heading">
+                <span className="location-details-icon" aria-hidden="true">
+                  📍
+                </span>
+                <div>
+                  <p className="brand-eyebrow">Location details</p>
+                  <h2 id="location-details-title">
+                    Help volunteers decide if the role is realistic
+                  </h2>
+                  <p>
+                    Add enough location information to help people plan safely.
+                    You can hide the exact venue or postcode from the public
+                    page until you have contacted or accepted a volunteer.
+                  </p>
+                </div>
+              </div>
+
+              <div className="dashboard-grid">
+                <label className="field-label">
+                  <span className="field-label-row">
+                    <span className="field-label-icon" aria-hidden="true">
+                      📍
+                    </span>
+                    <span>Location type</span>
+                  </span>
+                  <select
+                    name="location_type"
+                    defaultValue={opportunity.location_type || "in_person"}
+                  >
+                    <option value="in_person">In-person</option>
+                    <option value="remote">Remote / online</option>
+                    <option value="hybrid">Hybrid</option>
+                  </select>
+                </label>
+
+                <label className="field-label">
+                  <span className="field-label-row">
+                    <span className="field-label-icon" aria-hidden="true">
+                      🏙️
+                    </span>
+                    <span>Town or city</span>
+                  </span>
+                  <input
+                    name="location_town_city"
+                    type="text"
+                    defaultValue={opportunity.location_town_city || ""}
+                    placeholder="Example: Aberdeen"
+                  />
+                </label>
+
+                <label className="field-label">
+                  <span className="field-label-row">
+                    <span className="field-label-icon" aria-hidden="true">
+                      🗺️
+                    </span>
+                    <span>Area or neighbourhood optional</span>
+                  </span>
+                  <input
+                    name="location_area"
+                    type="text"
+                    defaultValue={opportunity.location_area || ""}
+                    placeholder="Example: City centre, Torry, Rosemount"
+                  />
+                </label>
+              </div>
+
+              <div className="dashboard-grid">
+                <label className="field-label">
+                  <span className="field-label-row">
+                    <span className="field-label-icon" aria-hidden="true">
+                      🏢
+                    </span>
+                    <span>Venue or meeting place optional</span>
+                  </span>
+                  <input
+                    name="location_venue"
+                    type="text"
+                    defaultValue={opportunity.location_venue || ""}
+                    placeholder="Example: Community hub reception"
+                  />
+                </label>
+
+                <label className="field-label">
+                  <span className="field-label-row">
+                    <span className="field-label-icon" aria-hidden="true">
+                      📮
+                    </span>
+                    <span>Postcode optional</span>
+                  </span>
+                  <input
+                    name="location_postcode"
+                    type="text"
+                    defaultValue={opportunity.location_postcode || ""}
+                    placeholder="Example: AB10"
+                  />
+                </label>
+
+                <label className="field-label legacy-location-field">
+                  <span className="field-label-row">
+                    <span className="field-label-icon" aria-hidden="true">
+                      🗺️
+                    </span>
+                    <span>Public location summary fallback</span>
+                  </span>
+                  <input
+                    name="location"
+                    type="text"
+                    defaultValue={opportunity.location || ""}
+                    placeholder="Example: Aberdeen city centre"
+                  />
+                </label>
+              </div>
+
+              <label className="field-label privacy-check-row">
+                <input
+                  name="hide_exact_location"
+                  type="checkbox"
+                  defaultChecked={opportunity.hide_exact_location === true}
+                />
+                <span>
+                  Hide exact venue and postcode from the public page until the
+                  volunteer has been contacted or accepted.
+                </span>
+              </label>
+
+              <div className="dashboard-grid">
+                <label className="field-label">
+                  <span className="field-label-row">
+                    <span className="field-label-icon" aria-hidden="true">
+                      🚌
+                    </span>
+                    <span>Travel notes optional</span>
+                  </span>
+                  <textarea
+                    name="travel_notes"
+                    rows={4}
+                    defaultValue={opportunity.travel_notes || ""}
+                    placeholder="Example: Close to bus routes. Parking nearby. Volunteers can ask for help planning the first visit."
+                  />
+                </label>
+
+                <label className="field-label">
+                  <span className="field-label-row">
+                    <span className="field-label-icon" aria-hidden="true">
+                      ♿
+                    </span>
+                    <span>Accessibility or building notes optional</span>
+                  </span>
+                  <textarea
+                    name="accessibility_notes"
+                    rows={4}
+                    defaultValue={opportunity.accessibility_notes || ""}
+                    placeholder="Example: Step-free entrance, quiet waiting area, accessible toilet, lift access, or any barriers volunteers should know about."
+                  />
+                </label>
+              </div>
+            </section>
+          </StepSection>
+
+          <StepSection
+            stepNumber={3}
+            icon="🕒"
+            title="Time commitment"
+            description="Check the time commitment is clear and realistic."
+            isComplete={step3Complete}
+          >
+            <label className="field-label">
+              <span className="field-label-row">
+                <span className="field-label-icon" aria-hidden="true">
+                  🕒
+                </span>
+                <span>Time commitment</span>
+              </span>
+              <select
+                name="time_commitment"
+                defaultValue={opportunity.time_commitment || ""}
+              >
+                <option value="">Choose one</option>
+                <option value="One-off">One-off</option>
+                <option value="Weekly">Weekly</option>
+                <option value="Monthly">Monthly</option>
+                <option value="Flexible">Flexible</option>
+                <option value="Short shifts to start">
+                  Short shifts to start
+                </option>
+              </select>
+            </label>
+          </StepSection>
+
+          <StepSection
+            stepNumber={4}
+            icon="⭐"
+            title="Interests and skills"
+            description="Check the matching choices still reflect this role."
+            isComplete={step4Complete}
+          >
+            <fieldset className="choice-group">
+              <legend>
+                <span className="field-label-row">
+                  <span className="field-label-icon" aria-hidden="true">
+                    💚
+                  </span>
+                  <span>Interests this role may suit</span>
+                </span>
+              </legend>
+              <ChoiceGrid
+                name="interests"
+                options={interestOptions}
+                savedValues={opportunity.interests}
+              />
+            </fieldset>
+
+            <fieldset className="choice-group">
+              <legend>
+                <span className="field-label-row">
+                  <span className="field-label-icon" aria-hidden="true">
+                    ⭐
+                  </span>
+                  <span>Helpful skills or skills volunteers can build</span>
+                </span>
+              </legend>
+              <ChoiceGrid
+                name="skills"
+                options={skillOptions}
+                savedValues={opportunity.skills}
+              />
+            </fieldset>
+          </StepSection>
+
+          <StepSection
+            stepNumber={5}
+            icon="💛"
+            title="Support offered"
+            description="Check volunteers can see what support or reassurance is available."
+            isComplete={step5Complete}
+          >
+            <fieldset className="choice-group">
+              <legend>
+                <span className="field-label-row">
+                  <span className="field-label-icon" aria-hidden="true">
+                    💛
+                  </span>
+                  <span>Support available for this role</span>
+                </span>
+              </legend>
+              <ChoiceGrid
+                name="support_offered"
+                options={supportOptions}
+                savedValues={opportunity.support_offered}
+              />
+            </fieldset>
+          </StepSection>
+
+          <StepSection
+            stepNumber={6}
+            icon="👤"
+            title="Contact person"
+            description="Check the contact name and email are still correct."
+            isComplete={step6Complete}
+          >
+            <div className="dashboard-grid">
+              <label className="field-label">
+                <span className="field-label-row">
+                  <span className="field-label-icon" aria-hidden="true">
+                    👤
+                  </span>
+                  <span>Contact name optional</span>
+                </span>
+                <input
+                  name="contact_name"
+                  type="text"
+                  defaultValue={
+                    opportunity.contact_name ||
+                    organisationProfile?.organisation_name ||
+                    ""
+                  }
+                  placeholder="Example: Volunteer coordinator"
+                />
+              </label>
+
+              <label className="field-label">
+                <span className="field-label-row">
+                  <span className="field-label-icon" aria-hidden="true">
+                    ✉️
+                  </span>
+                  <span>Contact email</span>
+                </span>
+                <input
+                  name="contact_email"
+                  type="email"
+                  required
+                  defaultValue={
+                    opportunity.contact_email ||
+                    organisationProfile?.contact_email ||
+                    profile?.email ||
+                    user.email ||
+                    ""
+                  }
+                  placeholder="volunteering@example.org"
+                />
+              </label>
+            </div>
+          </StepSection>
+
+          <StepSection
+            stepNumber={7}
+            icon="🛡️"
+            title="Safety and first visit notes"
+            description="Check supervision, welcome, access or first-visit support details."
+            isComplete={step7Complete}
+          >
+            <label className="field-label">
+              <span className="field-label-row">
+                <span className="field-label-icon" aria-hidden="true">
+                  🛡️
+                </span>
+                <span>Safety or supervision notes optional</span>
+              </span>
+              <textarea
+                name="safety_notes"
+                rows={5}
+                defaultValue={opportunity.safety_notes || ""}
+                placeholder="Optional. Example: Volunteers will be welcomed by a named contact, shown the space, and told who to speak to if they need help."
+              />
+            </label>
+          </StepSection>
+
+          <StepSection
+            stepNumber={8}
+            icon="✅"
+            title="Save or publish"
+            description="Keep as draft, publish when ready, close the role, or save changes."
+            isComplete={step8Complete}
+          >
+            <label className="field-label">
+              <span className="field-label-row">
+                <span className="field-label-icon" aria-hidden="true">
+                  📝
+                </span>
+                <span>Status</span>
+              </span>
+              <select name="status" defaultValue={opportunity.status || "draft"}>
+                <option value="draft">Save as draft</option>
+                <option value="published">Publish opportunity</option>
+                <option value="closed">Close opportunity</option>
+              </select>
+            </label>
+
+            <button
+              type="submit"
+              className="primary-button onboarding-submit-button"
+            >
+              <span className="button-balanced-inner">
+                <span aria-hidden="true">✅</span>
+                <span>Save changes</span>
+              </span>
+            </button>
+          </StepSection>
         </form>
       </section>
 
@@ -977,6 +1231,217 @@ export default async function EditOpportunityPage({
         .opportunity-editor-hero-actions .primary-button,
         .opportunity-editor-hero-actions .secondary-button {
           min-width: 190px;
+        }
+
+        .role-progress-card {
+          display: grid;
+          gap: 16px;
+        }
+
+        .role-progress-summary {
+          display: grid;
+          gap: 8px;
+        }
+
+        .role-progress-label {
+          display: flex;
+          gap: 10px;
+          align-items: center;
+          justify-content: space-between;
+          color: #60706a;
+          font-size: 0.88rem;
+          font-weight: 900;
+        }
+
+        .role-progress-label strong {
+          color: #315f48;
+        }
+
+        .role-progress-meter {
+          width: 100%;
+          height: 10px;
+          overflow: hidden;
+          border-radius: 999px;
+          background: rgba(108, 92, 160, 0.12);
+        }
+
+        .role-progress-meter span {
+          display: block;
+          height: 100%;
+          border-radius: inherit;
+          background: linear-gradient(90deg, #8fb29e, #4f8d68);
+        }
+
+        .role-form-guide {
+          display: grid;
+          gap: 18px;
+          margin: 22px 0;
+          padding: 20px;
+          border: 1px solid rgba(108, 92, 160, 0.16);
+          border-radius: 28px;
+          background:
+            radial-gradient(circle at top left, rgba(222, 214, 255, 0.34), transparent 34%),
+            linear-gradient(135deg, rgba(248, 245, 255, 0.92), rgba(255, 255, 255, 0.9));
+          box-shadow: 0 18px 42px rgba(33, 56, 48, 0.07);
+        }
+
+        .role-form-guide-heading {
+          display: grid;
+          grid-template-columns: auto 1fr;
+          gap: 14px;
+          align-items: start;
+        }
+
+        .role-form-guide-heading > span {
+          display: inline-flex;
+          width: 62px;
+          height: 62px;
+          align-items: center;
+          justify-content: center;
+          border-radius: 22px;
+          background: rgba(108, 92, 160, 0.12);
+          box-shadow: inset 0 0 0 1px rgba(108, 92, 160, 0.14);
+          font-size: 1.85rem;
+        }
+
+        .role-form-guide-heading h2 {
+          margin: 0 0 8px;
+          color: #4f4b82;
+          font-size: clamp(1.3rem, 3vw, 1.75rem);
+          font-weight: 950;
+          letter-spacing: -0.035em;
+          line-height: 1.1;
+        }
+
+        .role-form-guide-heading p {
+          margin: 0;
+          color: #5f6072;
+          font-weight: 760;
+          line-height: 1.5;
+        }
+
+        .role-form-guide-grid {
+          display: grid;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 12px;
+        }
+
+        .role-guide-step {
+          position: relative;
+          display: grid;
+          gap: 10px;
+          min-height: 190px;
+          padding: 15px;
+          border: 1px solid rgba(108, 92, 160, 0.14);
+          border-radius: 22px;
+          background: rgba(255, 255, 255, 0.78);
+          box-shadow: 0 12px 28px rgba(33, 56, 48, 0.05);
+        }
+
+        .role-guide-step-complete {
+          border-color: rgba(34, 124, 78, 0.26);
+          background:
+            radial-gradient(circle at top left, rgba(155, 232, 190, 0.28), transparent 34%),
+            rgba(244, 255, 249, 0.92);
+          box-shadow: 0 14px 30px rgba(33, 96, 61, 0.08);
+        }
+
+        .role-guide-step-number {
+          position: absolute;
+          top: 12px;
+          right: 12px;
+          display: inline-flex;
+          width: 30px;
+          height: 30px;
+          align-items: center;
+          justify-content: center;
+          border-radius: 999px;
+          background: rgba(108, 92, 160, 0.12);
+          color: #4f4b82;
+          font-size: 0.82rem;
+          font-weight: 950;
+          line-height: 1;
+        }
+
+        .role-guide-step-complete .role-guide-step-number {
+          background: rgba(34, 124, 78, 0.14);
+          color: #145c38;
+        }
+
+        .role-guide-step-icon {
+          display: inline-flex;
+          width: 52px;
+          height: 52px;
+          align-items: center;
+          justify-content: center;
+          border-radius: 18px;
+          background: rgba(248, 248, 252, 0.96);
+          box-shadow: inset 0 0 0 1px rgba(108, 92, 160, 0.08);
+          font-size: 1.55rem;
+        }
+
+        .role-guide-step-complete .role-guide-step-icon {
+          background: rgba(34, 124, 78, 0.12);
+          box-shadow: inset 0 0 0 1px rgba(34, 124, 78, 0.14);
+        }
+
+        .role-guide-step-copy {
+          display: grid;
+          gap: 6px;
+        }
+
+        .role-guide-step-kicker {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+          align-items: center;
+          margin: 0;
+          padding-right: 34px;
+          color: #6c5ca0;
+          font-size: 0.78rem;
+          font-weight: 950;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+        }
+
+        .role-guide-step-kicker span {
+          display: inline-flex;
+          min-height: 24px;
+          align-items: center;
+          justify-content: center;
+          padding: 5px 8px;
+          border-radius: 999px;
+          background: rgba(108, 92, 160, 0.1);
+          color: #6c5ca0;
+          font-size: 0.68rem;
+          letter-spacing: 0;
+          text-transform: none;
+        }
+
+        .role-guide-step-complete .role-guide-step-kicker,
+        .role-guide-step-complete .role-guide-step-kicker span {
+          color: #145c38;
+        }
+
+        .role-guide-step-complete .role-guide-step-kicker span {
+          background: rgba(34, 124, 78, 0.12);
+        }
+
+        .role-guide-step-copy h3 {
+          margin: 0;
+          padding-right: 32px;
+          color: #315f48;
+          font-size: 1rem;
+          font-weight: 950;
+          line-height: 1.14;
+        }
+
+        .role-guide-step-copy p {
+          margin: 0;
+          color: #60706a;
+          font-size: 0.92rem;
+          font-weight: 740;
+          line-height: 1.42;
         }
 
         .role-readiness-panel,
@@ -1109,6 +1574,111 @@ export default async function EditOpportunityPage({
           line-height: 1.38;
         }
 
+        .role-step-section {
+          display: grid;
+          gap: 18px;
+          padding: 20px;
+          border: 1px solid rgba(108, 92, 160, 0.14);
+          border-radius: 28px;
+          background: rgba(255, 255, 255, 0.68);
+          box-shadow: 0 14px 34px rgba(33, 56, 48, 0.05);
+        }
+
+        .role-step-complete {
+          border-color: rgba(34, 124, 78, 0.24);
+          background:
+            radial-gradient(circle at top left, rgba(155, 232, 190, 0.22), transparent 34%),
+            rgba(244, 255, 249, 0.86);
+        }
+
+        .role-step-heading {
+          display: grid;
+          grid-template-columns: auto 1fr;
+          gap: 14px;
+          align-items: start;
+        }
+
+        .role-step-icon {
+          display: inline-flex;
+          width: 58px;
+          height: 58px;
+          align-items: center;
+          justify-content: center;
+          border-radius: 20px;
+          background: rgba(143, 178, 158, 0.14);
+          box-shadow: inset 0 0 0 1px rgba(83, 111, 99, 0.08);
+          font-size: 1.75rem;
+        }
+
+        .role-step-complete .role-step-icon {
+          background: rgba(34, 124, 78, 0.12);
+          box-shadow: inset 0 0 0 1px rgba(34, 124, 78, 0.14);
+        }
+
+        .role-step-copy {
+          display: grid;
+          gap: 7px;
+          min-width: 0;
+        }
+
+        .role-step-kicker {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 10px;
+          align-items: center;
+          margin: 0;
+          color: #6c5ca0;
+          font-size: 0.8rem;
+          font-weight: 950;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
+        }
+
+        .role-step-kicker span {
+          display: inline-flex;
+          min-height: 26px;
+          align-items: center;
+          justify-content: center;
+          gap: 5px;
+          padding: 5px 9px;
+          border-radius: 999px;
+          background: rgba(108, 92, 160, 0.1);
+          color: #6c5ca0;
+          font-size: 0.72rem;
+          letter-spacing: 0;
+          text-transform: none;
+        }
+
+        .role-step-complete .role-step-kicker,
+        .role-step-complete .role-step-kicker span {
+          color: #145c38;
+        }
+
+        .role-step-complete .role-step-kicker span {
+          background: rgba(34, 124, 78, 0.12);
+        }
+
+        .role-step-copy h2 {
+          margin: 0;
+          color: #315f48;
+          font-size: clamp(1.22rem, 3vw, 1.55rem);
+          font-weight: 950;
+          letter-spacing: -0.03em;
+          line-height: 1.12;
+        }
+
+        .role-step-copy p {
+          margin: 0;
+          color: #60706a;
+          font-weight: 750;
+          line-height: 1.45;
+        }
+
+        .role-step-body {
+          display: grid;
+          gap: 16px;
+        }
+
         .legacy-location-field {
           border-style: dashed;
         }
@@ -1135,7 +1705,8 @@ export default async function EditOpportunityPage({
         }
 
         @media (max-width: 1180px) {
-          .role-readiness-grid {
+          .role-readiness-grid,
+          .role-form-guide-grid {
             grid-template-columns: repeat(2, minmax(0, 1fr));
           }
         }
@@ -1162,32 +1733,43 @@ export default async function EditOpportunityPage({
             width: 100%;
             min-width: 0;
           }
-        }
 
-        @media (max-width: 640px) {
+          .role-form-guide-heading,
           .role-readiness-heading,
-          .location-details-heading {
+          .location-details-heading,
+          .role-step-heading {
             grid-template-columns: 1fr;
           }
 
+          .role-form-guide,
+          .role-readiness-panel,
+          .location-details-panel,
+          .role-step-section {
+            padding: 18px;
+            border-radius: 24px;
+          }
+
+          .role-form-guide-heading > span,
+          .role-readiness-icon,
+          .location-details-icon,
+          .role-step-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 20px;
+          }
+
+          .role-form-guide-grid,
           .role-readiness-grid {
             grid-template-columns: 1fr;
           }
 
-          .role-readiness-panel,
-          .location-details-panel {
-            border-radius: 24px;
+          .role-guide-step,
+          .role-readiness-card {
+            min-height: 0;
           }
 
           .role-readiness-card {
-            min-height: 0;
             grid-template-columns: 1fr;
-          }
-
-          .role-readiness-icon,
-          .location-details-icon {
-            width: 54px;
-            height: 54px;
           }
 
           .privacy-check-row {
