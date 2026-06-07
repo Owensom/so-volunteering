@@ -33,6 +33,12 @@ type ChoiceOption = {
   helpText: string;
 };
 
+type GuideStep = {
+  icon: string;
+  title: string;
+  text: string;
+};
+
 const volunteerTypeOptions: ChoiceOption[] = [
   {
     value: "One-off events",
@@ -108,6 +114,49 @@ const supportOptions: ChoiceOption[] = [
     label: "Check-ins",
     icon: "💛",
     helpText: "Regular supportive check-ins from the organisation.",
+  },
+];
+
+const guideSteps: GuideStep[] = [
+  {
+    icon: "🏢",
+    title: "Add your name and logo",
+    text: "Use the organisation name and official logo volunteers will recognise.",
+  },
+  {
+    icon: "✉️",
+    title: "Add contact details",
+    text: "Use an email or phone number your organisation checks regularly.",
+  },
+  {
+    icon: "📍",
+    title: "Say where you are based",
+    text: "Add the town, city or area you support. Do not add private addresses here.",
+  },
+  {
+    icon: "💬",
+    title: "Explain what you do",
+    text: "Use plain language. One or two short sentences is enough.",
+  },
+  {
+    icon: "📣",
+    title: "Choose role types",
+    text: "Pick the kinds of volunteering your organisation usually offers.",
+  },
+  {
+    icon: "💛",
+    title: "Choose support options",
+    text: "Tell volunteers what help or adjustments they can expect.",
+  },
+  {
+    icon: "🛡️",
+    title: "Add safety notes",
+    text: "Optional, but useful for trust, supervision and first-visit expectations.",
+  },
+  {
+    icon: "✅",
+    title: "Save your profile",
+    text: "Once saved, these details can appear on volunteer-facing role pages.",
   },
 ];
 
@@ -203,7 +252,7 @@ export default async function OrganisationProfilePage({
   const currentLogoUrl = organisationProfile?.logo_url?.trim() || "";
 
   const listenText =
-    "This is the organisation profile setup page. Add your organisation name, upload your logo, contact email, location, purpose, volunteering types, support available, and safety notes. The logo helps volunteers recognise your organisation. SO Volunteering and organisations using this platform will never ask volunteers for money, bank details, passwords, or financial information. An organisation may need to confirm practical details, such as where a volunteer should go for an in-person volunteering role, but they should not ask for a volunteer’s full home address through the app. Required fields are organisation name, contact email, location, purpose, at least one volunteering type, and at least one support option. The final button says Save organisation profile.";
+    "This is the organisation profile setup page. Add your organisation name and official logo, then add contact details, location, a plain language description, volunteering types, support available, and optional safety notes. The step by step guide explains how to complete the form. The logo helps volunteers recognise your organisation. SO Volunteering and organisations using this platform will never ask volunteers for money, bank details, passwords, or financial information. An organisation may need to confirm practical details, such as where a volunteer should go for an in-person volunteering role, but they should not ask for a volunteer’s full home address through the app. Required fields are organisation name, contact email, location, purpose, at least one volunteering type, and at least one support option. The final button says Save organisation profile.";
 
   return (
     <main className="onboarding-shell organisation-profile-page">
@@ -237,12 +286,13 @@ export default async function OrganisationProfilePage({
 
               <div>
                 <h1 className="onboarding-title">
-                  Tell volunteers about your organisation
+                  Set up your organisation profile
                 </h1>
                 <p className="onboarding-lead">
-                  Keep this clear, welcoming and practical. Volunteers should
-                  understand who you are, what you do, and what support they can
-                  expect before they apply.
+                  Add the details volunteers will see when they review your
+                  roles. Keep this clear, welcoming and practical so volunteers
+                  know who you are, what you do, and what support they can
+                  expect.
                 </p>
               </div>
             </div>
@@ -302,6 +352,45 @@ export default async function OrganisationProfilePage({
           </div>
         </section>
 
+        <section
+          className="organisation-form-guide"
+          aria-labelledby="organisation-form-guide-title"
+        >
+          <div className="organisation-form-guide-heading">
+            <span aria-hidden="true">🧭</span>
+
+            <div>
+              <p className="brand-eyebrow">Step-by-step guide</p>
+              <h2 id="organisation-form-guide-title">
+                How to complete this form
+              </h2>
+              <p>
+                Work through the sections in order. You can come back and update
+                these details later.
+              </p>
+            </div>
+          </div>
+
+          <div className="organisation-form-guide-grid">
+            {guideSteps.map((step, index) => (
+              <article key={step.title} className="organisation-guide-step">
+                <span className="organisation-guide-step-number">
+                  {index + 1}
+                </span>
+
+                <div className="organisation-guide-step-icon" aria-hidden="true">
+                  {step.icon}
+                </div>
+
+                <div className="organisation-guide-step-copy">
+                  <h3>{step.title}</h3>
+                  <p>{step.text}</p>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+
         <form
           action={saveOrganisationProfile}
           className="form-stack"
@@ -329,8 +418,9 @@ export default async function OrganisationProfilePage({
               <div>
                 <h2>Organisation logo</h2>
                 <p>
-                  Upload a logo so volunteers can recognise your organisation on
-                  role pages. PNG, JPG, WEBP or SVG. Maximum 3MB.
+                  Upload your official logo so volunteers can recognise your
+                  organisation when they view your roles. PNG, JPG, WEBP or SVG.
+                  Maximum 3MB.
                 </p>
               </div>
             </div>
@@ -615,6 +705,123 @@ export default async function OrganisationProfilePage({
           line-height: 1.5;
         }
 
+        .organisation-form-guide {
+          display: grid;
+          gap: 18px;
+          margin: 22px 0;
+          padding: 20px;
+          border: 1px solid rgba(108, 92, 160, 0.16);
+          border-radius: 28px;
+          background:
+            radial-gradient(circle at top left, rgba(222, 214, 255, 0.34), transparent 34%),
+            linear-gradient(135deg, rgba(248, 245, 255, 0.92), rgba(255, 255, 255, 0.9));
+          box-shadow: 0 18px 42px rgba(33, 56, 48, 0.07);
+        }
+
+        .organisation-form-guide-heading {
+          display: grid;
+          grid-template-columns: auto 1fr;
+          gap: 14px;
+          align-items: start;
+        }
+
+        .organisation-form-guide-heading > span {
+          display: inline-flex;
+          width: 62px;
+          height: 62px;
+          align-items: center;
+          justify-content: center;
+          border-radius: 22px;
+          background: rgba(108, 92, 160, 0.12);
+          box-shadow: inset 0 0 0 1px rgba(108, 92, 160, 0.14);
+          font-size: 1.85rem;
+        }
+
+        .organisation-form-guide-heading h2 {
+          margin: 0 0 8px;
+          color: #4f4b82;
+          font-size: clamp(1.3rem, 3vw, 1.75rem);
+          font-weight: 950;
+          letter-spacing: -0.035em;
+          line-height: 1.1;
+        }
+
+        .organisation-form-guide-heading p {
+          margin: 0;
+          color: #5f6072;
+          font-weight: 760;
+          line-height: 1.5;
+        }
+
+        .organisation-form-guide-grid {
+          display: grid;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 12px;
+        }
+
+        .organisation-guide-step {
+          position: relative;
+          display: grid;
+          gap: 10px;
+          min-height: 178px;
+          padding: 15px;
+          border: 1px solid rgba(108, 92, 160, 0.14);
+          border-radius: 22px;
+          background: rgba(255, 255, 255, 0.78);
+          box-shadow: 0 12px 28px rgba(33, 56, 48, 0.05);
+        }
+
+        .organisation-guide-step-number {
+          position: absolute;
+          top: 12px;
+          right: 12px;
+          display: inline-flex;
+          width: 30px;
+          height: 30px;
+          align-items: center;
+          justify-content: center;
+          border-radius: 999px;
+          background: rgba(108, 92, 160, 0.12);
+          color: #4f4b82;
+          font-size: 0.82rem;
+          font-weight: 950;
+          line-height: 1;
+        }
+
+        .organisation-guide-step-icon {
+          display: inline-flex;
+          width: 52px;
+          height: 52px;
+          align-items: center;
+          justify-content: center;
+          border-radius: 18px;
+          background: rgba(248, 248, 252, 0.96);
+          box-shadow: inset 0 0 0 1px rgba(108, 92, 160, 0.08);
+          font-size: 1.55rem;
+        }
+
+        .organisation-guide-step-copy {
+          display: grid;
+          gap: 6px;
+        }
+
+        .organisation-guide-step-copy h3 {
+          margin: 0;
+          padding-right: 32px;
+          color: #315f48;
+          font-size: 1rem;
+          font-weight: 950;
+          line-height: 1.14;
+        }
+
+        .organisation-guide-step-copy p {
+          margin: 0;
+          color: #60706a;
+          font-size: 0.92rem;
+          font-weight: 740;
+          line-height: 1.42;
+        }
+
         .organisation-logo-upload-section {
           display: grid;
           gap: 16px;
@@ -693,18 +900,27 @@ export default async function OrganisationProfilePage({
           font-weight: 900;
         }
 
+        @media (max-width: 1180px) {
+          .organisation-form-guide-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+        }
+
         @media (max-width: 760px) {
           .organisation-safety-card,
-          .organisation-logo-upload-heading {
+          .organisation-logo-upload-heading,
+          .organisation-form-guide-heading {
             grid-template-columns: 1fr;
           }
 
-          .organisation-safety-card {
+          .organisation-safety-card,
+          .organisation-form-guide {
             padding: 18px;
             border-radius: 24px;
           }
 
-          .organisation-safety-icon {
+          .organisation-safety-icon,
+          .organisation-form-guide-heading > span {
             width: 56px;
             height: 56px;
             border-radius: 20px;
@@ -712,6 +928,14 @@ export default async function OrganisationProfilePage({
 
           .organisation-logo-preview {
             min-height: 104px;
+          }
+
+          .organisation-form-guide-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .organisation-guide-step {
+            min-height: 0;
           }
 
           .organisation-logo-upload-section {
