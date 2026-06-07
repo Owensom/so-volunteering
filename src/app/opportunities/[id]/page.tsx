@@ -22,6 +22,8 @@ type VolunteerProfile = {
   support_needs: string | null;
   availability_notes: string | null;
   volunteering_preference: string | null;
+  preferred_contact_method: string | null;
+  phone_number: string | null;
 };
 
 type VolunteerPreferences = {
@@ -68,6 +70,13 @@ type ExistingInterest = {
   id: string;
   status: string;
   message: string | null;
+};
+
+type RoleGuideStep = {
+  icon: string;
+  title: string;
+  text: string;
+  isComplete: boolean;
 };
 
 function normaliseUserType(value: string | null | undefined) {
@@ -157,6 +166,14 @@ function formatLocationType(value: string | null | undefined) {
   if (value === "remote") return "Remote / online";
   if (value === "hybrid") return "Hybrid";
   return "In-person";
+}
+
+function formatPreferredContact(value: string | null | undefined) {
+  if (value === "sms") return "Text message";
+  if (value === "phone") return "Phone call";
+  if (value === "email") return "Email";
+  if (value === "not_sure") return "Not sure yet";
+  return "Not chosen yet";
 }
 
 function formatInterestStatus(status: string | null | undefined) {
@@ -323,6 +340,56 @@ function DetailCard({
   );
 }
 
+function RoleGuide({ steps }: { steps: RoleGuideStep[] }) {
+  return (
+    <section className="role-detail-guide-panel" aria-labelledby="role-guide-title">
+      <div className="role-detail-guide-heading">
+        <span aria-hidden="true">🧭</span>
+
+        <div>
+          <p className="dashboard-kicker">Step-by-step guide</p>
+          <h2 id="role-guide-title">How to decide if this role is right</h2>
+          <p>
+            Read the organisation details, check the location and support, look
+            at the match guide, then express interest only when the role feels
+            safe and realistic for you.
+          </p>
+        </div>
+      </div>
+
+      <div className="role-detail-guide-grid">
+        {steps.map((step, index) => (
+          <article
+            key={step.title}
+            className={
+              step.isComplete
+                ? "role-detail-guide-step role-detail-guide-step-complete"
+                : "role-detail-guide-step"
+            }
+          >
+            <span className="role-detail-guide-step-number">
+              {step.isComplete ? "✓" : index + 1}
+            </span>
+
+            <div className="role-detail-guide-step-icon" aria-hidden="true">
+              {step.icon}
+            </div>
+
+            <div className="role-detail-guide-step-copy">
+              <p className="role-detail-guide-step-kicker">
+                Step {index + 1}
+                <span>{step.isComplete ? "Ready" : "Guide"}</span>
+              </p>
+              <h3>{step.title}</h3>
+              <p>{step.text}</p>
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export default async function OpportunityDetailPage({
   params,
   searchParams,
@@ -372,7 +439,7 @@ export default async function OpportunityDetailPage({
   const { data: volunteerProfile } = await supabase
     .from("volunteer_profiles")
     .select(
-      "goals,interests,skills,support_needs,availability_notes,volunteering_preference",
+      "goals,interests,skills,support_needs,availability_notes,volunteering_preference,preferred_contact_method,phone_number",
     )
     .eq("user_id", user.id)
     .maybeSingle<VolunteerProfile>();
@@ -419,6 +486,11 @@ export default async function OpportunityDetailPage({
   const detailedView = viewMode === "detailed";
   const hasAlreadyExpressedInterest = Boolean(existingInterest);
 
+  const preferredContactLabel = formatPreferredContact(
+    volunteerProfile?.preferred_contact_method,
+  );
+  const hasPhoneNumber = Boolean(volunteerProfile?.phone_number?.trim());
+
   const match = getOpportunityMatch(volunteerProfile, opportunity);
   const matchToneClass = getOpportunityMatchToneClass(match.tone);
   const matchIcon = getOpportunityMatchCardIcon(match.tone);
@@ -428,9 +500,38 @@ export default async function OpportunityDetailPage({
   const organisationDisplayName = getOrganisationDisplayName(organisationProfile);
   const organisationLogoUrl = getOrganisationLogoUrl(organisationProfile);
 
+  const guideSteps: RoleGuideStep[] = [
+    {
+      icon: "🏢",
+      title: "Check the organisation",
+      text: "Look for the organisation name, logo, purpose and location.",
+      isComplete: Boolean(organisationProfile?.organisation_name?.trim()),
+    },
+    {
+      icon: "📍",
+      title: "Check the place",
+      text: "Review whether the role is remote, hybrid or in-person.",
+      isComplete: true,
+    },
+    {
+      icon: "💛",
+      title: "Check support",
+      text: "Read the support, access and safety notes before you decide.",
+      isComplete:
+        Array.isArray(opportunity.support_offered) &&
+        opportunity.support_offered.length > 0,
+    },
+    {
+      icon: "🌱",
+      title: "Choose your next step",
+      text: "Express interest only when the role feels right for you.",
+      isComplete: hasAlreadyExpressedInterest,
+    },
+  ];
+
   const listenText = simpleView
-    ? "You are on an opportunity details page. Read the role. The organisation card shows who posted the role. The safety card explains that SO Volunteering and organisations using this platform will never ask you for money, bank details, passwords, or financial information. If it feels right, go to the Interest section and press I’m interested."
-    : "You are on an opportunity details page. First, read the role title and short description at the top. The organisation card shows the organisation name and logo when it has been added. The safety statement explains that SO Volunteering and organisations using this platform will never ask you for money, bank details, passwords, or financial information. An organisation may need to confirm practical details such as where you should go for an in-person volunteering role, but they should not ask for your full home address through the app. The location section shows safe location information, travel notes and accessibility notes where provided. Exact venue or postcode details may be hidden until the organisation has contacted or accepted a volunteer. The Why this may suit you card explains the match using your interests, skills, volunteering preference and support information. If the role feels right for you, go to the Interest section and press I’m interested.";
+    ? `You are on an opportunity details page. Read the role. The organisation card shows who posted the role. Your preferred contact method is ${preferredContactLabel}. The safety card explains that SO Volunteering and organisations using this platform will never ask you for money, bank details, passwords, or financial information. If it feels right, go to the Interest section and press I’m interested.`
+    : `You are on an opportunity details page. First, read the role title and short description at the top. The organisation card shows the organisation name and logo when it has been added. Your preferred contact method is ${preferredContactLabel}. The safety statement explains that SO Volunteering and organisations using this platform will never ask you for money, bank details, passwords, or financial information. An organisation may need to confirm practical details such as where you should go for an in-person volunteering role, but they should not ask for your full home address through the app. The location section shows safe location information, travel notes and accessibility notes where provided. Exact venue or postcode details may be hidden until the organisation has contacted or accepted a volunteer. The Why this may suit you card explains the match using your interests, skills, volunteering preference and support information. If the role feels right for you, go to the Interest section and press I’m interested.`;
 
   const shellClassName = [
     "dashboard-bg",
@@ -494,7 +595,7 @@ export default async function OpportunityDetailPage({
 
             <p className="dashboard-lead">{opportunity.summary}</p>
 
-            <div className="dashboard-primary-actions">
+            <div className="dashboard-primary-actions opportunity-primary-actions">
               <a
                 href="#express-interest"
                 className={
@@ -510,10 +611,30 @@ export default async function OpportunityDetailPage({
                   <span>
                     {hasAlreadyExpressedInterest
                       ? "Interest expressed"
-                      : "Express interest"}
+                      : "I’m interested"}
                   </span>
                 </span>
               </a>
+
+              <Link
+                href="/pathway/cv"
+                className="secondary-button dashboard-main-action"
+              >
+                <span className="dashboard-button-inner">
+                  <span aria-hidden="true">📄</span>
+                  <span>Positive Pathway CV</span>
+                </span>
+              </Link>
+
+              <Link
+                href="/profile/contact"
+                className="secondary-button dashboard-main-action"
+              >
+                <span className="dashboard-button-inner">
+                  <span aria-hidden="true">📞</span>
+                  <span>Contact options</span>
+                </span>
+              </Link>
 
               <Link
                 href="/opportunities"
@@ -538,8 +659,19 @@ export default async function OpportunityDetailPage({
               </div>
             </div>
 
+            <div className="opportunity-contact-summary">
+              <p className="dashboard-progress-note">
+                Preferred contact: <strong>{preferredContactLabel}</strong>
+              </p>
+
+              <p className="dashboard-progress-note">
+                Phone/text number:{" "}
+                <strong>{hasPhoneNumber ? "Added" : "Not added"}</strong>
+              </p>
+            </div>
+
             {existingInterest ? (
-              <>
+              <div className="opportunity-interest-summary">
                 <p className="dashboard-progress-note">
                   Your status:{" "}
                   <strong>{formatInterestStatus(existingInterest.status)}</strong>
@@ -549,7 +681,7 @@ export default async function OpportunityDetailPage({
                     {getInterestHelpText(existingInterest.status)}
                   </p>
                 ) : null}
-              </>
+              </div>
             ) : null}
 
             {detailedView ? (
@@ -568,6 +700,8 @@ export default async function OpportunityDetailPage({
         {errorMessage ? (
           <div className="alert alert-error">{errorMessage}</div>
         ) : null}
+
+        <RoleGuide steps={guideSteps} />
 
         <section
           className="opportunity-trust-panel"
@@ -710,6 +844,25 @@ export default async function OpportunityDetailPage({
             </p>
           </DetailCard>
 
+          <DetailCard icon="📞" label="Your contact" title="Contact preference">
+            <p>
+              Preferred contact: <strong>{preferredContactLabel}</strong>
+            </p>
+            <p>
+              Phone/text number:{" "}
+              <strong>{hasPhoneNumber ? "Added" : "Not added"}</strong>
+            </p>
+            {!simpleView ? (
+              <p>
+                Organisations can see your latest contact preference after you
+                express interest. You can update this before sending interest.
+              </p>
+            ) : null}
+            <Link href="/profile/contact" className="text-link">
+              Update contact options
+            </Link>
+          </DetailCard>
+
           {!simpleView &&
           (hasText(opportunity.travel_notes) ||
             hasText(opportunity.accessibility_notes)) ? (
@@ -766,7 +919,7 @@ export default async function OpportunityDetailPage({
           ) : null}
 
           {!simpleView ? (
-            <DetailCard icon="👤" label="Contact" title="Who to contact">
+            <DetailCard icon="👤" label="Contact" title="Role contact">
               <p>
                 Name:{" "}
                 <strong>
@@ -781,6 +934,22 @@ export default async function OpportunityDetailPage({
               </p>
             </DetailCard>
           ) : null}
+
+          <DetailCard icon="📄" label="Positive pathway" title="Your CV">
+            <p>
+              Your Positive Pathway CV brings together your goals, skills,
+              learning and positive evidence.
+            </p>
+            {!simpleView ? (
+              <p>
+                You do not need a perfect CV to volunteer, but it can help you
+                feel more confident.
+              </p>
+            ) : null}
+            <Link href="/pathway/cv" className="text-link">
+              Open Positive Pathway CV
+            </Link>
+          </DetailCard>
 
           <DetailCard icon="🧭" label="Next steps" title="What happens next?">
             <p>
@@ -894,6 +1063,17 @@ export default async function OpportunityDetailPage({
                       </p>
                     </div>
 
+                    <div className="interest-contact-reminder">
+                      <span aria-hidden="true">📞</span>
+                      <p>
+                        Your current preferred contact method is{" "}
+                        <strong>{preferredContactLabel}</strong>.
+                        {hasPhoneNumber
+                          ? " Your phone/text number is saved."
+                          : " Add a phone/text number first if you want phone or text contact."}
+                      </p>
+                    </div>
+
                     <label className="field-label">
                       <span className="field-label-row">
                         <span className="field-label-icon" aria-hidden="true">
@@ -943,6 +1123,208 @@ export default async function OpportunityDetailPage({
         .opportunity-detail-page .dashboard-pathway-card {
           height: 100%;
           align-items: stretch;
+        }
+
+        .opportunity-primary-actions {
+          display: grid !important;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 10px;
+          width: min(100%, 620px);
+          align-items: stretch;
+        }
+
+        .opportunity-primary-actions .dashboard-main-action {
+          width: 100%;
+          min-height: 54px;
+          justify-content: center;
+          text-align: center;
+        }
+
+        .opportunity-contact-summary,
+        .opportunity-interest-summary {
+          display: grid;
+          gap: 7px;
+          margin-top: 12px;
+          padding-top: 12px;
+          border-top: 1px solid rgba(83, 111, 99, 0.12);
+        }
+
+        .opportunity-contact-summary .dashboard-progress-note,
+        .opportunity-interest-summary .dashboard-progress-note {
+          margin: 0;
+        }
+
+        .role-detail-guide-panel {
+          padding: clamp(20px, 4vw, 28px);
+          border: 1px solid rgba(108, 92, 160, 0.16);
+          border-radius: 30px;
+          background:
+            radial-gradient(circle at top left, rgba(222, 214, 255, 0.34), transparent 34%),
+            linear-gradient(135deg, rgba(248, 245, 255, 0.92), rgba(255, 255, 255, 0.9));
+          box-shadow: 0 18px 56px rgba(38, 50, 56, 0.07);
+          display: grid;
+          gap: 18px;
+          overflow: hidden;
+        }
+
+        .role-detail-guide-heading {
+          display: grid;
+          grid-template-columns: auto 1fr;
+          gap: 14px;
+          align-items: start;
+        }
+
+        .role-detail-guide-heading > span {
+          display: inline-flex;
+          width: 62px;
+          height: 62px;
+          align-items: center;
+          justify-content: center;
+          border-radius: 22px;
+          background: rgba(108, 92, 160, 0.12);
+          box-shadow: inset 0 0 0 1px rgba(108, 92, 160, 0.14);
+          font-size: 1.85rem;
+        }
+
+        .role-detail-guide-heading h2 {
+          margin: 2px 0 8px;
+          color: #315f48;
+          font-size: clamp(1.35rem, 3vw, 1.8rem);
+          font-weight: 950;
+          letter-spacing: -0.035em;
+          line-height: 1.1;
+        }
+
+        .role-detail-guide-heading p {
+          margin: 0;
+          max-width: 760px;
+          color: #60706a;
+          font-weight: 750;
+          line-height: 1.55;
+        }
+
+        .role-detail-guide-grid {
+          display: grid;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 12px;
+        }
+
+        .role-detail-guide-step {
+          position: relative;
+          display: grid;
+          gap: 10px;
+          min-height: 178px;
+          padding: 15px;
+          border: 1px solid rgba(108, 92, 160, 0.14);
+          border-radius: 22px;
+          background: rgba(255, 255, 255, 0.78);
+          box-shadow: 0 12px 28px rgba(33, 56, 48, 0.05);
+        }
+
+        .role-detail-guide-step-complete {
+          border-color: rgba(34, 124, 78, 0.26);
+          background:
+            radial-gradient(circle at top left, rgba(155, 232, 190, 0.28), transparent 34%),
+            rgba(244, 255, 249, 0.92);
+          box-shadow: 0 14px 30px rgba(33, 96, 61, 0.08);
+        }
+
+        .role-detail-guide-step-number {
+          position: absolute;
+          top: 12px;
+          right: 12px;
+          display: inline-flex;
+          width: 30px;
+          height: 30px;
+          align-items: center;
+          justify-content: center;
+          border-radius: 999px;
+          background: rgba(108, 92, 160, 0.12);
+          color: #4f4b82;
+          font-size: 0.82rem;
+          font-weight: 950;
+          line-height: 1;
+        }
+
+        .role-detail-guide-step-complete .role-detail-guide-step-number {
+          background: rgba(34, 124, 78, 0.14);
+          color: #145c38;
+        }
+
+        .role-detail-guide-step-icon {
+          display: inline-flex;
+          width: 52px;
+          height: 52px;
+          align-items: center;
+          justify-content: center;
+          border-radius: 18px;
+          background: rgba(248, 248, 252, 0.96);
+          box-shadow: inset 0 0 0 1px rgba(108, 92, 160, 0.08);
+          font-size: 1.55rem;
+        }
+
+        .role-detail-guide-step-complete .role-detail-guide-step-icon {
+          background: rgba(34, 124, 78, 0.12);
+          box-shadow: inset 0 0 0 1px rgba(34, 124, 78, 0.14);
+        }
+
+        .role-detail-guide-step-copy {
+          display: grid;
+          gap: 6px;
+        }
+
+        .role-detail-guide-step-kicker {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+          align-items: center;
+          margin: 0;
+          padding-right: 34px;
+          color: #6c5ca0;
+          font-size: 0.78rem;
+          font-weight: 950;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+        }
+
+        .role-detail-guide-step-kicker span {
+          display: inline-flex;
+          min-height: 24px;
+          align-items: center;
+          justify-content: center;
+          padding: 5px 8px;
+          border-radius: 999px;
+          background: rgba(108, 92, 160, 0.1);
+          color: #6c5ca0;
+          font-size: 0.68rem;
+          letter-spacing: 0;
+          text-transform: none;
+        }
+
+        .role-detail-guide-step-complete .role-detail-guide-step-kicker,
+        .role-detail-guide-step-complete .role-detail-guide-step-kicker span {
+          color: #145c38;
+        }
+
+        .role-detail-guide-step-complete .role-detail-guide-step-kicker span {
+          background: rgba(34, 124, 78, 0.12);
+        }
+
+        .role-detail-guide-step-copy h3 {
+          margin: 0;
+          padding-right: 32px;
+          color: #315f48;
+          font-size: 1rem;
+          font-weight: 950;
+          line-height: 1.14;
+        }
+
+        .role-detail-guide-step-copy p {
+          margin: 0;
+          color: #60706a;
+          font-size: 0.92rem;
+          font-weight: 740;
+          line-height: 1.42;
         }
 
         .opportunity-trust-panel {
@@ -1072,29 +1454,44 @@ export default async function OpportunityDetailPage({
           line-height: 1.12;
         }
 
-        .interest-safety-reminder {
+        .interest-safety-reminder,
+        .interest-contact-reminder {
           display: grid;
           grid-template-columns: auto 1fr;
           gap: 10px;
           align-items: start;
           padding: 12px 14px;
-          border: 1px solid rgba(34, 124, 78, 0.2);
           border-radius: 18px;
-          background: rgba(244, 255, 249, 0.9);
           color: #275f45;
         }
 
-        .interest-safety-reminder span {
+        .interest-safety-reminder {
+          border: 1px solid rgba(34, 124, 78, 0.2);
+          background: rgba(244, 255, 249, 0.9);
+        }
+
+        .interest-contact-reminder {
+          border: 1px solid rgba(108, 92, 160, 0.16);
+          background: rgba(248, 245, 255, 0.84);
+        }
+
+        .interest-safety-reminder span,
+        .interest-contact-reminder span {
           font-size: 1.25rem;
           line-height: 1;
         }
 
-        .interest-safety-reminder p {
+        .interest-safety-reminder p,
+        .interest-contact-reminder p {
           margin: 0;
           color: #275f45;
           font-size: 0.94rem;
           font-weight: 850;
           line-height: 1.42;
+        }
+
+        .interest-contact-reminder p {
+          color: #536f63;
         }
 
         .match-detail-panel {
@@ -1346,7 +1743,8 @@ export default async function OpportunityDetailPage({
         .preference-theme-calm_green .dashboard-progress-card,
         .preference-theme-calm_green .match-detail-card,
         .preference-theme-calm_green .organisation-identity-card,
-        .preference-theme-calm_green .volunteer-safety-card {
+        .preference-theme-calm_green .volunteer-safety-card,
+        .preference-theme-calm_green .role-detail-guide-panel {
           border-color: rgba(83, 111, 99, 0.2);
         }
 
@@ -1368,7 +1766,8 @@ export default async function OpportunityDetailPage({
         .preference-theme-soft_blue .dashboard-progress-card,
         .preference-theme-soft_blue .match-detail-card,
         .preference-theme-soft_blue .organisation-identity-card,
-        .preference-theme-soft_blue .volunteer-safety-card {
+        .preference-theme-soft_blue .volunteer-safety-card,
+        .preference-theme-soft_blue .role-detail-guide-panel {
           border-color: rgba(74, 112, 160, 0.2);
         }
 
@@ -1390,7 +1789,8 @@ export default async function OpportunityDetailPage({
         .preference-theme-warm_peach .dashboard-progress-card,
         .preference-theme-warm_peach .match-detail-card,
         .preference-theme-warm_peach .organisation-identity-card,
-        .preference-theme-warm_peach .volunteer-safety-card {
+        .preference-theme-warm_peach .volunteer-safety-card,
+        .preference-theme-warm_peach .role-detail-guide-panel {
           border-color: rgba(190, 118, 76, 0.2);
         }
 
@@ -1415,7 +1815,10 @@ export default async function OpportunityDetailPage({
         .preference-theme-high_contrast .safe-location-note,
         .preference-theme-high_contrast .organisation-identity-card,
         .preference-theme-high_contrast .volunteer-safety-card,
-        .preference-theme-high_contrast .interest-safety-reminder {
+        .preference-theme-high_contrast .interest-safety-reminder,
+        .preference-theme-high_contrast .interest-contact-reminder,
+        .preference-theme-high_contrast .role-detail-guide-panel,
+        .preference-theme-high_contrast .role-detail-guide-step {
           border: 2px solid #1f2937;
           background: rgba(255, 255, 255, 0.98);
         }
@@ -1425,7 +1828,9 @@ export default async function OpportunityDetailPage({
         .preference-theme-high_contrast .dashboard-progress-card h2,
         .preference-theme-high_contrast .match-detail-heading h2,
         .preference-theme-high_contrast .organisation-identity-copy h2,
-        .preference-theme-high_contrast .volunteer-safety-copy h2 {
+        .preference-theme-high_contrast .volunteer-safety-copy h2,
+        .preference-theme-high_contrast .role-detail-guide-heading h2,
+        .preference-theme-high_contrast .role-detail-guide-step-copy h3 {
           color: #111827;
         }
 
@@ -1441,7 +1846,11 @@ export default async function OpportunityDetailPage({
         .preference-theme-high_contrast .organisation-identity-copy p,
         .preference-theme-high_contrast .volunteer-safety-copy p,
         .preference-theme-high_contrast .interest-safety-reminder,
-        .preference-theme-high_contrast .interest-safety-reminder p {
+        .preference-theme-high_contrast .interest-safety-reminder p,
+        .preference-theme-high_contrast .interest-contact-reminder,
+        .preference-theme-high_contrast .interest-contact-reminder p,
+        .preference-theme-high_contrast .role-detail-guide-heading p,
+        .preference-theme-high_contrast .role-detail-guide-step-copy p {
           color: #1f2937;
         }
 
@@ -1449,7 +1858,9 @@ export default async function OpportunityDetailPage({
         .preference-theme-high_contrast .dashboard-progress-icon,
         .preference-theme-high_contrast .match-detail-icon,
         .preference-theme-high_contrast .organisation-identity-logo,
-        .preference-theme-high_contrast .volunteer-safety-icon {
+        .preference-theme-high_contrast .volunteer-safety-icon,
+        .preference-theme-high_contrast .role-detail-guide-heading > span,
+        .preference-theme-high_contrast .role-detail-guide-step-icon {
           border: 2px solid #1f2937;
           background: #ffffff;
           color: #111827;
@@ -1469,7 +1880,10 @@ export default async function OpportunityDetailPage({
         .preference-theme-neon_arcade .match-detail-card,
         .preference-theme-neon_arcade .organisation-identity-card,
         .preference-theme-neon_arcade .volunteer-safety-card,
-        .preference-theme-neon_arcade .interest-safety-reminder {
+        .preference-theme-neon_arcade .interest-safety-reminder,
+        .preference-theme-neon_arcade .interest-contact-reminder,
+        .preference-theme-neon_arcade .role-detail-guide-panel,
+        .preference-theme-neon_arcade .role-detail-guide-step {
           border-color: rgba(34, 211, 238, 0.42);
           background: rgba(15, 23, 42, 0.86);
           box-shadow:
@@ -1484,7 +1898,9 @@ export default async function OpportunityDetailPage({
         .preference-theme-neon_arcade .opportunity-detail-body strong,
         .preference-theme-neon_arcade .match-detail-heading h2,
         .preference-theme-neon_arcade .organisation-identity-copy h2,
-        .preference-theme-neon_arcade .volunteer-safety-copy h2 {
+        .preference-theme-neon_arcade .volunteer-safety-copy h2,
+        .preference-theme-neon_arcade .role-detail-guide-heading h2,
+        .preference-theme-neon_arcade .role-detail-guide-step-copy h3 {
           color: #e0f2fe;
         }
 
@@ -1498,7 +1914,10 @@ export default async function OpportunityDetailPage({
         .preference-theme-neon_arcade .match-helper-note,
         .preference-theme-neon_arcade .organisation-identity-copy p,
         .preference-theme-neon_arcade .volunteer-safety-copy p,
-        .preference-theme-neon_arcade .interest-safety-reminder p {
+        .preference-theme-neon_arcade .interest-safety-reminder p,
+        .preference-theme-neon_arcade .interest-contact-reminder p,
+        .preference-theme-neon_arcade .role-detail-guide-heading p,
+        .preference-theme-neon_arcade .role-detail-guide-step-copy p {
           color: #dbeafe;
         }
 
@@ -1506,7 +1925,9 @@ export default async function OpportunityDetailPage({
         .preference-theme-neon_arcade .dashboard-progress-icon,
         .preference-theme-neon_arcade .match-detail-icon,
         .preference-theme-neon_arcade .organisation-identity-logo,
-        .preference-theme-neon_arcade .volunteer-safety-icon {
+        .preference-theme-neon_arcade .volunteer-safety-icon,
+        .preference-theme-neon_arcade .role-detail-guide-heading > span,
+        .preference-theme-neon_arcade .role-detail-guide-step-icon {
           border: 1px solid rgba(34, 211, 238, 0.42);
           background: rgba(34, 211, 238, 0.12);
           color: #a7f3d0;
@@ -1529,9 +1950,41 @@ export default async function OpportunityDetailPage({
           color: #fecaca;
         }
 
+        @media (max-width: 1180px) {
+          .role-detail-guide-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+        }
+
         @media (max-width: 900px) {
           .opportunity-trust-panel {
             grid-template-columns: 1fr;
+          }
+        }
+
+        @media (max-width: 760px) {
+          .opportunity-primary-actions {
+            grid-template-columns: 1fr;
+            width: 100%;
+          }
+
+          .role-detail-guide-heading {
+            grid-template-columns: 1fr;
+          }
+
+          .role-detail-guide-heading > span {
+            width: 56px;
+            height: 56px;
+            border-radius: 20px;
+          }
+
+          .role-detail-guide-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .opportunity-primary-actions .primary-button,
+          .opportunity-primary-actions .secondary-button {
+            width: 100%;
           }
         }
 
@@ -1544,7 +1997,8 @@ export default async function OpportunityDetailPage({
 
           .organisation-identity-card,
           .volunteer-safety-card,
-          .match-detail-card {
+          .match-detail-card,
+          .role-detail-guide-panel {
             border-radius: 24px;
           }
 
@@ -1598,7 +2052,8 @@ export default async function OpportunityDetailPage({
             width: 100%;
           }
 
-          .interest-safety-reminder {
+          .interest-safety-reminder,
+          .interest-contact-reminder {
             grid-template-columns: 1fr;
             text-align: left;
           }
