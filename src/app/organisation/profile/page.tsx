@@ -80,7 +80,8 @@ const organisationTypeOptions: ChoiceOption[] = [
     value: "local_authority_employability",
     label: "Local authority or employability partner",
     icon: "🧭",
-    helpText: "A council, employability service, pathway or public-sector partner.",
+    helpText:
+      "A council, employability service, pathway or public-sector partner.",
   },
   {
     value: "other",
@@ -94,7 +95,7 @@ const safeguardingRegionOptions: ChoiceOption[] = [
   {
     value: "scotland",
     label: "Scotland",
-    icon: "🏴󠁧󠁢󠁳󠁣󠁴󠁿",
+    icon: "🏴",
     helpText: "Use PVG wording where regulated work may apply.",
   },
   {
@@ -113,7 +114,8 @@ const safeguardingRegionOptions: ChoiceOption[] = [
     value: "other",
     label: "Other / not sure",
     icon: "🌍",
-    helpText: "Use country-specific safeguarding guidance before publishing pupil roles.",
+    helpText:
+      "Use country-specific safeguarding guidance before publishing pupil roles.",
   },
 ];
 
@@ -122,7 +124,8 @@ const schoolVisibilityOptions: ChoiceOption[] = [
     value: "school_approved_only",
     label: "School-approved only",
     icon: "✅",
-    helpText: "Recommended. Pupils will later only see opportunities approved by the school.",
+    helpText:
+      "Recommended. Pupils will later only see opportunities approved by the school.",
   },
   {
     value: "trusted_local_only",
@@ -134,7 +137,8 @@ const schoolVisibilityOptions: ChoiceOption[] = [
     value: "all_public_with_blocks",
     label: "All public roles with blocked roles hidden",
     icon: "🚦",
-    helpText: "Future mode with block controls. Not recommended as the first school setup.",
+    helpText:
+      "Future mode with block controls. Not recommended as the first school setup.",
   },
 ];
 
@@ -285,11 +289,11 @@ function getOrganisationTypeLabel(value: OrganisationType) {
 }
 
 function getSafeguardingRegionLabel(value: SafeguardingRegion) {
-  if (value === "england_wales") return "England / Wales — DBS";
-  if (value === "northern_ireland") return "Northern Ireland — AccessNI";
+  if (value === "england_wales") return "England / Wales - DBS";
+  if (value === "northern_ireland") return "Northern Ireland - AccessNI";
   if (value === "other") return "Other / country-specific guidance";
 
-  return "Scotland — PVG";
+  return "Scotland - PVG";
 }
 
 function getSchoolVisibilityLabel(value: SchoolVisibilityMode) {
@@ -561,10 +565,12 @@ export default async function OrganisationProfilePage({
   ];
 
   const completedSteps = guideSteps.filter((step) => step.isComplete).length;
-  const completionPercent = Math.round((completedSteps / guideSteps.length) * 100);
+  const completionPercent = Math.round(
+    (completedSteps / guideSteps.length) * 100,
+  );
 
   const listenText =
-    `This is the organisation profile setup page. Add your organisation name and official logo, then add contact details, location, a plain language description, volunteering types, support available, organisation type and safeguarding region. The organisation type is currently ${getOrganisationTypeLabel(currentOrganisationType)}. The safeguarding region is currently ${getSafeguardingRegionLabel(currentSafeguardingRegion)}. Scotland uses PVG wording. England and Wales use DBS wording. Northern Ireland uses AccessNI wording. If you choose school or college, you can prepare the future school-approved-only visibility mode, but this phase does not yet change what volunteers or pupils can see. Each section is labelled Step 1, Step 2, Step 3 and so on. The step by step guide turns green and shows a tick when each section has been completed and saved. SO Volunteering and organisations using this platform will never ask volunteers for money, bank details, passwords, or financial information. An organisation may need to confirm practical details, such as where a volunteer should go for an in-person volunteering role, but they should not ask for a volunteer’s full home address through the app. Required fields are organisation name, contact email, location, purpose, at least one volunteering type, and at least one support option. The final button says Save organisation profile.`;
+    `This is the organisation profile setup page. Add your organisation name and official logo, then add contact details, location, a plain language description, volunteering types, support available, organisation type and safeguarding region. The organisation type is currently ${getOrganisationTypeLabel(currentOrganisationType)}. The safeguarding region is currently ${getSafeguardingRegionLabel(currentSafeguardingRegion)}. Scotland uses PVG wording. England and Wales use DBS wording. Northern Ireland uses AccessNI wording. If you choose school or college, you can prepare the future school-approved-only visibility mode, but this phase does not yet change what volunteers or pupils can see. Each section is labelled Step 1, Step 2, Step 3 and so on. The step by step guide turns green and shows a tick when each section has been completed and saved. SO Volunteering and organisations using this platform will never ask volunteers for money, bank details, passwords, or financial information. An organisation may need to confirm practical details, such as where a volunteer should go for an in-person volunteering role, but they should not ask for a volunteer's full home address through the app. Required fields are organisation name, contact email, location, purpose, at least one volunteering type, and at least one support option. The final button says Save organisation profile.`;
 
   return (
     <main className="onboarding-shell organisation-profile-page">
@@ -641,9 +647,14 @@ export default async function OrganisationProfilePage({
             <div className="organisation-profile-progress">
               <div className="organisation-profile-progress-label">
                 <span>Setup progress</span>
-                <strong>{completedSteps}/{guideSteps.length} steps</strong>
+                <strong>
+                  {completedSteps}/{guideSteps.length} steps
+                </strong>
               </div>
-              <div className="organisation-profile-progress-meter" aria-hidden="true">
+              <div
+                className="organisation-profile-progress-meter"
+                aria-hidden="true"
+              >
                 <span style={{ width: `${completionPercent}%` }} />
               </div>
             </div>
@@ -654,7 +665,10 @@ export default async function OrganisationProfilePage({
           <div className="alert alert-error">{errorMessage}</div>
         ) : null}
 
-        <section className="organisation-safety-card" aria-labelledby="safety-title">
+        <section
+          className="organisation-safety-card"
+          aria-labelledby="safety-title"
+        >
           <div className="organisation-safety-icon" aria-hidden="true">
             🛡️
           </div>
@@ -667,7 +681,7 @@ export default async function OrganisationProfilePage({
               ask volunteers for money, bank details, passwords, or financial
               information. An organisation may need to confirm practical
               details, such as where a volunteer should go for an in-person
-              volunteering role, but they should not ask for a volunteer’s full
+              volunteering role, but they should not ask for a volunteer's full
               home address through the app. If anything feels wrong, volunteers
               should stop and use Help using the app to report it.
             </p>
@@ -789,7 +803,9 @@ export default async function OrganisationProfilePage({
                 name="organisation_name"
                 type="text"
                 required
-                defaultValue={organisationProfile?.organisation_name || fallbackName}
+                defaultValue={
+                  organisationProfile?.organisation_name || fallbackName
+                }
                 placeholder="Example: Aberdeen Community Hub"
               />
             </label>
@@ -865,7 +881,9 @@ export default async function OrganisationProfilePage({
                   name="contact_email"
                   type="email"
                   required
-                  defaultValue={organisationProfile?.contact_email || fallbackEmail}
+                  defaultValue={
+                    organisationProfile?.contact_email || fallbackEmail
+                  }
                   placeholder="volunteering@example.org"
                 />
               </label>
@@ -1038,7 +1056,9 @@ export default async function OrganisationProfilePage({
                   <span className="field-label-icon" aria-hidden="true">
                     🛡️
                   </span>
-                  <span>Which safeguarding wording should this organisation use?</span>
+                  <span>
+                    Which safeguarding wording should this organisation use?
+                  </span>
                 </span>
               </legend>
 
@@ -1059,7 +1079,10 @@ export default async function OrganisationProfilePage({
               />
               <span aria-hidden="true">👥</span>
               <span>
-                <strong>This organisation may work with children, young people or pupils.</strong>
+                <strong>
+                  This organisation may work with children, young people or
+                  pupils.
+                </strong>
                 <small>
                   This helps prepare future role-level safeguarding checks. It
                   does not change visibility yet.
@@ -1100,8 +1123,8 @@ export default async function OrganisationProfilePage({
               <div>
                 <h3>Recommended school setup</h3>
                 <p>
-                  Schools and colleges should use a curated pupil pathway, not an
-                  open marketplace. The recommended future mode is
+                  Schools and colleges should use a curated pupil pathway, not
+                  an open marketplace. The recommended future mode is
                   school-approved only, where school-linked pupils will only see
                   roles approved by their school.
                 </p>
@@ -1163,7 +1186,9 @@ export default async function OrganisationProfilePage({
               <textarea
                 name="legal_safeguarding_notes"
                 rows={5}
-                defaultValue={organisationProfile?.legal_safeguarding_notes || ""}
+                defaultValue={
+                  organisationProfile?.legal_safeguarding_notes || ""
+                }
                 placeholder="Optional. Example: Roles involving pupils will be reviewed by the safeguarding lead before publishing. PVG/DBS/AccessNI requirements will be checked at role level."
               />
               <span className="field-helper">
