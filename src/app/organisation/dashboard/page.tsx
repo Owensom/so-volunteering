@@ -328,7 +328,7 @@ export default async function OrganisationDashboardPage() {
   );
 
   const listenText =
-    "You are on the organisation dashboard. This is your workspace for creating volunteering roles, reviewing volunteer interest, accepting or contacting volunteers, and adding positive skills evidence. First, check the Workspace status card. Then use the Organisation readiness checklist to see what is ready and what needs action. The checklist includes organisation logo and volunteer safety statement readiness. Below that, the summary cards show role, interest and skills review counts. Use Create role to make a new inclusive volunteering role. Use Interest inbox to review volunteers who clicked I’m interested. Use Roles and reviews to edit roles and open volunteers and reviews for each role. The install card explains how to add SO Volunteering to your phone, tablet or computer home screen so it opens more like an app. Help using the app is for getting support if you are stuck, something is not working, or you want to report a problem with SO Volunteering.";
+    "You are on the organisation dashboard. This is your workspace for creating volunteering roles, reviewing volunteer interest, accepting or contacting volunteers, and adding positive skills evidence. First, check the Workspace status card. Then use the Organisation readiness checklist to see what is ready and what needs action. The checklist includes organisation logo and volunteer safety statement readiness. Below that, the summary cards show role, interest and skills review counts. Use Create role to make a new inclusive volunteering role. Use Interest inbox to review volunteers who clicked I’m interested. Use Roles and reviews to edit roles and open volunteers and reviews for each role. Use Volunteer connections to see people who have already interacted with your organisation through role interest or positive skills reviews. This is not a public volunteer database. The install card explains how to add SO Volunteering to your phone, tablet or computer home screen so it opens more like an app. Help using the app is for getting support if you are stuck, something is not working, or you want to report a problem with SO Volunteering.";
 
   return (
     <main className="dashboard-bg organisation-dashboard-page">
@@ -784,6 +784,15 @@ export default async function OrganisationDashboardPage() {
             title="Interest inbox"
             description="See volunteers who have expressed interest, then mark them as contacted, accepted or closed."
             action="Open inbox"
+          />
+
+          <OrganisationCard
+            href="/organisation/volunteers"
+            icon="👥"
+            label="Volunteer connections"
+            title="People you’ve worked with"
+            description="See volunteers who have connected with your organisation through role interest or positive skills reviews. This is your organisation history only, not a public volunteer database."
+            action="Open connections"
           />
 
           <OrganisationCard
