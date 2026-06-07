@@ -37,6 +37,7 @@ type GuideStep = {
   icon: string;
   title: string;
   text: string;
+  isComplete: boolean;
 };
 
 const volunteerTypeOptions: ChoiceOption[] = [
@@ -117,53 +118,18 @@ const supportOptions: ChoiceOption[] = [
   },
 ];
 
-const guideSteps: GuideStep[] = [
-  {
-    icon: "🏢",
-    title: "Add your name and logo",
-    text: "Use the organisation name and official logo volunteers will recognise.",
-  },
-  {
-    icon: "✉️",
-    title: "Add contact details",
-    text: "Use an email or phone number your organisation checks regularly.",
-  },
-  {
-    icon: "📍",
-    title: "Say where you are based",
-    text: "Add the town, city or area you support. Do not add private addresses here.",
-  },
-  {
-    icon: "💬",
-    title: "Explain what you do",
-    text: "Use plain language. One or two short sentences is enough.",
-  },
-  {
-    icon: "📣",
-    title: "Choose role types",
-    text: "Pick the kinds of volunteering your organisation usually offers.",
-  },
-  {
-    icon: "💛",
-    title: "Choose support options",
-    text: "Tell volunteers what help or adjustments they can expect.",
-  },
-  {
-    icon: "🛡️",
-    title: "Add safety notes",
-    text: "Optional, but useful for trust, supervision and first-visit expectations.",
-  },
-  {
-    icon: "✅",
-    title: "Save your profile",
-    text: "Once saved, these details can appear on volunteer-facing role pages.",
-  },
-];
-
 function normaliseUserType(value: string | null | undefined) {
   return value?.trim().toLowerCase() === "organisation"
     ? "organisation"
     : "volunteer";
+}
+
+function hasValue(value: string | null | undefined) {
+  return Boolean(value && value.trim().length > 0);
+}
+
+function hasChoices(values: string[] | null | undefined) {
+  return Array.isArray(values) && values.length > 0;
 }
 
 function isChecked(savedValues: string[] | null | undefined, value: string) {
@@ -201,6 +167,52 @@ function ChoiceGrid({
         </label>
       ))}
     </div>
+  );
+}
+
+function StepSection({
+  stepNumber,
+  icon,
+  title,
+  description,
+  isComplete,
+  children,
+}: {
+  stepNumber: number;
+  icon: string;
+  title: string;
+  description: string;
+  isComplete: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <section
+      className={
+        isComplete
+          ? "organisation-step-section organisation-step-complete"
+          : "organisation-step-section"
+      }
+    >
+      <div className="organisation-step-heading">
+        <span className="organisation-step-icon" aria-hidden="true">
+          {icon}
+        </span>
+
+        <div className="organisation-step-copy">
+          <p className="organisation-step-kicker">
+            Step {stepNumber}
+            <span>
+              <span aria-hidden="true">{isComplete ? "✅" : "○"}</span>
+              {isComplete ? "Complete" : "To do"}
+            </span>
+          </p>
+          <h2>{title}</h2>
+          <p>{description}</p>
+        </div>
+      </div>
+
+      <div className="organisation-step-body">{children}</div>
+    </section>
   );
 }
 
@@ -251,8 +263,72 @@ export default async function OrganisationProfilePage({
   const fallbackEmail = profile?.email?.trim() || user.email || "";
   const currentLogoUrl = organisationProfile?.logo_url?.trim() || "";
 
+  const step1Complete =
+    hasValue(organisationProfile?.organisation_name) && hasValue(currentLogoUrl);
+  const step2Complete = hasValue(organisationProfile?.contact_email);
+  const step3Complete = hasValue(organisationProfile?.location);
+  const step4Complete = hasValue(organisationProfile?.purpose);
+  const step5Complete = hasChoices(organisationProfile?.volunteer_types);
+  const step6Complete = hasChoices(organisationProfile?.support_offered);
+  const step7Complete = hasValue(organisationProfile?.safeguarding_notes);
+  const step8Complete = organisationProfile?.profile_completed === true;
+
+  const guideSteps: GuideStep[] = [
+    {
+      icon: "🏢",
+      title: "Add your name and logo",
+      text: "Use the organisation name and official logo volunteers will recognise.",
+      isComplete: step1Complete,
+    },
+    {
+      icon: "✉️",
+      title: "Add contact details",
+      text: "Use an email or phone number your organisation checks regularly.",
+      isComplete: step2Complete,
+    },
+    {
+      icon: "📍",
+      title: "Say where you are based",
+      text: "Add the town, city or area you support. Do not add private addresses here.",
+      isComplete: step3Complete,
+    },
+    {
+      icon: "💬",
+      title: "Explain what you do",
+      text: "Use plain language. One or two short sentences is enough.",
+      isComplete: step4Complete,
+    },
+    {
+      icon: "📣",
+      title: "Choose role types",
+      text: "Pick the kinds of volunteering your organisation usually offers.",
+      isComplete: step5Complete,
+    },
+    {
+      icon: "💛",
+      title: "Choose support options",
+      text: "Tell volunteers what help or adjustments they can expect.",
+      isComplete: step6Complete,
+    },
+    {
+      icon: "🛡️",
+      title: "Add safety notes",
+      text: "Optional, but useful for trust, supervision and first-visit expectations.",
+      isComplete: step7Complete,
+    },
+    {
+      icon: "✅",
+      title: "Save your profile",
+      text: "Once saved, these details can appear on volunteer-facing role pages.",
+      isComplete: step8Complete,
+    },
+  ];
+
+  const completedSteps = guideSteps.filter((step) => step.isComplete).length;
+  const completionPercent = Math.round((completedSteps / guideSteps.length) * 100);
+
   const listenText =
-    "This is the organisation profile setup page. Add your organisation name and official logo, then add contact details, location, a plain language description, volunteering types, support available, and optional safety notes. The step by step guide explains how to complete the form. The logo helps volunteers recognise your organisation. SO Volunteering and organisations using this platform will never ask volunteers for money, bank details, passwords, or financial information. An organisation may need to confirm practical details, such as where a volunteer should go for an in-person volunteering role, but they should not ask for a volunteer’s full home address through the app. Required fields are organisation name, contact email, location, purpose, at least one volunteering type, and at least one support option. The final button says Save organisation profile.";
+    "This is the organisation profile setup page. Add your organisation name and official logo, then add contact details, location, a plain language description, volunteering types, support available, and optional safety notes. Each section is labelled Step 1, Step 2, Step 3 and so on. The step by step guide turns green and shows a tick when each section has been completed and saved. The logo helps volunteers recognise your organisation. SO Volunteering and organisations using this platform will never ask volunteers for money, bank details, passwords, or financial information. An organisation may need to confirm practical details, such as where a volunteer should go for an in-person volunteering role, but they should not ask for a volunteer’s full home address through the app. Required fields are organisation name, contact email, location, purpose, at least one volunteering type, and at least one support option. The final button says Save organisation profile.";
 
   return (
     <main className="onboarding-shell organisation-profile-page">
@@ -325,6 +401,16 @@ export default async function OrganisationProfilePage({
               Uploading a logo helps volunteers recognise your organisation and
               feel safer when reviewing roles.
             </p>
+
+            <div className="organisation-profile-progress">
+              <div className="organisation-profile-progress-label">
+                <span>Setup progress</span>
+                <strong>{completedSteps}/8 steps</strong>
+              </div>
+              <div className="organisation-profile-progress-meter" aria-hidden="true">
+                <span style={{ width: `${completionPercent}%` }} />
+              </div>
+            </div>
           </div>
         </div>
 
@@ -365,17 +451,25 @@ export default async function OrganisationProfilePage({
                 How to complete this form
               </h2>
               <p>
-                Work through the sections in order. You can come back and update
-                these details later.
+                Work through the sections in order. Completed saved steps turn
+                green and show a tick. You can come back and update these
+                details later.
               </p>
             </div>
           </div>
 
           <div className="organisation-form-guide-grid">
             {guideSteps.map((step, index) => (
-              <article key={step.title} className="organisation-guide-step">
+              <article
+                key={step.title}
+                className={
+                  step.isComplete
+                    ? "organisation-guide-step organisation-guide-step-complete"
+                    : "organisation-guide-step"
+                }
+              >
                 <span className="organisation-guide-step-number">
-                  {index + 1}
+                  {step.isComplete ? "✓" : index + 1}
                 </span>
 
                 <div className="organisation-guide-step-icon" aria-hidden="true">
@@ -383,6 +477,10 @@ export default async function OrganisationProfilePage({
                 </div>
 
                 <div className="organisation-guide-step-copy">
+                  <p className="organisation-guide-step-kicker">
+                    Step {index + 1}
+                    <span>{step.isComplete ? "Complete" : "To do"}</span>
+                  </p>
                   <h3>{step.title}</h3>
                   <p>{step.text}</p>
                 </div>
@@ -396,211 +494,275 @@ export default async function OrganisationProfilePage({
           className="form-stack"
           encType="multipart/form-data"
         >
-          <label className="field-label">
-            <span className="field-label-row">
-              <span className="field-label-icon" aria-hidden="true">
-                🏢
-              </span>
-              <span>Organisation name</span>
-            </span>
-            <input
-              name="organisation_name"
-              type="text"
-              required
-              defaultValue={organisationProfile?.organisation_name || fallbackName}
-              placeholder="Example: Aberdeen Community Hub"
-            />
-          </label>
-
-          <section className="organisation-logo-upload-section">
-            <div className="organisation-logo-upload-heading">
-              <span aria-hidden="true">🖼️</span>
-              <div>
-                <h2>Organisation logo</h2>
-                <p>
-                  Upload your official logo so volunteers can recognise your
-                  organisation when they view your roles. PNG, JPG, WEBP or SVG.
-                  Maximum 3MB.
-                </p>
-              </div>
-            </div>
-
-            <label className="field-label">
-              <span className="field-label-row">
-                <span className="field-label-icon" aria-hidden="true">
-                  📤
-                </span>
-                <span>Upload logo optional</span>
-              </span>
-              <input
-                name="logo_file"
-                type="file"
-                accept="image/png,image/jpeg,image/webp,image/svg+xml"
-              />
-              <span className="field-helper">
-                Uploading a new file will replace the saved logo URL for this
-                profile.
-              </span>
-            </label>
-
-            <label className="field-label">
-              <span className="field-label-row">
-                <span className="field-label-icon" aria-hidden="true">
-                  🔗
-                </span>
-                <span>Or paste logo URL optional</span>
-              </span>
-              <input
-                name="logo_url"
-                type="url"
-                defaultValue={currentLogoUrl}
-                placeholder="https://example.org/logo.png"
-              />
-              <span className="field-helper">
-                Keep this if you already use a hosted logo. Uploading a file
-                above will take priority.
-              </span>
-            </label>
-          </section>
-
-          <div className="dashboard-grid">
-            <label className="field-label">
-              <span className="field-label-row">
-                <span className="field-label-icon" aria-hidden="true">
-                  ✉️
-                </span>
-                <span>Contact email</span>
-              </span>
-              <input
-                name="contact_email"
-                type="email"
-                required
-                defaultValue={organisationProfile?.contact_email || fallbackEmail}
-                placeholder="volunteering@example.org"
-              />
-            </label>
-
-            <label className="field-label">
-              <span className="field-label-row">
-                <span className="field-label-icon" aria-hidden="true">
-                  📞
-                </span>
-                <span>Phone number optional</span>
-              </span>
-              <input
-                name="phone"
-                type="tel"
-                defaultValue={organisationProfile?.phone || ""}
-                placeholder="Optional"
-              />
-            </label>
-
-            <label className="field-label">
-              <span className="field-label-row">
-                <span className="field-label-icon" aria-hidden="true">
-                  🌐
-                </span>
-                <span>Website optional</span>
-              </span>
-              <input
-                name="website"
-                type="text"
-                defaultValue={organisationProfile?.website || ""}
-                placeholder="example.org"
-              />
-            </label>
-          </div>
-
-          <label className="field-label">
-            <span className="field-label-row">
-              <span className="field-label-icon" aria-hidden="true">
-                📍
-              </span>
-              <span>Town, city or area</span>
-            </span>
-            <input
-              name="location"
-              type="text"
-              required
-              defaultValue={organisationProfile?.location || ""}
-              placeholder="Example: Aberdeen"
-            />
-          </label>
-
-          <label className="field-label">
-            <span className="field-label-row">
-              <span className="field-label-icon" aria-hidden="true">
-                💬
-              </span>
-              <span>What does your organisation do?</span>
-            </span>
-            <textarea
-              name="purpose"
-              rows={5}
-              required
-              defaultValue={organisationProfile?.purpose || ""}
-              placeholder="Use plain language. Example: We support local families with food, activities and community events."
-            />
-          </label>
-
-          <fieldset className="choice-group">
-            <legend>
-              <span className="field-label-row">
-                <span className="field-label-icon" aria-hidden="true">
-                  📣
-                </span>
-                <span>What volunteering do you offer?</span>
-              </span>
-            </legend>
-
-            <ChoiceGrid
-              name="volunteer_types"
-              options={volunteerTypeOptions}
-              savedValues={organisationProfile?.volunteer_types}
-            />
-          </fieldset>
-
-          <fieldset className="choice-group">
-            <legend>
-              <span className="field-label-row">
-                <span className="field-label-icon" aria-hidden="true">
-                  💛
-                </span>
-                <span>What support can volunteers expect?</span>
-              </span>
-            </legend>
-
-            <ChoiceGrid
-              name="support_offered"
-              options={supportOptions}
-              savedValues={organisationProfile?.support_offered}
-            />
-          </fieldset>
-
-          <label className="field-label">
-            <span className="field-label-row">
-              <span className="field-label-icon" aria-hidden="true">
-                🛡️
-              </span>
-              <span>Safety, supervision or safeguarding notes optional</span>
-            </span>
-            <textarea
-              name="safeguarding_notes"
-              rows={5}
-              defaultValue={organisationProfile?.safeguarding_notes || ""}
-              placeholder="Optional. Example: Volunteers are welcomed by a named contact, shown the space, and told who to speak to if they need help."
-            />
-          </label>
-
-          <button
-            type="submit"
-            className="primary-button onboarding-submit-button"
+          <StepSection
+            stepNumber={1}
+            icon="🏢"
+            title="Organisation name and logo"
+            description="Use the name and official logo volunteers will recognise."
+            isComplete={step1Complete}
           >
-            <span className="button-balanced-inner">
-              <span aria-hidden="true">✅</span>
-              <span>Save organisation profile</span>
-            </span>
-          </button>
+            <label className="field-label">
+              <span className="field-label-row">
+                <span className="field-label-icon" aria-hidden="true">
+                  🏢
+                </span>
+                <span>Organisation name</span>
+              </span>
+              <input
+                name="organisation_name"
+                type="text"
+                required
+                defaultValue={organisationProfile?.organisation_name || fallbackName}
+                placeholder="Example: Aberdeen Community Hub"
+              />
+            </label>
+
+            <section className="organisation-logo-upload-section">
+              <div className="organisation-logo-upload-heading">
+                <span aria-hidden="true">🖼️</span>
+                <div>
+                  <h2>Organisation logo</h2>
+                  <p>
+                    Upload your official logo so volunteers can recognise your
+                    organisation when they view your roles. PNG, JPG, WEBP or
+                    SVG. Maximum 3MB.
+                  </p>
+                </div>
+              </div>
+
+              <label className="field-label">
+                <span className="field-label-row">
+                  <span className="field-label-icon" aria-hidden="true">
+                    📤
+                  </span>
+                  <span>Upload logo optional</span>
+                </span>
+                <input
+                  name="logo_file"
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                />
+                <span className="field-helper">
+                  Uploading a new file will replace the saved logo URL for this
+                  profile.
+                </span>
+              </label>
+
+              <label className="field-label">
+                <span className="field-label-row">
+                  <span className="field-label-icon" aria-hidden="true">
+                    🔗
+                  </span>
+                  <span>Or paste logo URL optional</span>
+                </span>
+                <input
+                  name="logo_url"
+                  type="url"
+                  defaultValue={currentLogoUrl}
+                  placeholder="https://example.org/logo.png"
+                />
+                <span className="field-helper">
+                  Keep this if you already use a hosted logo. Uploading a file
+                  above will take priority.
+                </span>
+              </label>
+            </section>
+          </StepSection>
+
+          <StepSection
+            stepNumber={2}
+            icon="✉️"
+            title="Contact details"
+            description="Use contact details your organisation checks regularly."
+            isComplete={step2Complete}
+          >
+            <div className="dashboard-grid">
+              <label className="field-label">
+                <span className="field-label-row">
+                  <span className="field-label-icon" aria-hidden="true">
+                    ✉️
+                  </span>
+                  <span>Contact email</span>
+                </span>
+                <input
+                  name="contact_email"
+                  type="email"
+                  required
+                  defaultValue={organisationProfile?.contact_email || fallbackEmail}
+                  placeholder="volunteering@example.org"
+                />
+              </label>
+
+              <label className="field-label">
+                <span className="field-label-row">
+                  <span className="field-label-icon" aria-hidden="true">
+                    📞
+                  </span>
+                  <span>Phone number optional</span>
+                </span>
+                <input
+                  name="phone"
+                  type="tel"
+                  defaultValue={organisationProfile?.phone || ""}
+                  placeholder="Optional"
+                />
+              </label>
+
+              <label className="field-label">
+                <span className="field-label-row">
+                  <span className="field-label-icon" aria-hidden="true">
+                    🌐
+                  </span>
+                  <span>Website optional</span>
+                </span>
+                <input
+                  name="website"
+                  type="text"
+                  defaultValue={organisationProfile?.website || ""}
+                  placeholder="example.org"
+                />
+              </label>
+            </div>
+          </StepSection>
+
+          <StepSection
+            stepNumber={3}
+            icon="📍"
+            title="Town, city or area"
+            description="Say where you are based or what area you support."
+            isComplete={step3Complete}
+          >
+            <label className="field-label">
+              <span className="field-label-row">
+                <span className="field-label-icon" aria-hidden="true">
+                  📍
+                </span>
+                <span>Town, city or area</span>
+              </span>
+              <input
+                name="location"
+                type="text"
+                required
+                defaultValue={organisationProfile?.location || ""}
+                placeholder="Example: Aberdeen"
+              />
+            </label>
+          </StepSection>
+
+          <StepSection
+            stepNumber={4}
+            icon="💬"
+            title="What your organisation does"
+            description="Explain your organisation in plain language."
+            isComplete={step4Complete}
+          >
+            <label className="field-label">
+              <span className="field-label-row">
+                <span className="field-label-icon" aria-hidden="true">
+                  💬
+                </span>
+                <span>What does your organisation do?</span>
+              </span>
+              <textarea
+                name="purpose"
+                rows={5}
+                required
+                defaultValue={organisationProfile?.purpose || ""}
+                placeholder="Use plain language. Example: We support local families with food, activities and community events."
+              />
+            </label>
+          </StepSection>
+
+          <StepSection
+            stepNumber={5}
+            icon="📣"
+            title="Volunteering you offer"
+            description="Choose the kinds of roles your organisation usually offers."
+            isComplete={step5Complete}
+          >
+            <fieldset className="choice-group">
+              <legend>
+                <span className="field-label-row">
+                  <span className="field-label-icon" aria-hidden="true">
+                    📣
+                  </span>
+                  <span>What volunteering do you offer?</span>
+                </span>
+              </legend>
+
+              <ChoiceGrid
+                name="volunteer_types"
+                options={volunteerTypeOptions}
+                savedValues={organisationProfile?.volunteer_types}
+              />
+            </fieldset>
+          </StepSection>
+
+          <StepSection
+            stepNumber={6}
+            icon="💛"
+            title="Support volunteers can expect"
+            description="Choose the support, adjustments or reassurance you can offer."
+            isComplete={step6Complete}
+          >
+            <fieldset className="choice-group">
+              <legend>
+                <span className="field-label-row">
+                  <span className="field-label-icon" aria-hidden="true">
+                    💛
+                  </span>
+                  <span>What support can volunteers expect?</span>
+                </span>
+              </legend>
+
+              <ChoiceGrid
+                name="support_offered"
+                options={supportOptions}
+                savedValues={organisationProfile?.support_offered}
+              />
+            </fieldset>
+          </StepSection>
+
+          <StepSection
+            stepNumber={7}
+            icon="🛡️"
+            title="Safety, supervision or safeguarding notes"
+            description="Optional, but useful for explaining first-visit support and supervision."
+            isComplete={step7Complete}
+          >
+            <label className="field-label">
+              <span className="field-label-row">
+                <span className="field-label-icon" aria-hidden="true">
+                  🛡️
+                </span>
+                <span>Safety, supervision or safeguarding notes optional</span>
+              </span>
+              <textarea
+                name="safeguarding_notes"
+                rows={5}
+                defaultValue={organisationProfile?.safeguarding_notes || ""}
+                placeholder="Optional. Example: Volunteers are welcomed by a named contact, shown the space, and told who to speak to if they need help."
+              />
+            </label>
+          </StepSection>
+
+          <StepSection
+            stepNumber={8}
+            icon="✅"
+            title="Save your organisation profile"
+            description="Save the form so your details can appear on volunteer-facing role pages."
+            isComplete={step8Complete}
+          >
+            <button
+              type="submit"
+              className="primary-button onboarding-submit-button"
+            >
+              <span className="button-balanced-inner">
+                <span aria-hidden="true">✅</span>
+                <span>Save organisation profile</span>
+              </span>
+            </button>
+          </StepSection>
         </form>
       </section>
 
@@ -654,6 +816,40 @@ export default async function OrganisationProfilePage({
           font-size: 0.92rem;
           font-weight: 750;
           line-height: 1.42;
+        }
+
+        .organisation-profile-progress {
+          display: grid;
+          gap: 8px;
+        }
+
+        .organisation-profile-progress-label {
+          display: flex;
+          gap: 10px;
+          align-items: center;
+          justify-content: space-between;
+          color: #60706a;
+          font-size: 0.88rem;
+          font-weight: 900;
+        }
+
+        .organisation-profile-progress-label strong {
+          color: #315f48;
+        }
+
+        .organisation-profile-progress-meter {
+          width: 100%;
+          height: 10px;
+          overflow: hidden;
+          border-radius: 999px;
+          background: rgba(108, 92, 160, 0.12);
+        }
+
+        .organisation-profile-progress-meter span {
+          display: block;
+          height: 100%;
+          border-radius: inherit;
+          background: linear-gradient(90deg, #8fb29e, #4f8d68);
         }
 
         .organisation-safety-card {
@@ -763,12 +959,20 @@ export default async function OrganisationProfilePage({
           position: relative;
           display: grid;
           gap: 10px;
-          min-height: 178px;
+          min-height: 190px;
           padding: 15px;
           border: 1px solid rgba(108, 92, 160, 0.14);
           border-radius: 22px;
           background: rgba(255, 255, 255, 0.78);
           box-shadow: 0 12px 28px rgba(33, 56, 48, 0.05);
+        }
+
+        .organisation-guide-step-complete {
+          border-color: rgba(34, 124, 78, 0.26);
+          background:
+            radial-gradient(circle at top left, rgba(155, 232, 190, 0.28), transparent 34%),
+            rgba(244, 255, 249, 0.92);
+          box-shadow: 0 14px 30px rgba(33, 96, 61, 0.08);
         }
 
         .organisation-guide-step-number {
@@ -788,6 +992,11 @@ export default async function OrganisationProfilePage({
           line-height: 1;
         }
 
+        .organisation-guide-step-complete .organisation-guide-step-number {
+          background: rgba(34, 124, 78, 0.14);
+          color: #145c38;
+        }
+
         .organisation-guide-step-icon {
           display: inline-flex;
           width: 52px;
@@ -800,9 +1009,51 @@ export default async function OrganisationProfilePage({
           font-size: 1.55rem;
         }
 
+        .organisation-guide-step-complete .organisation-guide-step-icon {
+          background: rgba(34, 124, 78, 0.12);
+          box-shadow: inset 0 0 0 1px rgba(34, 124, 78, 0.14);
+        }
+
         .organisation-guide-step-copy {
           display: grid;
           gap: 6px;
+        }
+
+        .organisation-guide-step-kicker {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+          align-items: center;
+          margin: 0;
+          padding-right: 34px;
+          color: #6c5ca0;
+          font-size: 0.78rem;
+          font-weight: 950;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+        }
+
+        .organisation-guide-step-kicker span {
+          display: inline-flex;
+          min-height: 24px;
+          align-items: center;
+          justify-content: center;
+          padding: 5px 8px;
+          border-radius: 999px;
+          background: rgba(108, 92, 160, 0.1);
+          color: #6c5ca0;
+          font-size: 0.68rem;
+          letter-spacing: 0;
+          text-transform: none;
+        }
+
+        .organisation-guide-step-complete .organisation-guide-step-kicker,
+        .organisation-guide-step-complete .organisation-guide-step-kicker span {
+          color: #145c38;
+        }
+
+        .organisation-guide-step-complete .organisation-guide-step-kicker span {
+          background: rgba(34, 124, 78, 0.12);
         }
 
         .organisation-guide-step-copy h3 {
@@ -820,6 +1071,111 @@ export default async function OrganisationProfilePage({
           font-size: 0.92rem;
           font-weight: 740;
           line-height: 1.42;
+        }
+
+        .organisation-step-section {
+          display: grid;
+          gap: 18px;
+          padding: 20px;
+          border: 1px solid rgba(108, 92, 160, 0.14);
+          border-radius: 28px;
+          background: rgba(255, 255, 255, 0.68);
+          box-shadow: 0 14px 34px rgba(33, 56, 48, 0.05);
+        }
+
+        .organisation-step-complete {
+          border-color: rgba(34, 124, 78, 0.24);
+          background:
+            radial-gradient(circle at top left, rgba(155, 232, 190, 0.22), transparent 34%),
+            rgba(244, 255, 249, 0.86);
+        }
+
+        .organisation-step-heading {
+          display: grid;
+          grid-template-columns: auto 1fr;
+          gap: 14px;
+          align-items: start;
+        }
+
+        .organisation-step-icon {
+          display: inline-flex;
+          width: 58px;
+          height: 58px;
+          align-items: center;
+          justify-content: center;
+          border-radius: 20px;
+          background: rgba(143, 178, 158, 0.14);
+          box-shadow: inset 0 0 0 1px rgba(83, 111, 99, 0.08);
+          font-size: 1.75rem;
+        }
+
+        .organisation-step-complete .organisation-step-icon {
+          background: rgba(34, 124, 78, 0.12);
+          box-shadow: inset 0 0 0 1px rgba(34, 124, 78, 0.14);
+        }
+
+        .organisation-step-copy {
+          display: grid;
+          gap: 7px;
+          min-width: 0;
+        }
+
+        .organisation-step-kicker {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 10px;
+          align-items: center;
+          margin: 0;
+          color: #6c5ca0;
+          font-size: 0.8rem;
+          font-weight: 950;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
+        }
+
+        .organisation-step-kicker span {
+          display: inline-flex;
+          min-height: 26px;
+          align-items: center;
+          justify-content: center;
+          gap: 5px;
+          padding: 5px 9px;
+          border-radius: 999px;
+          background: rgba(108, 92, 160, 0.1);
+          color: #6c5ca0;
+          font-size: 0.72rem;
+          letter-spacing: 0;
+          text-transform: none;
+        }
+
+        .organisation-step-complete .organisation-step-kicker,
+        .organisation-step-complete .organisation-step-kicker span {
+          color: #145c38;
+        }
+
+        .organisation-step-complete .organisation-step-kicker span {
+          background: rgba(34, 124, 78, 0.12);
+        }
+
+        .organisation-step-copy h2 {
+          margin: 0;
+          color: #315f48;
+          font-size: clamp(1.22rem, 3vw, 1.55rem);
+          font-weight: 950;
+          letter-spacing: -0.03em;
+          line-height: 1.12;
+        }
+
+        .organisation-step-copy p {
+          margin: 0;
+          color: #60706a;
+          font-weight: 750;
+          line-height: 1.45;
+        }
+
+        .organisation-step-body {
+          display: grid;
+          gap: 16px;
         }
 
         .organisation-logo-upload-section {
@@ -909,18 +1265,21 @@ export default async function OrganisationProfilePage({
         @media (max-width: 760px) {
           .organisation-safety-card,
           .organisation-logo-upload-heading,
-          .organisation-form-guide-heading {
+          .organisation-form-guide-heading,
+          .organisation-step-heading {
             grid-template-columns: 1fr;
           }
 
           .organisation-safety-card,
-          .organisation-form-guide {
+          .organisation-form-guide,
+          .organisation-step-section {
             padding: 18px;
             border-radius: 24px;
           }
 
           .organisation-safety-icon,
-          .organisation-form-guide-heading > span {
+          .organisation-form-guide-heading > span,
+          .organisation-step-icon {
             width: 56px;
             height: 56px;
             border-radius: 20px;
