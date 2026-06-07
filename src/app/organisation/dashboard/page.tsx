@@ -12,11 +12,34 @@ type Profile = {
   user_type: string | null;
 };
 
+type OrganisationType =
+  | "charity_community"
+  | "school_college"
+  | "local_authority_employability"
+  | "other";
+
+type SafeguardingRegion =
+  | "scotland"
+  | "england_wales"
+  | "northern_ireland"
+  | "other";
+
+type SchoolVisibilityMode =
+  | "not_applicable"
+  | "school_approved_only"
+  | "trusted_local_only"
+  | "all_public_with_blocks";
+
 type OrganisationProfile = {
   organisation_name: string | null;
   contact_email: string | null;
   logo_url: string | null;
   profile_completed: boolean | null;
+  organisation_type: string | null;
+  safeguarding_region: string | null;
+  works_with_children_or_pupils: boolean | null;
+  school_visibility_mode: string | null;
+  legal_safeguarding_notes: string | null;
 };
 
 type OpportunitySummary = {
@@ -63,6 +86,42 @@ function normaliseUserType(value: string | null | undefined) {
     : "volunteer";
 }
 
+function normaliseOrganisationType(
+  value: string | null | undefined,
+): OrganisationType {
+  if (value === "school_college") return "school_college";
+  if (value === "local_authority_employability") {
+    return "local_authority_employability";
+  }
+  if (value === "other") return "other";
+
+  return "charity_community";
+}
+
+function normaliseSafeguardingRegion(
+  value: string | null | undefined,
+): SafeguardingRegion {
+  if (value === "england_wales") return "england_wales";
+  if (value === "northern_ireland") return "northern_ireland";
+  if (value === "other") return "other";
+
+  return "scotland";
+}
+
+function normaliseSchoolVisibilityMode(
+  value: string | null | undefined,
+  organisationType: OrganisationType,
+): SchoolVisibilityMode {
+  if (organisationType !== "school_college") {
+    return "not_applicable";
+  }
+
+  if (value === "trusted_local_only") return "trusted_local_only";
+  if (value === "all_public_with_blocks") return "all_public_with_blocks";
+
+  return "school_approved_only";
+}
+
 function normaliseInterestStatus(status: string | null | undefined) {
   if (
     status === "new" ||
@@ -78,6 +137,56 @@ function normaliseInterestStatus(status: string | null | undefined) {
   }
 
   return "new";
+}
+
+function getOrganisationTypeLabel(value: OrganisationType) {
+  if (value === "school_college") return "School / college";
+  if (value === "local_authority_employability") {
+    return "Local authority / employability partner";
+  }
+  if (value === "other") return "Other organisation";
+
+  return "Charity / community organisation";
+}
+
+function getSafeguardingRegionLabel(value: SafeguardingRegion) {
+  if (value === "england_wales") return "England / Wales - DBS";
+  if (value === "northern_ireland") return "Northern Ireland - AccessNI";
+  if (value === "other") return "Other / country-specific guidance";
+
+  return "Scotland - PVG";
+}
+
+function getSchoolVisibilityLabel(value: SchoolVisibilityMode) {
+  if (value === "trusted_local_only") return "Trusted local organisations only";
+  if (value === "all_public_with_blocks") {
+    return "All public roles with blocked roles hidden";
+  }
+  if (value === "school_approved_only") return "School-approved only";
+
+  return "Not applicable";
+}
+
+function getSchoolSafetyDescription({
+  organisationType,
+  schoolVisibilityMode,
+}: {
+  organisationType: OrganisationType;
+  schoolVisibilityMode: SchoolVisibilityMode;
+}) {
+  if (organisationType !== "school_college") {
+    return "School-safe visibility is not active because this organisation is not marked as a school or college.";
+  }
+
+  if (schoolVisibilityMode === "school_approved_only") {
+    return "Recommended setup saved. Future school-linked pupils will later be limited to school-approved opportunities.";
+  }
+
+  if (schoolVisibilityMode === "trusted_local_only") {
+    return "Trusted local organisation mode is saved for a future controlled school pathway.";
+  }
+
+  return "A broader school visibility mode is saved. Review carefully before future pupil filtering is enabled.";
 }
 
 function OrganisationCard({
@@ -215,7 +324,9 @@ export default async function OrganisationDashboardPage() {
 
   const { data: organisationProfile } = await supabase
     .from("organisation_profiles")
-    .select("organisation_name,contact_email,logo_url,profile_completed")
+    .select(
+      "organisation_name,contact_email,logo_url,profile_completed,organisation_type,safeguarding_region,works_with_children_or_pupils,school_visibility_mode,legal_safeguarding_notes",
+    )
     .eq("user_id", user.id)
     .maybeSingle<OrganisationProfile>();
 
@@ -293,6 +404,31 @@ export default async function OrganisationDashboardPage() {
   const totalRoleCount = opportunityRows.length;
   const totalInterestCount = interestRows.length;
 
+  const currentOrganisationType = normaliseOrganisationType(
+    organisationProfile?.organisation_type,
+  );
+  const currentSafeguardingRegion = normaliseSafeguardingRegion(
+    organisationProfile?.safeguarding_region,
+  );
+  const currentSchoolVisibilityMode = normaliseSchoolVisibilityMode(
+    organisationProfile?.school_visibility_mode,
+    currentOrganisationType,
+  );
+
+  const hasOrganisationType = Boolean(organisationProfile?.organisation_type);
+  const hasSafeguardingRegion = Boolean(organisationProfile?.safeguarding_region);
+  const worksWithChildrenOrPupils =
+    organisationProfile?.works_with_children_or_pupils === true;
+  const hasLegalSafeguardingNotes = Boolean(
+    organisationProfile?.legal_safeguarding_notes?.trim(),
+  );
+  const isSchoolOrCollege = currentOrganisationType === "school_college";
+  const hasSchoolVisibilityMode =
+    !isSchoolOrCollege ||
+    currentSchoolVisibilityMode === "school_approved_only" ||
+    currentSchoolVisibilityMode === "trusted_local_only" ||
+    currentSchoolVisibilityMode === "all_public_with_blocks";
+
   const hasOrganisationIdentity = Boolean(
     organisationProfile?.organisation_name?.trim() ||
       profile?.full_name?.trim() ||
@@ -313,6 +449,9 @@ export default async function OrganisationDashboardPage() {
     profileCompleted,
     hasOrganisationLogo,
     volunteerSafetyStatementActive,
+    hasOrganisationType,
+    hasSafeguardingRegion,
+    hasSchoolVisibilityMode,
     hasAnyRole,
     hasPublishedRole,
     true,
@@ -328,7 +467,7 @@ export default async function OrganisationDashboardPage() {
   );
 
   const listenText =
-    "You are on the organisation dashboard. This is your workspace for creating volunteering roles, reviewing volunteer interest, accepting or contacting volunteers, and adding positive skills evidence. First, check the Workspace status card. Then use the Organisation readiness checklist to see what is ready and what needs action. The checklist includes organisation logo and volunteer safety statement readiness. Below that, the summary cards show role, interest and skills review counts. Use Create role to make a new inclusive volunteering role. Use Interest inbox to review volunteers who clicked I’m interested. Use Roles and reviews to edit roles and open volunteers and reviews for each role. Use Volunteer connections to see people who have already interacted with your organisation through role interest or positive skills reviews. This is not a public volunteer database. The install card explains how to add SO Volunteering to your phone, tablet or computer home screen so it opens more like an app. Help using the app is for getting support if you are stuck, something is not working, or you want to report a problem with SO Volunteering.";
+    `You are on the organisation dashboard. This is your workspace for creating volunteering roles, reviewing volunteer interest, accepting or contacting volunteers, and adding positive skills evidence. First, check the Workspace status card. The organisation type is currently ${getOrganisationTypeLabel(currentOrganisationType)}. The safeguarding region is currently ${getSafeguardingRegionLabel(currentSafeguardingRegion)}. Scotland uses PVG wording. England and Wales use DBS wording. Northern Ireland uses AccessNI wording. The School Safety Layer is in phase 1A, which means organisation-level readiness is saved but pupil filtering and role visibility changes are not active yet. Then use the Organisation readiness checklist to see what is ready and what needs action. The checklist includes organisation logo, volunteer safety statement, legal and safeguarding readiness, role setup, interest flow and positive pathway evidence. Below that, the summary cards show role, interest and skills review counts. Use Create role to make a new inclusive volunteering role. Use Interest inbox to review volunteers who clicked I'm interested. Use Roles and reviews to edit roles and open volunteers and reviews for each role. Use Volunteer connections to see people who have already interacted with your organisation through role interest or positive skills reviews. This is not a public volunteer database. The install card explains how to add SO Volunteering to your phone, tablet or computer home screen so it opens more like an app. Help using the app is for getting support if you are stuck, something is not working, or you want to report a problem with SO Volunteering.`;
 
   return (
     <main className="dashboard-bg organisation-dashboard-page">
@@ -479,6 +618,22 @@ export default async function OrganisationDashboardPage() {
                 Logo: <strong>{hasOrganisationLogo ? "Added" : "Not added"}</strong>
               </p>
               <p className="dashboard-progress-note organisation-status-note">
+                Type:{" "}
+                <strong>{getOrganisationTypeLabel(currentOrganisationType)}</strong>
+              </p>
+              <p className="dashboard-progress-note organisation-status-note">
+                Region:{" "}
+                <strong>{getSafeguardingRegionLabel(currentSafeguardingRegion)}</strong>
+              </p>
+              <p className="dashboard-progress-note organisation-status-note">
+                Children / pupils:{" "}
+                <strong>{worksWithChildrenOrPupils ? "Marked" : "Not marked"}</strong>
+              </p>
+              <p className="dashboard-progress-note organisation-status-note">
+                School mode:{" "}
+                <strong>{getSchoolVisibilityLabel(currentSchoolVisibilityMode)}</strong>
+              </p>
+              <p className="dashboard-progress-note organisation-status-note">
                 Roles: <strong>{totalRoleCount}</strong>
               </p>
               <p className="dashboard-progress-note organisation-status-note">
@@ -492,6 +647,79 @@ export default async function OrganisationDashboardPage() {
               </p>
             </div>
           </aside>
+        </section>
+
+        <section
+          className="organisation-safeguarding-panel"
+          aria-labelledby="organisation-safeguarding-title"
+        >
+          <div className="organisation-safeguarding-heading">
+            <span className="organisation-safeguarding-icon" aria-hidden="true">
+              ⚖️
+            </span>
+
+            <div>
+              <p className="dashboard-kicker">School safety layer phase 1A</p>
+              <h2 id="organisation-safeguarding-title">
+                Legal and safeguarding readiness
+              </h2>
+              <p>
+                This is an organisation-level readiness layer only. It records
+                organisation type, UK safeguarding wording, children/pupil
+                involvement and future school visibility mode. It does not yet
+                change what volunteers or pupils can see.
+              </p>
+            </div>
+          </div>
+
+          <div className="organisation-safeguarding-grid">
+            <article>
+              <span aria-hidden="true">🏷️</span>
+              <div>
+                <p>Organisation type</p>
+                <strong>{getOrganisationTypeLabel(currentOrganisationType)}</strong>
+              </div>
+            </article>
+
+            <article>
+              <span aria-hidden="true">🛡️</span>
+              <div>
+                <p>Safeguarding region</p>
+                <strong>{getSafeguardingRegionLabel(currentSafeguardingRegion)}</strong>
+              </div>
+            </article>
+
+            <article>
+              <span aria-hidden="true">👥</span>
+              <div>
+                <p>Children or pupils</p>
+                <strong>
+                  {worksWithChildrenOrPupils ? "May be involved" : "Not marked"}
+                </strong>
+              </div>
+            </article>
+
+            <article>
+              <span aria-hidden="true">🏫</span>
+              <div>
+                <p>School-safe mode</p>
+                <strong>{getSchoolVisibilityLabel(currentSchoolVisibilityMode)}</strong>
+              </div>
+            </article>
+          </div>
+
+          <div className="organisation-safeguarding-note">
+            <span aria-hidden="true">🧭</span>
+            <div>
+              <strong>Next controlled phase</strong>
+              <p>
+                Phase 1B will add role-level legal and safeguarding fields. For
+                now, keep using clear safety notes and review any role involving
+                children, pupils, supervision or regulated work/activity before
+                publishing.
+              </p>
+            </div>
+          </div>
         </section>
 
         <section
@@ -559,6 +787,44 @@ export default async function OrganisationDashboardPage() {
               href="/organisation/profile"
               action="Review safety wording"
               isReady={volunteerSafetyStatementActive}
+            />
+
+            <ReadinessItem
+              icon="🏷️"
+              title="Organisation type selected"
+              description={
+                hasOrganisationType
+                  ? `Saved as ${getOrganisationTypeLabel(currentOrganisationType)}.`
+                  : "Choose whether you are a charity, school, local authority/employability partner or other organisation."
+              }
+              href="/organisation/profile"
+              action={hasOrganisationType ? "Review type" : "Choose type"}
+              isReady={hasOrganisationType}
+            />
+
+            <ReadinessItem
+              icon="⚖️"
+              title="PVG / DBS / AccessNI region"
+              description={
+                hasSafeguardingRegion
+                  ? `Saved as ${getSafeguardingRegionLabel(currentSafeguardingRegion)}.`
+                  : "Choose the legal and safeguarding region wording that should guide your organisation setup."
+              }
+              href="/organisation/profile"
+              action={hasSafeguardingRegion ? "Review region" : "Choose region"}
+              isReady={hasSafeguardingRegion}
+            />
+
+            <ReadinessItem
+              icon="🏫"
+              title="School-safe mode prepared"
+              description={getSchoolSafetyDescription({
+                organisationType: currentOrganisationType,
+                schoolVisibilityMode: currentSchoolVisibilityMode,
+              })}
+              href="/organisation/profile"
+              action="Review school safety"
+              isReady={hasSchoolVisibilityMode}
             />
 
             <ReadinessItem
@@ -752,6 +1018,15 @@ export default async function OrganisationDashboardPage() {
 
           <OrganisationCard
             href="/organisation/profile"
+            icon="⚖️"
+            label="Safeguarding"
+            title="Legal and safeguarding readiness"
+            description={`Review organisation type, ${getSafeguardingRegionLabel(currentSafeguardingRegion)}, children/pupil readiness and future school-safe visibility.`}
+            action="Review safeguarding setup"
+          />
+
+          <OrganisationCard
+            href="/organisation/profile"
             icon="🖼️"
             label="Trust"
             title="Logo and volunteer safety"
@@ -790,7 +1065,7 @@ export default async function OrganisationDashboardPage() {
             href="/organisation/volunteers"
             icon="👥"
             label="Volunteer connections"
-            title="People you’ve worked with"
+            title="People you have worked with"
             description="See volunteers who have connected with your organisation through role interest or positive skills reviews. This is your organisation history only, not a public volunteer database."
             action="Open connections"
           />
@@ -897,7 +1172,8 @@ export default async function OrganisationDashboardPage() {
 
         .organisation-hero-card,
         .organisation-status-card,
-        .organisation-readiness-panel {
+        .organisation-readiness-panel,
+        .organisation-safeguarding-panel {
           overflow: hidden;
         }
 
@@ -905,7 +1181,9 @@ export default async function OrganisationDashboardPage() {
         .organisation-status-card,
         .organisation-status-card *,
         .organisation-readiness-panel,
-        .organisation-readiness-panel * {
+        .organisation-readiness-panel *,
+        .organisation-safeguarding-panel,
+        .organisation-safeguarding-panel * {
           min-width: 0;
         }
 
@@ -943,6 +1221,138 @@ export default async function OrganisationDashboardPage() {
 
         .organisation-compact-status-list .organisation-status-note {
           margin: 0;
+        }
+
+        .organisation-safeguarding-panel {
+          display: grid;
+          gap: 18px;
+          padding: clamp(18px, 4vw, 24px);
+          border: 1px solid rgba(108, 92, 160, 0.18);
+          border-radius: 30px;
+          background:
+            radial-gradient(circle at top left, rgba(222, 214, 255, 0.34), transparent 34%),
+            linear-gradient(135deg, rgba(248, 245, 255, 0.92), rgba(255, 255, 255, 0.92));
+          box-shadow: 0 18px 48px rgba(33, 56, 48, 0.08);
+        }
+
+        .organisation-safeguarding-heading {
+          display: grid;
+          grid-template-columns: auto 1fr;
+          gap: 14px;
+          align-items: start;
+        }
+
+        .organisation-safeguarding-icon {
+          display: inline-flex;
+          width: 62px;
+          height: 62px;
+          align-items: center;
+          justify-content: center;
+          border-radius: 22px;
+          background: rgba(108, 92, 160, 0.12);
+          box-shadow: inset 0 0 0 1px rgba(108, 92, 160, 0.14);
+          font-size: 1.85rem;
+        }
+
+        .organisation-safeguarding-heading h2 {
+          margin: 0 0 8px;
+          color: #4f4b82;
+          font-size: clamp(1.35rem, 3vw, 1.8rem);
+          font-weight: 950;
+          letter-spacing: -0.04em;
+          line-height: 1.1;
+        }
+
+        .organisation-safeguarding-heading p {
+          margin: 0;
+          color: #5f6072;
+          font-weight: 760;
+          line-height: 1.5;
+        }
+
+        .organisation-safeguarding-grid {
+          display: grid;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 12px;
+        }
+
+        .organisation-safeguarding-grid article {
+          display: grid;
+          grid-template-columns: auto 1fr;
+          gap: 10px;
+          align-items: start;
+          min-height: 112px;
+          padding: 14px;
+          border: 1px solid rgba(108, 92, 160, 0.12);
+          border-radius: 20px;
+          background: rgba(255, 255, 255, 0.78);
+          box-shadow: 0 12px 28px rgba(33, 56, 48, 0.05);
+        }
+
+        .organisation-safeguarding-grid article > span {
+          display: inline-flex;
+          width: 42px;
+          height: 42px;
+          align-items: center;
+          justify-content: center;
+          border-radius: 15px;
+          background: rgba(108, 92, 160, 0.1);
+          font-size: 1.25rem;
+        }
+
+        .organisation-safeguarding-grid p {
+          margin: 0 0 5px;
+          color: #5f6072;
+          font-size: 0.82rem;
+          font-weight: 900;
+          line-height: 1.15;
+        }
+
+        .organisation-safeguarding-grid strong {
+          display: block;
+          color: #4f4b82;
+          font-size: 0.98rem;
+          font-weight: 950;
+          line-height: 1.2;
+          overflow-wrap: anywhere;
+        }
+
+        .organisation-safeguarding-note {
+          display: grid;
+          grid-template-columns: auto 1fr;
+          gap: 12px;
+          align-items: start;
+          padding: 16px;
+          border: 1px solid rgba(34, 124, 78, 0.22);
+          border-radius: 22px;
+          background: rgba(244, 255, 249, 0.86);
+        }
+
+        .organisation-safeguarding-note > span {
+          display: inline-flex;
+          width: 48px;
+          height: 48px;
+          align-items: center;
+          justify-content: center;
+          border-radius: 17px;
+          background: rgba(34, 124, 78, 0.12);
+          font-size: 1.45rem;
+        }
+
+        .organisation-safeguarding-note strong {
+          display: block;
+          margin-bottom: 5px;
+          color: #145c38;
+          font-size: 1rem;
+          font-weight: 950;
+          line-height: 1.2;
+        }
+
+        .organisation-safeguarding-note p {
+          margin: 0;
+          color: #275f45;
+          font-weight: 760;
+          line-height: 1.45;
         }
 
         .organisation-readiness-panel {
@@ -1272,14 +1682,16 @@ export default async function OrganisationDashboardPage() {
 
         @media (max-width: 1180px) {
           .organisation-stat-grid,
-          .organisation-readiness-list {
+          .organisation-readiness-list,
+          .organisation-safeguarding-grid {
             grid-template-columns: repeat(3, minmax(0, 1fr));
           }
         }
 
         @media (max-width: 980px) {
           .organisation-workflow-steps,
-          .organisation-readiness-list {
+          .organisation-readiness-list,
+          .organisation-safeguarding-grid {
             grid-template-columns: repeat(2, minmax(0, 1fr));
           }
 
@@ -1410,7 +1822,8 @@ export default async function OrganisationDashboardPage() {
           }
 
           .organisation-stat-grid,
-          .organisation-readiness-list {
+          .organisation-readiness-list,
+          .organisation-safeguarding-grid {
             grid-template-columns: repeat(2, minmax(0, 1fr));
           }
 
@@ -1418,15 +1831,18 @@ export default async function OrganisationDashboardPage() {
             min-height: 112px;
           }
 
+          .organisation-safeguarding-panel,
           .organisation-readiness-panel {
             border-radius: 26px;
             padding: 18px;
           }
 
+          .organisation-safeguarding-heading,
           .organisation-readiness-heading {
             grid-template-columns: 1fr;
           }
 
+          .organisation-safeguarding-icon,
           .organisation-readiness-icon {
             width: 56px;
             height: 56px;
@@ -1438,8 +1854,13 @@ export default async function OrganisationDashboardPage() {
             text-align: left;
           }
 
+          .organisation-safeguarding-grid article,
           .organisation-readiness-item {
             min-height: 0;
+            grid-template-columns: 1fr;
+          }
+
+          .organisation-safeguarding-note {
             grid-template-columns: 1fr;
           }
 
@@ -1483,7 +1904,8 @@ export default async function OrganisationDashboardPage() {
         @media (max-width: 560px) {
           .organisation-stat-grid,
           .organisation-workflow-steps,
-          .organisation-readiness-list {
+          .organisation-readiness-list,
+          .organisation-safeguarding-grid {
             grid-template-columns: 1fr;
           }
 
