@@ -10,6 +10,24 @@ type Profile = {
   user_type: string | null;
 };
 
+type OrganisationType =
+  | "charity_community"
+  | "school_college"
+  | "local_authority_employability"
+  | "other";
+
+type SafeguardingRegion =
+  | "scotland"
+  | "england_wales"
+  | "northern_ireland"
+  | "other";
+
+type SchoolVisibilityMode =
+  | "not_applicable"
+  | "school_approved_only"
+  | "trusted_local_only"
+  | "all_public_with_blocks";
+
 type UploadableLogoFile = {
   name?: string;
   type?: string;
@@ -21,6 +39,38 @@ function normaliseUserType(value: string | null | undefined) {
   return value?.trim().toLowerCase() === "organisation"
     ? "organisation"
     : "volunteer";
+}
+
+function normaliseOrganisationType(value: string): OrganisationType {
+  if (value === "school_college") return "school_college";
+  if (value === "local_authority_employability") {
+    return "local_authority_employability";
+  }
+  if (value === "other") return "other";
+
+  return "charity_community";
+}
+
+function normaliseSafeguardingRegion(value: string): SafeguardingRegion {
+  if (value === "england_wales") return "england_wales";
+  if (value === "northern_ireland") return "northern_ireland";
+  if (value === "other") return "other";
+
+  return "scotland";
+}
+
+function normaliseSchoolVisibilityMode(
+  value: string,
+  organisationType: OrganisationType,
+): SchoolVisibilityMode {
+  if (organisationType !== "school_college") {
+    return "not_applicable";
+  }
+
+  if (value === "trusted_local_only") return "trusted_local_only";
+  if (value === "all_public_with_blocks") return "all_public_with_blocks";
+
+  return "school_approved_only";
 }
 
 function cleanWebsite(value: string) {
@@ -200,8 +250,29 @@ export async function saveOrganisationProfile(formData: FormData) {
 
   const location = String(formData.get("location") || "").trim();
   const purpose = String(formData.get("purpose") || "").trim();
+
+  const organisationType = normaliseOrganisationType(
+    String(formData.get("organisation_type") || ""),
+  );
+
+  const safeguardingRegion = normaliseSafeguardingRegion(
+    String(formData.get("safeguarding_region") || ""),
+  );
+
+  const worksWithChildrenOrPupils =
+    formData.get("works_with_children_or_pupils") === "on";
+
+  const schoolVisibilityMode = normaliseSchoolVisibilityMode(
+    String(formData.get("school_visibility_mode") || ""),
+    organisationType,
+  );
+
   const safeguardingNotes = String(
     formData.get("safeguarding_notes") || "",
+  ).trim();
+
+  const legalSafeguardingNotes = String(
+    formData.get("legal_safeguarding_notes") || "",
   ).trim();
 
   const volunteerTypes = formData.getAll("volunteer_types").map(String);
@@ -280,6 +351,11 @@ export async function saveOrganisationProfile(formData: FormData) {
       support_offered: supportOffered,
       safeguarding_notes: safeguardingNotes || null,
       profile_completed: profileCompleted,
+      organisation_type: organisationType,
+      safeguarding_region: safeguardingRegion,
+      works_with_children_or_pupils: worksWithChildrenOrPupils,
+      school_visibility_mode: schoolVisibilityMode,
+      legal_safeguarding_notes: legalSafeguardingNotes || null,
       updated_at: new Date().toISOString(),
     },
     { onConflict: "user_id" },
