@@ -51,12 +51,21 @@ function cleanLogoUrl(value: string) {
   return "";
 }
 
-function isUploadableLogoFile(value: FormDataEntryValue | null): value is UploadableLogoFile {
+function isUploadableLogoFile(value: unknown): value is UploadableLogoFile {
   if (!value || typeof value === "string") {
     return false;
   }
 
-  const maybeFile = value as Partial<UploadableLogoFile>;
+  if (typeof value !== "object") {
+    return false;
+  }
+
+  const maybeFile = value as {
+    name?: unknown;
+    type?: unknown;
+    size?: unknown;
+    arrayBuffer?: unknown;
+  };
 
   return (
     typeof maybeFile.arrayBuffer === "function" &&
