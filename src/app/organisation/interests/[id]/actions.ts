@@ -27,6 +27,7 @@ function normaliseInterestStatus(value: string) {
   if (status === "closed") return "closed";
 
   if (status === "review" || status === "reviewed") return "contacted";
+
   if (status === "pending" || status === "sent" || status === "interested") {
     return "new";
   }
@@ -38,7 +39,7 @@ async function requireOrganisationUser() {
   const supabase = await createClient();
 
   const {
-    data: { user }
+    data: { user },
   } = await supabase.auth.getUser();
 
   if (!user) {
@@ -69,7 +70,9 @@ export async function updateInterestStatus(formData: FormData) {
   const { supabase, user } = await requireOrganisationUser();
 
   const interestId = String(formData.get("interest_id") || "").trim();
-  const status = normaliseInterestStatus(String(formData.get("status") || "new"));
+  const status = normaliseInterestStatus(
+    String(formData.get("status") || "new"),
+  );
 
   if (!interestId) {
     redirect("/organisation/interests");
@@ -90,7 +93,7 @@ export async function updateInterestStatus(formData: FormData) {
     .from("opportunity_interests")
     .update({
       status,
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
     })
     .eq("id", interest.id)
     .eq("organisation_user_id", user.id);
@@ -98,14 +101,14 @@ export async function updateInterestStatus(formData: FormData) {
   if (error) {
     redirect(
       `/organisation/interests/${interest.id}?error=${encodeURIComponent(
-        error.message
-      )}`
+        error.message,
+      )}`,
     );
   }
 
   redirect(
     `/organisation/interests/${interest.id}?message=${encodeURIComponent(
-      "Interest status updated."
-    )}`
+      "Interest status updated.",
+    )}`,
   );
 }
