@@ -34,6 +34,27 @@ type VolunteerPreferences = {
   listen_mode: string | null;
 };
 
+type SchoolPupilMembership = {
+  school_user_id: string;
+  membership_status: string;
+};
+
+type SchoolFilteringProfile = {
+  user_id: string;
+  organisation_name: string | null;
+  school_visibility_mode: string | null;
+};
+
+type SchoolOrganisationApproval = {
+  approved_organisation_user_id: string;
+  approval_status: string;
+};
+
+type SchoolOpportunityApproval = {
+  opportunity_id: string;
+  approval_status: string;
+};
+
 type Opportunity = {
   id: string;
   organisation_user_id: string;
@@ -703,9 +724,86 @@ export default async function OpportunitiesPage() {
 
   const rows = (opportunities as Opportunity[] | null) ?? [];
 
+  const { data: activeSchoolMembershipsData } = await supabase
+    .from("school_pupil_memberships")
+    .select("school_user_id,membership_status")
+    .eq("volunteer_user_id", user.id)
+    .eq("membership_status", "active");
+
+  const activeSchoolMemberships =
+    (activeSchoolMembershipsData as SchoolPupilMembership[] | null) ?? [];
+
+  const activeSchoolUserIds = Array.from(
+    new Set(
+      activeSchoolMemberships
+        .map((membership) => membership.school_user_id)
+        .filter((value): value is string => Boolean(value)),
+    ),
+  );
+
+  let schoolFilteringProfiles: SchoolFilteringProfile[] = [];
+
+  if (activeSchoolUserIds.length > 0) {
+    const { data: schoolProfilesData } = await supabase
+      .from("organisation_profiles")
+      .select("user_id,organisation_name,school_visibility_mode")
+      .in("user_id", activeSchoolUserIds);
+
+    schoolFilteringProfiles =
+      (schoolProfilesData as SchoolFilteringProfile[] | null) ?? [];
+  }
+
+  const schoolApprovedOnlyUserIds = schoolFilteringProfiles
+    .filter(
+      (schoolProfile) =>
+        schoolProfile.school_visibility_mode === "school_approved_only",
+    )
+    .map((schoolProfile) => schoolProfile.user_id);
+
+  let visibleRows = rows;
+  let approvedOrganisationIds = new Set<string>();
+  let approvedOpportunityIds = new Set<string>();
+
+  if (schoolApprovedOnlyUserIds.length > 0) {
+    const { data: organisationApprovalsData } = await supabase
+      .from("school_approval_organisations")
+      .select("approved_organisation_user_id,approval_status")
+      .in("school_user_id", schoolApprovedOnlyUserIds)
+      .eq("approval_status", "approved");
+
+    const { data: opportunityApprovalsData } = await supabase
+      .from("school_approval_opportunities")
+      .select("opportunity_id,approval_status")
+      .in("school_user_id", schoolApprovedOnlyUserIds)
+      .eq("approval_status", "approved");
+
+    const organisationApprovals =
+      (organisationApprovalsData as SchoolOrganisationApproval[] | null) ?? [];
+    const opportunityApprovals =
+      (opportunityApprovalsData as SchoolOpportunityApproval[] | null) ?? [];
+
+    approvedOrganisationIds = new Set(
+      organisationApprovals.map(
+        (approval) => approval.approved_organisation_user_id,
+      ),
+    );
+    approvedOpportunityIds = new Set(
+      opportunityApprovals.map((approval) => approval.opportunity_id),
+    );
+
+    visibleRows = rows.filter(
+      (row) =>
+        approvedOrganisationIds.has(row.organisation_user_id) ||
+        approvedOpportunityIds.has(row.id),
+    );
+  }
+
+  const schoolFilteringActive = schoolApprovedOnlyUserIds.length > 0;
+  const schoolFilteredOutCount = Math.max(0, rows.length - visibleRows.length);
+
   const organisationUserIds = Array.from(
     new Set(
-      rows
+      visibleRows
         .map((row) => row.organisation_user_id)
         .filter((value): value is string => Boolean(value)),
     ),
@@ -733,7 +831,7 @@ export default async function OpportunitiesPage() {
   const simpleView = viewMode === "simple";
   const detailedView = viewMode === "detailed";
 
-  const matchedRows = getMatchedOpportunities(rows, volunteerProfile ?? null);
+  const matchedRows = getMatchedOpportunities(visibleRows, volunteerProfile ?? null);
 
   const strongMatchCount = matchedRows.filter(
     (row) => row.match.tone === "strong",
@@ -747,7 +845,7 @@ export default async function OpportunitiesPage() {
     (row) => row.match.tone === "explore",
   ).length;
 
-  const rolesWithSafetyInfoCount = rows.filter((row) =>
+  const rolesWithSafetyInfoCount = visibleRows.filter((row) =>
     hasRoleSafetyInformation(row),
   ).length;
 
@@ -771,13 +869,15 @@ export default async function OpportunitiesPage() {
     {
       icon: "🔎",
       title: "Compare matches",
-      text: "Strong, good and explore labels are guides. You can open any role.",
-      isComplete: rows.length > 0,
+      text: "Strong, good and explore labels are guides. You can open any role shown here.",
+      isComplete: visibleRows.length > 0,
     },
     {
       icon: "🛡️",
       title: "Check safety",
-      text: "Look for organisation details, role safety, support offered and safe location wording.",
+      text: schoolFilteringActive
+        ? "Your school-approved view is active. Still read each role’s safety and support details."
+        : "Look for organisation details, role safety, support offered and safe location wording.",
       isComplete: true,
     },
     {
@@ -789,8 +889,14 @@ export default async function OpportunitiesPage() {
   ];
 
   const listenText = simpleView
-    ? "You are on the Best roles for me page. Best matches are shown first. Each card shows an organisation, safe location, time commitment, role safety preview and match label. Choose Read more when a role sounds right. Use Dashboard to go back."
-    : `You are on the Best roles for me page. This page shows published volunteering roles, with the strongest profile matches first. You currently have ${rows.length} published role${rows.length === 1 ? "" : "s"}, ${strongMatchCount} strong match${strongMatchCount === 1 ? "" : "es"}, ${goodMatchCount} good match${goodMatchCount === 1 ? "" : "es"} and ${exploreMatchCount} explore role${exploreMatchCount === 1 ? "" : "s"}. ${rolesWithSafetyInfoCount} role${rolesWithSafetyInfoCount === 1 ? "" : "s"} include extra role safety information. Each card includes the organisation name or logo when available, safe location summary, time commitment, role safety preview, support offered, and gentle match information based on your profile. Match labels are only a guide, and you can explore any role that interests you. Your preferred contact method is ${preferredContactLabel}. Remember that SO Volunteering and organisations using the app should never ask for money, bank details, passwords or financial information. Select Read more to open the full opportunity details page.`;
+    ? schoolFilteringActive
+      ? "You are on the Best roles for me page. Your school-approved view is active, so only opportunities approved by your linked school are shown here. Best matches are shown first. Choose Read more when a role sounds right. Use Dashboard to go back."
+      : "You are on the Best roles for me page. Best matches are shown first. Each card shows an organisation, safe location, time commitment, role safety preview and match label. Choose Read more when a role sounds right. Use Dashboard to go back."
+    : `You are on the Best roles for me page. This page shows published volunteering roles, with the strongest profile matches first. ${
+        schoolFilteringActive
+          ? `Your school-approved view is active, so roles are limited to organisations or opportunities approved by your linked school. ${schoolFilteredOutCount} role${schoolFilteredOutCount === 1 ? "" : "s"} are hidden from this list because they are not school-approved for your active school membership. `
+          : "Your school-approved view is not active, so normal opportunity browsing is unchanged. "
+      }You currently have ${visibleRows.length} visible published role${visibleRows.length === 1 ? "" : "s"}, ${strongMatchCount} strong match${strongMatchCount === 1 ? "" : "es"}, ${goodMatchCount} good match${goodMatchCount === 1 ? "" : "es"} and ${exploreMatchCount} explore role${exploreMatchCount === 1 ? "" : "s"}. ${rolesWithSafetyInfoCount} role${rolesWithSafetyInfoCount === 1 ? "" : "s"} include extra role safety information. Each card includes the organisation name or logo when available, safe location summary, time commitment, role safety preview, support offered, and gentle match information based on your profile. Match labels are only a guide. Your preferred contact method is ${preferredContactLabel}. Remember that SO Volunteering and organisations using the app should never ask for money, bank details, passwords or financial information. Select Read more to open the full opportunity details page.`;
 
   const shellClassName = [
     "dashboard-bg",
@@ -853,9 +959,11 @@ export default async function OpportunitiesPage() {
             </h1>
 
             <p className="dashboard-lead">
-              {simpleView
-                ? "Look through available roles and open any that feel right."
-                : "Browse published opportunities from organisations. Best matches are shown first, but every role is open to explore."}
+              {schoolFilteringActive
+                ? "Your school-approved view is active. This list only shows roles from organisations or opportunities approved by your linked school."
+                : simpleView
+                  ? "Look through available roles and open any that feel right."
+                  : "Browse published opportunities from organisations. Best matches are shown first, but every role is open to explore."}
             </p>
 
             <div className="dashboard-primary-actions opportunities-primary-actions">
@@ -890,6 +998,16 @@ export default async function OpportunitiesPage() {
               </Link>
 
               <Link
+                href="/profile/school"
+                className="secondary-button dashboard-main-action"
+              >
+                <span className="dashboard-button-inner">
+                  <span aria-hidden="true">🏫</span>
+                  <span>School link</span>
+                </span>
+              </Link>
+
+              <Link
                 href="/pathway"
                 className="secondary-button dashboard-main-action"
               >
@@ -909,7 +1027,8 @@ export default async function OpportunitiesPage() {
               <div>
                 <h2>Available now</h2>
                 <p>
-                  {rows.length} published role{rows.length === 1 ? "" : "s"}.
+                  {visibleRows.length} visible published role
+                  {visibleRows.length === 1 ? "" : "s"}.
                 </p>
               </div>
             </div>
@@ -932,6 +1051,23 @@ export default async function OpportunitiesPage() {
               <p className="dashboard-progress-note">
                 Safety info added: <strong>{rolesWithSafetyInfoCount}</strong>
               </p>
+
+              {schoolFilteringActive ? (
+                <p className="dashboard-progress-note">
+                  School-approved view: <strong>Active</strong>
+                </p>
+              ) : (
+                <p className="dashboard-progress-note">
+                  School-approved view: <strong>Not active</strong>
+                </p>
+              )}
+
+              {schoolFilteringActive ? (
+                <p className="dashboard-progress-note">
+                  Hidden by school filter:{" "}
+                  <strong>{schoolFilteredOutCount}</strong>
+                </p>
+              ) : null}
             </div>
 
             <div className="role-contact-summary">
@@ -952,6 +1088,27 @@ export default async function OpportunitiesPage() {
             ) : null}
           </aside>
         </section>
+
+        {schoolFilteringActive ? (
+          <section
+            className="school-filter-panel"
+            aria-labelledby="school-filter-title"
+          >
+            <div className="school-filter-icon" aria-hidden="true">
+              🏫
+            </div>
+
+            <div>
+              <p className="dashboard-kicker">School-approved view</p>
+              <h2 id="school-filter-title">Your linked school filter is active</h2>
+              <p>
+                This list is limited to organisations or specific opportunities
+                approved by your linked school. Direct public pages have not
+                been blocked in this step while the list filter is being tested.
+              </p>
+            </div>
+          </section>
+        ) : null}
 
         <RoleGuide steps={guideSteps} />
 
@@ -997,12 +1154,16 @@ export default async function OpportunitiesPage() {
           <StatCard
             icon="📣"
             label="Total"
-            value={rows.length}
-            helper="Published roles available"
+            value={visibleRows.length}
+            helper={
+              schoolFilteringActive
+                ? "School-approved roles visible"
+                : "Published roles available"
+            }
           />
         </section>
 
-        {rows.length === 0 ? (
+        {visibleRows.length === 0 ? (
           <section className="dashboard-grid" aria-label="No opportunities yet">
             <article className="info-card dashboard-pathway-card opportunities-card">
               <div className="dashboard-card-icon" aria-hidden="true">
@@ -1011,11 +1172,20 @@ export default async function OpportunitiesPage() {
 
               <div className="dashboard-card-copy">
                 <div className="dashboard-card-main">
-                  <p className="dashboard-card-label">Nothing published yet</p>
-                  <h2>No opportunities available</h2>
+                  <p className="dashboard-card-label">
+                    {schoolFilteringActive
+                      ? "No school-approved roles yet"
+                      : "Nothing published yet"}
+                  </p>
+                  <h2>
+                    {schoolFilteringActive
+                      ? "No approved opportunities available"
+                      : "No opportunities available"}
+                  </h2>
                   <p>
-                    Organisations have not published any volunteering roles yet.
-                    Check back soon.
+                    {schoolFilteringActive
+                      ? "Your school-approved view is active, but your linked school has not approved any currently published roles yet."
+                      : "Organisations have not published any volunteering roles yet. Check back soon."}
                   </p>
                 </div>
 
@@ -1228,7 +1398,8 @@ export default async function OpportunitiesPage() {
         }
 
         .role-guide-panel,
-        .role-safety-panel {
+        .role-safety-panel,
+        .school-filter-panel {
           padding: clamp(20px, 4vw, 28px);
           border: 1px solid rgba(143, 178, 158, 0.22);
           border-radius: 30px;
@@ -1246,13 +1417,21 @@ export default async function OpportunitiesPage() {
             linear-gradient(135deg, rgba(248, 245, 255, 0.92), rgba(255, 255, 255, 0.9));
         }
 
-        .role-safety-panel {
+        .role-safety-panel,
+        .school-filter-panel {
           grid-template-columns: auto 1fr;
           align-items: start;
           border-color: rgba(34, 124, 78, 0.24);
           background:
             radial-gradient(circle at top left, rgba(155, 232, 190, 0.38), transparent 34%),
             linear-gradient(135deg, rgba(244, 255, 249, 0.94), rgba(255, 255, 255, 0.9));
+        }
+
+        .school-filter-panel {
+          border-color: rgba(108, 92, 160, 0.2);
+          background:
+            radial-gradient(circle at top left, rgba(222, 214, 255, 0.36), transparent 34%),
+            linear-gradient(135deg, rgba(248, 245, 255, 0.94), rgba(255, 255, 255, 0.9));
         }
 
         .role-guide-heading {
@@ -1263,7 +1442,8 @@ export default async function OpportunitiesPage() {
         }
 
         .role-guide-heading > span,
-        .role-safety-icon {
+        .role-safety-icon,
+        .school-filter-icon {
           display: inline-flex;
           width: 62px;
           height: 62px;
@@ -1280,8 +1460,14 @@ export default async function OpportunitiesPage() {
           box-shadow: inset 0 0 0 1px rgba(34, 124, 78, 0.16);
         }
 
+        .school-filter-icon {
+          background: rgba(108, 92, 160, 0.12);
+          box-shadow: inset 0 0 0 1px rgba(108, 92, 160, 0.16);
+        }
+
         .role-guide-heading h2,
-        .role-safety-panel h2 {
+        .role-safety-panel h2,
+        .school-filter-panel h2 {
           margin: 2px 0 8px;
           color: #315f48;
           font-size: clamp(1.35rem, 3vw, 1.8rem);
@@ -1290,8 +1476,13 @@ export default async function OpportunitiesPage() {
           line-height: 1.1;
         }
 
+        .school-filter-panel h2 {
+          color: #4f4b82;
+        }
+
         .role-guide-heading p,
-        .role-safety-panel p {
+        .role-safety-panel p,
+        .school-filter-panel p {
           margin: 0;
           max-width: 760px;
           color: #60706a;
@@ -1834,6 +2025,7 @@ export default async function OpportunitiesPage() {
         .preference-theme-calm_green .role-safety-preview,
         .preference-theme-calm_green .role-guide-panel,
         .preference-theme-calm_green .role-safety-panel,
+        .preference-theme-calm_green .school-filter-panel,
         .preference-theme-calm_green .role-stat-card {
           border-color: rgba(83, 111, 99, 0.2);
         }
@@ -1858,6 +2050,7 @@ export default async function OpportunitiesPage() {
         .preference-theme-soft_blue .role-safety-preview,
         .preference-theme-soft_blue .role-guide-panel,
         .preference-theme-soft_blue .role-safety-panel,
+        .preference-theme-soft_blue .school-filter-panel,
         .preference-theme-soft_blue .role-stat-card {
           border-color: rgba(74, 112, 160, 0.2);
         }
@@ -1882,6 +2075,7 @@ export default async function OpportunitiesPage() {
         .preference-theme-warm_peach .role-safety-preview,
         .preference-theme-warm_peach .role-guide-panel,
         .preference-theme-warm_peach .role-safety-panel,
+        .preference-theme-warm_peach .school-filter-panel,
         .preference-theme-warm_peach .role-stat-card {
           border-color: rgba(190, 118, 76, 0.2);
         }
@@ -1908,6 +2102,7 @@ export default async function OpportunitiesPage() {
         .preference-theme-high_contrast .role-guide-panel,
         .preference-theme-high_contrast .role-guide-step,
         .preference-theme-high_contrast .role-safety-panel,
+        .preference-theme-high_contrast .school-filter-panel,
         .preference-theme-high_contrast .role-stat-card,
         .preference-theme-high_contrast .role-info-strip,
         .preference-theme-high_contrast .role-chip {
@@ -1923,6 +2118,7 @@ export default async function OpportunitiesPage() {
         .preference-theme-high_contrast .role-guide-heading h2,
         .preference-theme-high_contrast .role-guide-step-copy h3,
         .preference-theme-high_contrast .role-safety-panel h2,
+        .preference-theme-high_contrast .school-filter-panel h2,
         .preference-theme-high_contrast .role-stat-card strong,
         .preference-theme-high_contrast .opportunity-organisation h3 {
           color: #111827;
@@ -1941,6 +2137,7 @@ export default async function OpportunitiesPage() {
         .preference-theme-high_contrast .role-guide-heading p,
         .preference-theme-high_contrast .role-guide-step-copy p,
         .preference-theme-high_contrast .role-safety-panel p,
+        .preference-theme-high_contrast .school-filter-panel p,
         .preference-theme-high_contrast .role-stat-card p,
         .preference-theme-high_contrast .role-stat-card small,
         .preference-theme-high_contrast .role-info-strip,
@@ -1956,6 +2153,7 @@ export default async function OpportunitiesPage() {
         .preference-theme-high_contrast .role-guide-heading > span,
         .preference-theme-high_contrast .role-guide-step-icon,
         .preference-theme-high_contrast .role-safety-icon,
+        .preference-theme-high_contrast .school-filter-icon,
         .preference-theme-high_contrast .role-stat-card > span,
         .preference-theme-high_contrast .opportunity-organisation-logo,
         .preference-theme-high_contrast .opportunity-organisation-logo-fallback {
@@ -1985,6 +2183,7 @@ export default async function OpportunitiesPage() {
         .preference-theme-neon_arcade .role-guide-panel,
         .preference-theme-neon_arcade .role-guide-step,
         .preference-theme-neon_arcade .role-safety-panel,
+        .preference-theme-neon_arcade .school-filter-panel,
         .preference-theme-neon_arcade .role-stat-card,
         .preference-theme-neon_arcade .role-info-strip {
           border-color: rgba(34, 211, 238, 0.42);
@@ -2003,6 +2202,7 @@ export default async function OpportunitiesPage() {
         .preference-theme-neon_arcade .role-guide-heading h2,
         .preference-theme-neon_arcade .role-guide-step-copy h3,
         .preference-theme-neon_arcade .role-safety-panel h2,
+        .preference-theme-neon_arcade .school-filter-panel h2,
         .preference-theme-neon_arcade .role-stat-card strong,
         .preference-theme-neon_arcade .opportunity-organisation h3 {
           color: #e0f2fe;
@@ -2020,6 +2220,7 @@ export default async function OpportunitiesPage() {
         .preference-theme-neon_arcade .role-guide-heading p,
         .preference-theme-neon_arcade .role-guide-step-copy p,
         .preference-theme-neon_arcade .role-safety-panel p,
+        .preference-theme-neon_arcade .school-filter-panel p,
         .preference-theme-neon_arcade .role-stat-card p,
         .preference-theme-neon_arcade .role-stat-card small,
         .preference-theme-neon_arcade .role-info-strip,
@@ -2034,6 +2235,7 @@ export default async function OpportunitiesPage() {
         .preference-theme-neon_arcade .role-guide-heading > span,
         .preference-theme-neon_arcade .role-guide-step-icon,
         .preference-theme-neon_arcade .role-safety-icon,
+        .preference-theme-neon_arcade .school-filter-icon,
         .preference-theme-neon_arcade .role-stat-card > span,
         .preference-theme-neon_arcade .opportunity-organisation-logo,
         .preference-theme-neon_arcade .opportunity-organisation-logo-fallback {
@@ -2076,12 +2278,14 @@ export default async function OpportunitiesPage() {
           }
 
           .role-safety-panel,
+          .school-filter-panel,
           .role-guide-heading {
             grid-template-columns: 1fr;
           }
 
           .role-guide-heading > span,
-          .role-safety-icon {
+          .role-safety-icon,
+          .school-filter-icon {
             width: 56px;
             height: 56px;
             border-radius: 20px;
@@ -2148,7 +2352,8 @@ export default async function OpportunitiesPage() {
           }
 
           .role-guide-panel,
-          .role-safety-panel {
+          .role-safety-panel,
+          .school-filter-panel {
             border-radius: 26px;
             padding: 18px;
           }
