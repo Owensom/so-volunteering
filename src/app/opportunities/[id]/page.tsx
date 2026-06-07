@@ -56,6 +56,23 @@ type Opportunity = {
   contact_email: string | null;
   safety_notes: string | null;
   status: string;
+
+  minimum_age_stage: string | null;
+  suitable_for_pupils: boolean | null;
+  parent_carer_consent_required: boolean | null;
+  school_approval_required: boolean | null;
+  safeguarding_check_region: string | null;
+  safeguarding_review_required: boolean | null;
+  supervision_required: boolean | null;
+  no_lone_working: boolean | null;
+  no_home_visits: boolean | null;
+  no_money_handling: boolean | null;
+  no_personal_care: boolean | null;
+  no_private_messaging: boolean | null;
+  risk_assessment_completed: boolean | null;
+  named_safeguarding_contact: string | null;
+  legal_safeguarding_notes: string | null;
+  role_frequency_pattern: string | null;
 };
 
 type OrganisationProfile = {
@@ -77,6 +94,12 @@ type RoleGuideStep = {
   title: string;
   text: string;
   isComplete: boolean;
+};
+
+type SafetyBadge = {
+  icon: string;
+  label: string;
+  className: string;
 };
 
 function normaliseUserType(value: string | null | undefined) {
@@ -286,6 +309,215 @@ function getOrganisationLogoUrl(
   return "";
 }
 
+function getMinimumAgeStageLabel(value: string | null | undefined) {
+  if (value === "adults_only") return "Adults only";
+  if (value === "sixteen_plus") return "16+";
+  if (value === "fourteen_plus") return "14+";
+  if (value === "school_pupils_with_approval") {
+    return "School pupils with school approval";
+  }
+  if (value === "school_pupils_with_parent_carer_consent") {
+    return "School pupils with parent/carer consent";
+  }
+
+  return "Age/stage not listed";
+}
+
+function getSafeguardingCheckRegionLabel(value: string | null | undefined) {
+  if (value === "scotland_pvg") return "Scotland - PVG";
+  if (value === "england_wales_dbs") return "England / Wales - DBS";
+  if (value === "northern_ireland_accessni") {
+    return "Northern Ireland - AccessNI";
+  }
+  if (value === "not_expected") return "Not expected for this role";
+  if (value === "not_sure") return "Not sure - needs review";
+
+  return "Organisation default";
+}
+
+function getFrequencyPatternLabel(value: string | null | undefined) {
+  if (value === "one_off") return "One-off";
+  if (value === "occasional") return "Occasional";
+  if (value === "weekly_or_regular") return "Weekly or regular";
+  if (value === "more_than_three_days_in_thirty") {
+    return "More than 3 days in 30 days";
+  }
+  if (value === "overnight") return "Overnight or late-night activity";
+  if (value === "not_sure") return "Not sure - needs review";
+
+  return "Frequency not listed";
+}
+
+function hasRoleSafetyInformation(opportunity: Opportunity) {
+  return Boolean(
+    (opportunity.minimum_age_stage &&
+      opportunity.minimum_age_stage !== "not_set") ||
+      (opportunity.safeguarding_check_region &&
+        opportunity.safeguarding_check_region !== "organisation_default") ||
+      (opportunity.role_frequency_pattern &&
+        opportunity.role_frequency_pattern !== "not_set") ||
+      opportunity.suitable_for_pupils === true ||
+      opportunity.parent_carer_consent_required === true ||
+      opportunity.school_approval_required === true ||
+      opportunity.safeguarding_review_required === true ||
+      opportunity.supervision_required === true ||
+      opportunity.no_lone_working === true ||
+      opportunity.no_home_visits === true ||
+      opportunity.no_money_handling === true ||
+      opportunity.no_personal_care === true ||
+      opportunity.no_private_messaging === true ||
+      opportunity.risk_assessment_completed === true ||
+      hasText(opportunity.named_safeguarding_contact) ||
+      hasText(opportunity.legal_safeguarding_notes),
+  );
+}
+
+function getSafetyBadges(opportunity: Opportunity): SafetyBadge[] {
+  const badges: SafetyBadge[] = [];
+
+  if (
+    opportunity.minimum_age_stage &&
+    opportunity.minimum_age_stage !== "not_set"
+  ) {
+    badges.push({
+      icon: "👥",
+      label: getMinimumAgeStageLabel(opportunity.minimum_age_stage),
+      className: "role-safety-badge-info",
+    });
+  }
+
+  if (
+    opportunity.safeguarding_check_region &&
+    opportunity.safeguarding_check_region !== "organisation_default"
+  ) {
+    badges.push({
+      icon: "🛡️",
+      label: getSafeguardingCheckRegionLabel(
+        opportunity.safeguarding_check_region,
+      ),
+      className:
+        opportunity.safeguarding_check_region === "not_sure"
+          ? "role-safety-badge-warning"
+          : "role-safety-badge-info",
+    });
+  }
+
+  if (
+    opportunity.role_frequency_pattern &&
+    opportunity.role_frequency_pattern !== "not_set"
+  ) {
+    badges.push({
+      icon: "🔁",
+      label: getFrequencyPatternLabel(opportunity.role_frequency_pattern),
+      className:
+        opportunity.role_frequency_pattern === "not_sure" ||
+        opportunity.role_frequency_pattern ===
+          "more_than_three_days_in_thirty" ||
+        opportunity.role_frequency_pattern === "overnight"
+          ? "role-safety-badge-warning"
+          : "role-safety-badge-info",
+    });
+  }
+
+  if (opportunity.suitable_for_pupils === true) {
+    badges.push({
+      icon: "🏫",
+      label: "May be suitable for pupils",
+      className: "role-safety-badge-warning",
+    });
+  }
+
+  if (opportunity.school_approval_required === true) {
+    badges.push({
+      icon: "✅",
+      label: "School approval required",
+      className: "role-safety-badge-warning",
+    });
+  }
+
+  if (opportunity.parent_carer_consent_required === true) {
+    badges.push({
+      icon: "👪",
+      label: "Parent/carer consent required",
+      className: "role-safety-badge-warning",
+    });
+  }
+
+  if (opportunity.safeguarding_review_required === true) {
+    badges.push({
+      icon: "⚖️",
+      label: "Safeguarding review required",
+      className: "role-safety-badge-warning",
+    });
+  }
+
+  if (opportunity.supervision_required === true) {
+    badges.push({
+      icon: "👀",
+      label: "Supervision required",
+      className: "role-safety-badge-ready",
+    });
+  }
+
+  if (opportunity.no_lone_working === true) {
+    badges.push({
+      icon: "🚫",
+      label: "No lone working",
+      className: "role-safety-badge-ready",
+    });
+  }
+
+  if (opportunity.no_home_visits === true) {
+    badges.push({
+      icon: "🏠",
+      label: "No home visits",
+      className: "role-safety-badge-ready",
+    });
+  }
+
+  if (opportunity.no_money_handling === true) {
+    badges.push({
+      icon: "💷",
+      label: "No money handling",
+      className: "role-safety-badge-ready",
+    });
+  }
+
+  if (opportunity.no_personal_care === true) {
+    badges.push({
+      icon: "🤲",
+      label: "No personal care",
+      className: "role-safety-badge-ready",
+    });
+  }
+
+  if (opportunity.no_private_messaging === true) {
+    badges.push({
+      icon: "📵",
+      label: "No private messaging outside approved contact route",
+      className: "role-safety-badge-ready",
+    });
+  }
+
+  if (opportunity.risk_assessment_completed === true) {
+    badges.push({
+      icon: "📋",
+      label: "Risk assessment checked by organisation",
+      className: "role-safety-badge-ready",
+    });
+  }
+
+  if (hasText(opportunity.named_safeguarding_contact)) {
+    badges.push({
+      icon: "👤",
+      label: "Named safeguarding contact added",
+      className: "role-safety-badge-ready",
+    });
+  }
+
+  return badges;
+}
+
 function ChipList({
   values,
   emptyText,
@@ -350,9 +582,9 @@ function RoleGuide({ steps }: { steps: RoleGuideStep[] }) {
           <p className="dashboard-kicker">Step-by-step guide</p>
           <h2 id="role-guide-title">How to decide if this role is right</h2>
           <p>
-            Read the organisation details, check the location and support, look
-            at the match guide, then express interest only when the role feels
-            safe and realistic for you.
+            Read the organisation details, check the location, support and role
+            safety information, look at the match guide, then express interest
+            only when the role feels safe and realistic for you.
           </p>
         </div>
       </div>
@@ -453,7 +685,7 @@ export default async function OpportunityDetailPage({
   const { data: opportunity } = await supabase
     .from("opportunities")
     .select(
-      "id,organisation_user_id,title,summary,location_type,location,location_town_city,location_area,location_venue,location_postcode,travel_notes,accessibility_notes,hide_exact_location,time_commitment,interests,skills,support_offered,contact_name,contact_email,safety_notes,status",
+      "id,organisation_user_id,title,summary,location_type,location,location_town_city,location_area,location_venue,location_postcode,travel_notes,accessibility_notes,hide_exact_location,time_commitment,interests,skills,support_offered,contact_name,contact_email,safety_notes,status,minimum_age_stage,suitable_for_pupils,parent_carer_consent_required,school_approval_required,safeguarding_check_region,safeguarding_review_required,supervision_required,no_lone_working,no_home_visits,no_money_handling,no_personal_care,no_private_messaging,risk_assessment_completed,named_safeguarding_contact,legal_safeguarding_notes,role_frequency_pattern",
     )
     .eq("id", opportunityId)
     .eq("status", "published")
@@ -499,6 +731,8 @@ export default async function OpportunityDetailPage({
   const postcodeDisplay = getPostcodeDisplay(opportunity);
   const organisationDisplayName = getOrganisationDisplayName(organisationProfile);
   const organisationLogoUrl = getOrganisationLogoUrl(organisationProfile);
+  const safetyBadges = getSafetyBadges(opportunity);
+  const hasSafetyInformation = hasRoleSafetyInformation(opportunity);
 
   const guideSteps: RoleGuideStep[] = [
     {
@@ -512,6 +746,15 @@ export default async function OpportunityDetailPage({
       title: "Check the place",
       text: "Review whether the role is remote, hybrid or in-person.",
       isComplete: true,
+    },
+    {
+      icon: "🛡️",
+      title: "Check role safety",
+      text: "Look for supervision, privacy, location and safeguarding information.",
+      isComplete:
+        hasSafetyInformation ||
+        Boolean(opportunity.safety_notes) ||
+        Boolean(opportunity.hide_exact_location),
     },
     {
       icon: "💛",
@@ -530,8 +773,8 @@ export default async function OpportunityDetailPage({
   ];
 
   const listenText = simpleView
-    ? `You are on an opportunity details page. Read the role. The organisation card shows who posted the role. Your preferred contact method is ${preferredContactLabel}. The safety card explains that SO Volunteering and organisations using this platform will never ask you for money, bank details, passwords, or financial information. If it feels right, go to the Interest section and press I’m interested.`
-    : `You are on an opportunity details page. First, read the role title and short description at the top. The organisation card shows the organisation name and logo when it has been added. Your preferred contact method is ${preferredContactLabel}. The safety statement explains that SO Volunteering and organisations using this platform will never ask you for money, bank details, passwords, or financial information. An organisation may need to confirm practical details such as where you should go for an in-person volunteering role, but they should not ask for your full home address through the app. The location section shows safe location information, travel notes and accessibility notes where provided. Exact venue or postcode details may be hidden until the organisation has contacted or accepted a volunteer. The Why this may suit you card explains the match using your interests, skills, volunteering preference and support information. If the role feels right for you, go to the Interest section and press I’m interested.`;
+    ? `You are on an opportunity details page. Read the role. The organisation card shows who posted the role. Your preferred contact method is ${preferredContactLabel}. The safety card explains that SO Volunteering and organisations using this platform will never ask you for money, bank details, passwords, or financial information. The role safety card shows any safety information added by the organisation, such as supervision, no lone working, no home visits, no money handling, no personal care, no private messaging outside approved routes, minimum age or safeguarding review wording. If it feels right, go to the Interest section and press I'm interested.`
+    : `You are on an opportunity details page. First, read the role title and short description at the top. The organisation card shows the organisation name and logo when it has been added. Your preferred contact method is ${preferredContactLabel}. The safety statement explains that SO Volunteering and organisations using this platform will never ask you for money, bank details, passwords, or financial information. An organisation may need to confirm practical details such as where you should go for an in-person volunteering role, but they should not ask for your full home address through the app. The role safety card shows any safety information added by the organisation, such as supervision, no lone working, no home visits, no money handling, no personal care, no private messaging outside approved routes, minimum age or safeguarding review wording. The location section shows safe location information, travel notes and accessibility notes where provided. Exact venue or postcode details may be hidden until the organisation has contacted or accepted a volunteer. The Why this may suit you card explains the match using your interests, skills, volunteering preference and support information. If the role feels right for you, go to the Interest section and press I'm interested.`;
 
   const shellClassName = [
     "dashboard-bg",
@@ -611,7 +854,7 @@ export default async function OpportunityDetailPage({
                   <span>
                     {hasAlreadyExpressedInterest
                       ? "Interest expressed"
-                      : "I’m interested"}
+                      : "I'm interested"}
                   </span>
                 </span>
               </a>
@@ -774,6 +1017,68 @@ export default async function OpportunityDetailPage({
               </p>
             </div>
           </article>
+        </section>
+
+        <section
+          className="role-public-safety-panel"
+          aria-labelledby="role-public-safety-title"
+        >
+          <div className="role-public-safety-icon" aria-hidden="true">
+            ⚖️
+          </div>
+
+          <div className="role-public-safety-copy">
+            <p className="dashboard-kicker">Role safety information</p>
+            <h2 id="role-public-safety-title">
+              Safety checks for this role
+            </h2>
+            <p>
+              These details are added by the organisation to help you decide if
+              the role feels safe, realistic and suitable. They do not replace a
+              conversation with the organisation before you start.
+            </p>
+
+            {hasSafetyInformation ? (
+              <>
+                <div
+                  className="role-public-safety-badge-grid"
+                  aria-label="Role safety information"
+                >
+                  {safetyBadges.map((badge) => (
+                    <span
+                      key={`${badge.icon}-${badge.label}`}
+                      className={`role-public-safety-badge ${badge.className}`}
+                    >
+                      <span aria-hidden="true">{badge.icon}</span>
+                      {badge.label}
+                    </span>
+                  ))}
+                </div>
+
+                {opportunity.legal_safeguarding_notes ? (
+                  <div className="role-public-safety-note">
+                    <strong>Organisation note</strong>
+                    <p>{opportunity.legal_safeguarding_notes}</p>
+                  </div>
+                ) : null}
+              </>
+            ) : (
+              <div className="role-public-safety-empty">
+                <span aria-hidden="true">🌱</span>
+                <p>
+                  The organisation has not added extra role-level safety details
+                  yet. Read the role, check the support and safety notes, and
+                  ask questions before starting.
+                </p>
+              </div>
+            )}
+
+            <p className="role-public-safety-helper">
+              This information is guidance for volunteers. It is not legal
+              advice, and it does not confirm that a PVG, DBS or AccessNI check
+              is or is not required.
+            </p>
+          </div>
         </section>
 
         <section
@@ -1099,7 +1404,7 @@ export default async function OpportunityDetailPage({
                     <button type="submit" className="primary-button">
                       <span className="button-balanced-inner">
                         <span aria-hidden="true">🌱</span>
-                        <span>I’m interested</span>
+                        <span>I'm interested</span>
                       </span>
                     </button>
                   </form>
@@ -1205,7 +1510,7 @@ export default async function OpportunityDetailPage({
 
         .role-detail-guide-grid {
           display: grid;
-          grid-template-columns: repeat(4, minmax(0, 1fr));
+          grid-template-columns: repeat(5, minmax(0, 1fr));
           gap: 12px;
         }
 
@@ -1335,7 +1640,8 @@ export default async function OpportunityDetailPage({
         }
 
         .organisation-identity-card,
-        .volunteer-safety-card {
+        .volunteer-safety-card,
+        .role-public-safety-panel {
           display: grid;
           min-width: 0;
           min-height: 100%;
@@ -1361,8 +1667,17 @@ export default async function OpportunityDetailPage({
             linear-gradient(135deg, rgba(244, 255, 249, 0.94), rgba(255, 255, 255, 0.92));
         }
 
+        .role-public-safety-panel {
+          grid-template-columns: auto 1fr;
+          border: 1px solid rgba(108, 92, 160, 0.18);
+          background:
+            radial-gradient(circle at top left, rgba(222, 214, 255, 0.34), transparent 34%),
+            linear-gradient(135deg, rgba(248, 245, 255, 0.94), rgba(255, 255, 255, 0.92));
+        }
+
         .organisation-identity-logo,
-        .volunteer-safety-icon {
+        .volunteer-safety-icon,
+        .role-public-safety-icon {
           display: inline-flex;
           width: 72px;
           height: 72px;
@@ -1383,7 +1698,8 @@ export default async function OpportunityDetailPage({
         }
 
         .organisation-identity-logo span,
-        .volunteer-safety-icon {
+        .volunteer-safety-icon,
+        .role-public-safety-icon {
           font-size: 2rem;
         }
 
@@ -1392,15 +1708,22 @@ export default async function OpportunityDetailPage({
           box-shadow: inset 0 0 0 1px rgba(34, 124, 78, 0.16);
         }
 
+        .role-public-safety-icon {
+          background: rgba(108, 92, 160, 0.12);
+          box-shadow: inset 0 0 0 1px rgba(108, 92, 160, 0.14);
+        }
+
         .organisation-identity-copy,
-        .volunteer-safety-copy {
+        .volunteer-safety-copy,
+        .role-public-safety-copy {
           display: grid;
           gap: 8px;
           min-width: 0;
         }
 
         .organisation-identity-copy h2,
-        .volunteer-safety-copy h2 {
+        .volunteer-safety-copy h2,
+        .role-public-safety-copy h2 {
           margin: 0;
           font-size: clamp(1.3rem, 3vw, 1.75rem);
           font-weight: 950;
@@ -1417,8 +1740,13 @@ export default async function OpportunityDetailPage({
           color: #145c38;
         }
 
+        .role-public-safety-copy h2 {
+          color: #4f4b82;
+        }
+
         .organisation-identity-copy p,
-        .volunteer-safety-copy p {
+        .volunteer-safety-copy p,
+        .role-public-safety-copy p {
           margin: 0;
           color: #60706a;
           font-weight: 750;
@@ -1429,6 +1757,82 @@ export default async function OpportunityDetailPage({
         .volunteer-safety-copy p {
           color: #275f45;
           font-weight: 780;
+        }
+
+        .role-public-safety-badge-grid {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+          margin-top: 8px;
+        }
+
+        .role-public-safety-badge {
+          display: inline-flex;
+          min-height: 34px;
+          align-items: center;
+          justify-content: center;
+          gap: 7px;
+          padding: 8px 11px;
+          border-radius: 999px;
+          font-size: 0.84rem;
+          font-weight: 950;
+          line-height: 1.12;
+        }
+
+        .role-safety-badge-ready {
+          border: 1px solid rgba(83, 111, 99, 0.2);
+          background: rgba(244, 255, 249, 0.92);
+          color: #536f63;
+        }
+
+        .role-safety-badge-info {
+          border: 1px solid rgba(108, 92, 160, 0.16);
+          background: rgba(248, 245, 255, 0.9);
+          color: #5c5488;
+        }
+
+        .role-safety-badge-warning {
+          border: 1px solid rgba(191, 146, 72, 0.24);
+          background: rgba(255, 250, 241, 0.92);
+          color: #8a6630;
+        }
+
+        .role-public-safety-note,
+        .role-public-safety-empty {
+          display: grid;
+          gap: 6px;
+          margin-top: 10px;
+          padding: 13px;
+          border-radius: 18px;
+        }
+
+        .role-public-safety-note {
+          border: 1px solid rgba(108, 92, 160, 0.14);
+          background: rgba(255, 255, 255, 0.74);
+        }
+
+        .role-public-safety-note strong {
+          color: #4f4b82;
+          font-weight: 950;
+        }
+
+        .role-public-safety-empty {
+          grid-template-columns: auto 1fr;
+          align-items: start;
+          border: 1px solid rgba(83, 111, 99, 0.16);
+          background: rgba(244, 255, 249, 0.74);
+        }
+
+        .role-public-safety-empty span {
+          font-size: 1.3rem;
+          line-height: 1;
+        }
+
+        .role-public-safety-helper {
+          margin-top: 6px !important;
+          color: #6a6078 !important;
+          font-size: 0.9rem;
+          font-weight: 850 !important;
         }
 
         .organisation-identity-meta {
@@ -1708,7 +2112,8 @@ export default async function OpportunityDetailPage({
         .preference-text-large .match-detail-heading p,
         .preference-text-large .match-helper-note,
         .preference-text-large .volunteer-safety-copy p,
-        .preference-text-large .organisation-identity-copy p {
+        .preference-text-large .organisation-identity-copy p,
+        .preference-text-large .role-public-safety-copy p {
           font-size: 1.04em;
         }
 
@@ -1744,6 +2149,7 @@ export default async function OpportunityDetailPage({
         .preference-theme-calm_green .match-detail-card,
         .preference-theme-calm_green .organisation-identity-card,
         .preference-theme-calm_green .volunteer-safety-card,
+        .preference-theme-calm_green .role-public-safety-panel,
         .preference-theme-calm_green .role-detail-guide-panel {
           border-color: rgba(83, 111, 99, 0.2);
         }
@@ -1767,6 +2173,7 @@ export default async function OpportunityDetailPage({
         .preference-theme-soft_blue .match-detail-card,
         .preference-theme-soft_blue .organisation-identity-card,
         .preference-theme-soft_blue .volunteer-safety-card,
+        .preference-theme-soft_blue .role-public-safety-panel,
         .preference-theme-soft_blue .role-detail-guide-panel {
           border-color: rgba(74, 112, 160, 0.2);
         }
@@ -1790,6 +2197,7 @@ export default async function OpportunityDetailPage({
         .preference-theme-warm_peach .match-detail-card,
         .preference-theme-warm_peach .organisation-identity-card,
         .preference-theme-warm_peach .volunteer-safety-card,
+        .preference-theme-warm_peach .role-public-safety-panel,
         .preference-theme-warm_peach .role-detail-guide-panel {
           border-color: rgba(190, 118, 76, 0.2);
         }
@@ -1815,6 +2223,10 @@ export default async function OpportunityDetailPage({
         .preference-theme-high_contrast .safe-location-note,
         .preference-theme-high_contrast .organisation-identity-card,
         .preference-theme-high_contrast .volunteer-safety-card,
+        .preference-theme-high_contrast .role-public-safety-panel,
+        .preference-theme-high_contrast .role-public-safety-note,
+        .preference-theme-high_contrast .role-public-safety-empty,
+        .preference-theme-high_contrast .role-public-safety-badge,
         .preference-theme-high_contrast .interest-safety-reminder,
         .preference-theme-high_contrast .interest-contact-reminder,
         .preference-theme-high_contrast .role-detail-guide-panel,
@@ -1829,6 +2241,7 @@ export default async function OpportunityDetailPage({
         .preference-theme-high_contrast .match-detail-heading h2,
         .preference-theme-high_contrast .organisation-identity-copy h2,
         .preference-theme-high_contrast .volunteer-safety-copy h2,
+        .preference-theme-high_contrast .role-public-safety-copy h2,
         .preference-theme-high_contrast .role-detail-guide-heading h2,
         .preference-theme-high_contrast .role-detail-guide-step-copy h3 {
           color: #111827;
@@ -1845,6 +2258,8 @@ export default async function OpportunityDetailPage({
         .preference-theme-high_contrast .safe-location-note,
         .preference-theme-high_contrast .organisation-identity-copy p,
         .preference-theme-high_contrast .volunteer-safety-copy p,
+        .preference-theme-high_contrast .role-public-safety-copy p,
+        .preference-theme-high_contrast .role-public-safety-badge,
         .preference-theme-high_contrast .interest-safety-reminder,
         .preference-theme-high_contrast .interest-safety-reminder p,
         .preference-theme-high_contrast .interest-contact-reminder,
@@ -1859,6 +2274,7 @@ export default async function OpportunityDetailPage({
         .preference-theme-high_contrast .match-detail-icon,
         .preference-theme-high_contrast .organisation-identity-logo,
         .preference-theme-high_contrast .volunteer-safety-icon,
+        .preference-theme-high_contrast .role-public-safety-icon,
         .preference-theme-high_contrast .role-detail-guide-heading > span,
         .preference-theme-high_contrast .role-detail-guide-step-icon {
           border: 2px solid #1f2937;
@@ -1880,6 +2296,9 @@ export default async function OpportunityDetailPage({
         .preference-theme-neon_arcade .match-detail-card,
         .preference-theme-neon_arcade .organisation-identity-card,
         .preference-theme-neon_arcade .volunteer-safety-card,
+        .preference-theme-neon_arcade .role-public-safety-panel,
+        .preference-theme-neon_arcade .role-public-safety-note,
+        .preference-theme-neon_arcade .role-public-safety-empty,
         .preference-theme-neon_arcade .interest-safety-reminder,
         .preference-theme-neon_arcade .interest-contact-reminder,
         .preference-theme-neon_arcade .role-detail-guide-panel,
@@ -1899,6 +2318,7 @@ export default async function OpportunityDetailPage({
         .preference-theme-neon_arcade .match-detail-heading h2,
         .preference-theme-neon_arcade .organisation-identity-copy h2,
         .preference-theme-neon_arcade .volunteer-safety-copy h2,
+        .preference-theme-neon_arcade .role-public-safety-copy h2,
         .preference-theme-neon_arcade .role-detail-guide-heading h2,
         .preference-theme-neon_arcade .role-detail-guide-step-copy h3 {
           color: #e0f2fe;
@@ -1914,6 +2334,7 @@ export default async function OpportunityDetailPage({
         .preference-theme-neon_arcade .match-helper-note,
         .preference-theme-neon_arcade .organisation-identity-copy p,
         .preference-theme-neon_arcade .volunteer-safety-copy p,
+        .preference-theme-neon_arcade .role-public-safety-copy p,
         .preference-theme-neon_arcade .interest-safety-reminder p,
         .preference-theme-neon_arcade .interest-contact-reminder p,
         .preference-theme-neon_arcade .role-detail-guide-heading p,
@@ -1926,6 +2347,7 @@ export default async function OpportunityDetailPage({
         .preference-theme-neon_arcade .match-detail-icon,
         .preference-theme-neon_arcade .organisation-identity-logo,
         .preference-theme-neon_arcade .volunteer-safety-icon,
+        .preference-theme-neon_arcade .role-public-safety-icon,
         .preference-theme-neon_arcade .role-detail-guide-heading > span,
         .preference-theme-neon_arcade .role-detail-guide-step-icon {
           border: 1px solid rgba(34, 211, 238, 0.42);
@@ -1938,7 +2360,8 @@ export default async function OpportunityDetailPage({
         .preference-theme-neon_arcade .text-link,
         .preference-theme-neon_arcade .match-reason-list span,
         .preference-theme-neon_arcade .safe-location-note,
-        .preference-theme-neon_arcade .organisation-identity-meta span {
+        .preference-theme-neon_arcade .organisation-identity-meta span,
+        .preference-theme-neon_arcade .role-public-safety-badge {
           border-color: rgba(34, 211, 238, 0.42);
           background: rgba(34, 211, 238, 0.12);
           color: #a7f3d0;
@@ -1952,7 +2375,7 @@ export default async function OpportunityDetailPage({
 
         @media (max-width: 1180px) {
           .role-detail-guide-grid {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
+            grid-template-columns: repeat(3, minmax(0, 1fr));
           }
         }
 
@@ -1968,11 +2391,13 @@ export default async function OpportunityDetailPage({
             width: 100%;
           }
 
-          .role-detail-guide-heading {
+          .role-detail-guide-heading,
+          .role-public-safety-panel {
             grid-template-columns: 1fr;
           }
 
-          .role-detail-guide-heading > span {
+          .role-detail-guide-heading > span,
+          .role-public-safety-icon {
             width: 56px;
             height: 56px;
             border-radius: 20px;
@@ -1997,6 +2422,7 @@ export default async function OpportunityDetailPage({
 
           .organisation-identity-card,
           .volunteer-safety-card,
+          .role-public-safety-panel,
           .match-detail-card,
           .role-detail-guide-panel {
             border-radius: 24px;
@@ -2004,6 +2430,7 @@ export default async function OpportunityDetailPage({
 
           .organisation-identity-logo,
           .volunteer-safety-icon,
+          .role-public-safety-icon,
           .match-detail-icon {
             width: 58px;
             height: 58px;
@@ -2016,10 +2443,15 @@ export default async function OpportunityDetailPage({
             text-align: center;
           }
 
+          .role-public-safety-badge,
           .match-reason-list span {
             width: 100%;
             justify-content: center;
             text-align: center;
+          }
+
+          .role-public-safety-empty {
+            grid-template-columns: 1fr;
           }
 
           .opportunity-detail-card {
