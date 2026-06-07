@@ -203,7 +203,7 @@ export default async function OrganisationProfilePage({
   const currentLogoUrl = organisationProfile?.logo_url?.trim() || "";
 
   const listenText =
-    "This is the organisation profile setup page. Add your organisation name, logo, contact email, location, purpose, volunteering types, support available, and safety notes. The logo helps volunteers recognise your organisation. SO Volunteering and organisations using this platform will never ask volunteers for money, bank details, passwords, or a full home address. Required fields are organisation name, contact email, location, purpose, at least one volunteering type, and at least one support option. The final button says Save organisation profile.";
+    "This is the organisation profile setup page. Add your organisation name, upload your logo, contact email, location, purpose, volunteering types, support available, and safety notes. The logo helps volunteers recognise your organisation. SO Volunteering and organisations using this platform will never ask volunteers for money, bank details, passwords, or financial information. An organisation may need to confirm practical details, such as where a volunteer should go for an in-person volunteering role, but they should not ask for a volunteer’s full home address through the app. Required fields are organisation name, contact email, location, purpose, at least one volunteering type, and at least one support option. The final button says Save organisation profile.";
 
   return (
     <main className="onboarding-shell organisation-profile-page">
@@ -272,7 +272,7 @@ export default async function OrganisationProfilePage({
             </div>
 
             <p className="organisation-logo-helper">
-              Adding a logo helps volunteers recognise your organisation and
+              Uploading a logo helps volunteers recognise your organisation and
               feel safer when reviewing roles.
             </p>
           </div>
@@ -292,14 +292,21 @@ export default async function OrganisationProfilePage({
             <h2 id="safety-title">Stay safe</h2>
             <p>
               SO Volunteering and organisations using this platform will never
-              ask volunteers for money, bank details, passwords, or their full
-              home address. If anyone asks for these, volunteers should stop and
-              use Help using the app to report it.
+              ask volunteers for money, bank details, passwords, or financial
+              information. An organisation may need to confirm practical
+              details, such as where a volunteer should go for an in-person
+              volunteering role, but they should not ask for a volunteer’s full
+              home address through the app. If anything feels wrong, volunteers
+              should stop and use Help using the app to report it.
             </p>
           </div>
         </section>
 
-        <form action={saveOrganisationProfile} className="form-stack">
+        <form
+          action={saveOrganisationProfile}
+          className="form-stack"
+          encType="multipart/form-data"
+        >
           <label className="field-label">
             <span className="field-label-row">
               <span className="field-label-icon" aria-hidden="true">
@@ -316,25 +323,55 @@ export default async function OrganisationProfilePage({
             />
           </label>
 
-          <label className="field-label">
-            <span className="field-label-row">
-              <span className="field-label-icon" aria-hidden="true">
-                🖼️
+          <section className="organisation-logo-upload-section">
+            <div className="organisation-logo-upload-heading">
+              <span aria-hidden="true">🖼️</span>
+              <div>
+                <h2>Organisation logo</h2>
+                <p>
+                  Upload a logo so volunteers can recognise your organisation on
+                  role pages. PNG, JPG, WEBP or SVG. Maximum 3MB.
+                </p>
+              </div>
+            </div>
+
+            <label className="field-label">
+              <span className="field-label-row">
+                <span className="field-label-icon" aria-hidden="true">
+                  📤
+                </span>
+                <span>Upload logo optional</span>
               </span>
-              <span>Organisation logo URL optional</span>
-            </span>
-            <input
-              name="logo_url"
-              type="url"
-              defaultValue={currentLogoUrl}
-              placeholder="https://example.org/logo.png"
-            />
-            <span className="field-helper">
-              Use a public image URL beginning with https://. This will later
-              appear on volunteer-facing role pages to help volunteers recognise
-              your organisation.
-            </span>
-          </label>
+              <input
+                name="logo_file"
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/svg+xml"
+              />
+              <span className="field-helper">
+                Uploading a new file will replace the saved logo URL for this
+                profile.
+              </span>
+            </label>
+
+            <label className="field-label">
+              <span className="field-label-row">
+                <span className="field-label-icon" aria-hidden="true">
+                  🔗
+                </span>
+                <span>Or paste logo URL optional</span>
+              </span>
+              <input
+                name="logo_url"
+                type="url"
+                defaultValue={currentLogoUrl}
+                placeholder="https://example.org/logo.png"
+              />
+              <span className="field-helper">
+                Keep this if you already use a hosted logo. Uploading a file
+                above will take priority.
+              </span>
+            </label>
+          </section>
 
           <div className="dashboard-grid">
             <label className="field-label">
@@ -578,6 +615,50 @@ export default async function OrganisationProfilePage({
           line-height: 1.5;
         }
 
+        .organisation-logo-upload-section {
+          display: grid;
+          gap: 16px;
+          padding: 18px;
+          border: 1px solid rgba(108, 92, 160, 0.14);
+          border-radius: 26px;
+          background: rgba(255, 255, 255, 0.72);
+          box-shadow: 0 14px 34px rgba(33, 56, 48, 0.06);
+        }
+
+        .organisation-logo-upload-heading {
+          display: grid;
+          grid-template-columns: auto 1fr;
+          gap: 12px;
+          align-items: start;
+        }
+
+        .organisation-logo-upload-heading > span {
+          display: inline-flex;
+          width: 52px;
+          height: 52px;
+          align-items: center;
+          justify-content: center;
+          border-radius: 18px;
+          background: rgba(143, 178, 158, 0.14);
+          font-size: 1.55rem;
+        }
+
+        .organisation-logo-upload-heading h2 {
+          margin: 0 0 6px;
+          color: #315f48;
+          font-size: 1.2rem;
+          font-weight: 950;
+          letter-spacing: -0.025em;
+          line-height: 1.1;
+        }
+
+        .organisation-logo-upload-heading p {
+          margin: 0;
+          color: #60706a;
+          font-weight: 750;
+          line-height: 1.42;
+        }
+
         .field-helper {
           display: block;
           margin-top: 8px;
@@ -587,9 +668,38 @@ export default async function OrganisationProfilePage({
           line-height: 1.38;
         }
 
+        .organisation-profile-page input[type="file"] {
+          width: 100%;
+          min-height: 52px;
+          padding: 12px;
+          border: 1px dashed rgba(83, 111, 99, 0.34);
+          border-radius: 18px;
+          background: rgba(244, 255, 249, 0.64);
+          color: #35453f;
+          font: inherit;
+          font-weight: 750;
+        }
+
+        .organisation-profile-page input[type="file"]::file-selector-button {
+          min-height: 38px;
+          margin-right: 12px;
+          padding: 8px 13px;
+          border: 1px solid rgba(83, 111, 99, 0.2);
+          border-radius: 999px;
+          background: rgba(255, 255, 255, 0.92);
+          color: #536f63;
+          cursor: pointer;
+          font: inherit;
+          font-weight: 900;
+        }
+
         @media (max-width: 760px) {
-          .organisation-safety-card {
+          .organisation-safety-card,
+          .organisation-logo-upload-heading {
             grid-template-columns: 1fr;
+          }
+
+          .organisation-safety-card {
             padding: 18px;
             border-radius: 24px;
           }
@@ -602,6 +712,17 @@ export default async function OrganisationProfilePage({
 
           .organisation-logo-preview {
             min-height: 104px;
+          }
+
+          .organisation-logo-upload-section {
+            padding: 16px;
+            border-radius: 22px;
+          }
+
+          .organisation-profile-page input[type="file"]::file-selector-button {
+            display: block;
+            width: 100%;
+            margin: 0 0 10px;
           }
         }
       `}</style>
