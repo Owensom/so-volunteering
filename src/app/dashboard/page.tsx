@@ -330,8 +330,8 @@ export default async function DashboardPage() {
   const detailedView = viewMode === "detailed";
 
   const listenText = simpleView
-    ? "You are on your SO Volunteering dashboard. This is your home page. First, check your progress. Then use the main button to continue. You can open your Positive Pathway CV, find your best roles, check your saved roles, view your profile, change your app settings, or get help using the app."
-    : "You are on your SO Volunteering dashboard. This is your home base. First, check the Profile progress card on the right to see how many setup steps are complete. Use the main button near the top to continue your next step, or to open Best roles for me if your setup is complete. Open Positive Pathway CV shows your strengths-based volunteering CV. Use the Roles I am interested in button to track roles where you clicked I’m interested. The cards below give quick links. Best roles for me opens published volunteering roles sorted by match. View my profile opens your saved details. See my pathway shows all setup steps and positive reviews. Wellbeing and support lets you review what helps you feel comfortable. Roles I am interested in shows roles you have saved and their current status. Personalise my app lets you choose view mode, colour theme, text size, avatar and Listen preference. Help using the app is for getting help if you are stuck, something is not working, or you want to report a problem with SO Volunteering.";
+    ? "You are on your SO Volunteering dashboard. This is your home page. First, check your progress. Then use the main button to continue. You can open your Positive Pathway CV, find your best roles, check your saved roles, view your profile, change your app settings, install SO Volunteering on your device, or get help using the app."
+    : "You are on your SO Volunteering dashboard. This is your home base. First, check the Profile progress card on the right to see how many setup steps are complete. Use the main button near the top to continue your next step, or to open Best roles for me if your setup is complete. Open Positive Pathway CV shows your strengths-based volunteering CV. Use the Roles I am interested in button to track roles where you clicked I’m interested. The cards below give quick links. Best roles for me opens published volunteering roles sorted by match. View my profile opens your saved details. See my pathway shows all setup steps and positive reviews. Wellbeing and support lets you review what helps you feel comfortable. Roles I am interested in shows roles you have saved and their current status. Personalise my app lets you choose view mode, colour theme, text size, avatar and Listen preference. The Install SO Volunteering card explains how to add the app to your phone, tablet or computer home screen. Help using the app is for getting help if you are stuck, something is not working, or you want to report a problem with SO Volunteering.";
 
   const shellClassName = [
     "dashboard-bg",
@@ -635,6 +635,41 @@ export default async function DashboardPage() {
             </div>
           </Link>
 
+          <article className="info-card dashboard-pathway-card install-app-card">
+            <div className="dashboard-card-icon" aria-hidden="true">
+              📲
+            </div>
+            <div className="dashboard-card-copy">
+              <div className="dashboard-card-main">
+                <p className="dashboard-card-label">Install</p>
+                <h2>Install SO Volunteering</h2>
+                <p>
+                  {simpleView
+                    ? "Add SO Volunteering to your home screen."
+                    : "Use SO Volunteering like an app by adding it to your home screen. This makes it quicker to open Best roles for me, Roles I am interested in, Positive Pathway CV, Wellbeing/support and Help using the app."}
+                </p>
+
+                <div className="install-help-list" aria-label="Install guidance">
+                  <p>
+                    <strong>iPhone/iPad:</strong> tap Share, then Add to Home
+                    Screen.
+                  </p>
+                  <p>
+                    <strong>Android/Chrome:</strong> tap menu, then Install app
+                    or Add to Home screen.
+                  </p>
+                  <p>
+                    <strong>Desktop Chrome/Edge:</strong> use the install icon in
+                    the address bar.
+                  </p>
+                </div>
+              </div>
+              <span className="dashboard-card-action-pill install-muted-pill">
+                No app store needed
+              </span>
+            </div>
+          </article>
+
           <Link href="/help" className="info-card dashboard-pathway-card">
             <div className="dashboard-card-icon" aria-hidden="true">
               🧭
@@ -670,6 +705,40 @@ export default async function DashboardPage() {
           border-color: rgba(143, 178, 158, 0.3);
           background:
             linear-gradient(135deg, rgba(244, 255, 249, 0.82), rgba(255, 255, 255, 0.94));
+        }
+
+        .install-app-card {
+          border-color: rgba(108, 92, 160, 0.2);
+          background:
+            radial-gradient(circle at top left, rgba(222, 214, 255, 0.26), transparent 34%),
+            linear-gradient(135deg, rgba(248, 245, 255, 0.86), rgba(255, 255, 255, 0.94));
+        }
+
+        .install-help-list {
+          display: grid;
+          gap: 8px;
+          margin-top: 8px;
+          padding: 12px;
+          border: 1px solid rgba(108, 92, 160, 0.12);
+          border-radius: 18px;
+          background: rgba(255, 255, 255, 0.74);
+        }
+
+        .install-help-list p {
+          margin: 0;
+          color: #60706a;
+          font-size: 0.9rem;
+          font-weight: 750;
+          line-height: 1.38;
+        }
+
+        .install-help-list strong {
+          color: #315f48;
+          font-weight: 950;
+        }
+
+        .install-muted-pill {
+          color: #6c5ca0;
         }
 
         .dashboard-interest-status-mini {
@@ -864,7 +933,8 @@ export default async function DashboardPage() {
         }
 
         .preference-theme-neon_arcade .best-roles-card,
-        .preference-theme-neon_arcade .positive-cv-card {
+        .preference-theme-neon_arcade .positive-cv-card,
+        .preference-theme-neon_arcade .install-app-card {
           border-color: rgba(167, 243, 208, 0.5);
           background:
             radial-gradient(circle at top left, rgba(34, 211, 238, 0.18), transparent 55%),
@@ -888,6 +958,17 @@ export default async function DashboardPage() {
         .preference-theme-neon_arcade .dashboard-card-label,
         .preference-theme-neon_arcade .dashboard-card-copy p,
         .preference-theme-neon_arcade .dashboard-progress-note {
+          color: #dbeafe;
+        }
+
+        .preference-theme-neon_arcade .install-help-list {
+          border-color: rgba(34, 211, 238, 0.24);
+          background: rgba(15, 23, 42, 0.46);
+        }
+
+        .preference-theme-neon_arcade .install-help-list p,
+        .preference-theme-neon_arcade .install-help-list strong,
+        .preference-theme-neon_arcade .install-muted-pill {
           color: #dbeafe;
         }
 
@@ -938,6 +1019,10 @@ export default async function DashboardPage() {
 
           .dashboard-card-action-pill {
             width: 100%;
+          }
+
+          .install-help-list {
+            padding: 11px;
           }
         }
       `}</style>
