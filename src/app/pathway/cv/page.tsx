@@ -84,6 +84,13 @@ type SkillBadge = {
   icon: string;
 };
 
+type CvGuideStep = {
+  icon: string;
+  title: string;
+  text: string;
+  isComplete: boolean;
+};
+
 const skillBadges: SkillBadge[] = [
   { key: "reliability", label: "Reliable", icon: "🤝" },
   { key: "teamwork", label: "Teamwork", icon: "👥" },
@@ -174,6 +181,14 @@ function formatList(values: string[] | null | undefined) {
   return values.join(", ");
 }
 
+function hasList(values: string[] | null | undefined) {
+  return Array.isArray(values) && values.length > 0;
+}
+
+function hasText(value: string | null | undefined) {
+  return Boolean(value && value.trim().length > 0);
+}
+
 function formatDate(value: string) {
   return new Intl.DateTimeFormat("en-GB", {
     dateStyle: "medium",
@@ -214,6 +229,21 @@ function formatEducationDates(entry: EducationEntry) {
   }
 
   return "";
+}
+
+function formatContactMethod(value: string | null | undefined) {
+  if (value === "sms") return "Text message";
+  if (value === "phone") return "Phone call";
+  if (value === "email") return "Email";
+  if (value === "not_sure") return "Not sure yet";
+  return "Not added yet";
+}
+
+function formatVolunteeringPreference(value: string | null | undefined) {
+  if (value === "in_person") return "In-person";
+  if (value === "remote") return "Remote";
+  if (value === "both") return "In-person or remote";
+  return value || "Not added yet";
 }
 
 function getReviewSkills(review: SkillReview) {
@@ -297,6 +327,78 @@ function CvSection({
   );
 }
 
+function CvGuide({ steps }: { steps: CvGuideStep[] }) {
+  return (
+    <section className="positive-cv-guide no-print" aria-labelledby="cv-guide-title">
+      <div className="positive-cv-guide-heading">
+        <span aria-hidden="true">🧭</span>
+
+        <div>
+          <p className="dashboard-kicker">Step-by-step guide</p>
+          <h2 id="cv-guide-title">How to use your Positive Pathway CV</h2>
+          <p>
+            This CV grows as your profile, learning and positive skills evidence
+            grow. Completed sections turn green and show a tick.
+          </p>
+        </div>
+      </div>
+
+      <div className="positive-cv-guide-grid">
+        {steps.map((step, index) => (
+          <article
+            key={step.title}
+            className={
+              step.isComplete
+                ? "positive-cv-guide-step positive-cv-guide-step-complete"
+                : "positive-cv-guide-step"
+            }
+          >
+            <span className="positive-cv-guide-step-number">
+              {step.isComplete ? "✓" : index + 1}
+            </span>
+
+            <div className="positive-cv-guide-step-icon" aria-hidden="true">
+              {step.icon}
+            </div>
+
+            <div className="positive-cv-guide-step-copy">
+              <p className="positive-cv-guide-step-kicker">
+                Step {index + 1}
+                <span>{step.isComplete ? "Complete" : "To do"}</span>
+              </p>
+              <h3>{step.title}</h3>
+              <p>{step.text}</p>
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function StrengthSummaryCard({
+  icon,
+  title,
+  value,
+  text,
+}: {
+  icon: string;
+  title: string;
+  value: string | number;
+  text: string;
+}) {
+  return (
+    <article className="strength-summary-card">
+      <span aria-hidden="true">{icon}</span>
+      <div>
+        <p>{title}</p>
+        <strong>{value}</strong>
+        <small>{text}</small>
+      </div>
+    </article>
+  );
+}
+
 export default async function PositivePathwayCvPage() {
   const supabase = await createClient();
 
@@ -373,9 +475,67 @@ export default async function PositivePathwayCvPage() {
   const displayName = profile?.full_name?.trim() || "Volunteer";
   const contactEmail = profile?.email || user.email || "Not added yet";
 
+  const hasProfileBasics =
+    hasText(profile?.full_name) || hasText(contactEmail) || hasText(volunteerProfile?.city);
+  const hasPathwayProfile =
+    hasList(volunteerProfile?.goals) ||
+    hasList(volunteerProfile?.interests) ||
+    hasList(volunteerProfile?.skills);
+  const hasEducation = educationRows.length > 0;
+  const hasRecognisedStrengths = recognisedSkills.length > 0;
+  const hasPositiveFeedback = reviews.length > 0;
+  const hasShareReadyCv =
+    hasProfileBasics && (hasPathwayProfile || hasEducation || hasPositiveFeedback);
+
+  const guideSteps: CvGuideStep[] = [
+    {
+      icon: "👤",
+      title: "Check your details",
+      text: "Make sure your name, email and area look right.",
+      isComplete: hasProfileBasics,
+    },
+    {
+      icon: "🌱",
+      title: "Build your pathway profile",
+      text: "Add goals, interests and skills so the CV explains what matters to you.",
+      isComplete: hasPathwayProfile,
+    },
+    {
+      icon: "📚",
+      title: "Add learning",
+      text: "Add education, qualifications, certificates or training.",
+      isComplete: hasEducation,
+    },
+    {
+      icon: "🏅",
+      title: "Collect strengths",
+      text: "Recognised strengths appear when organisations share positive reviews.",
+      isComplete: hasRecognisedStrengths,
+    },
+    {
+      icon: "💬",
+      title: "Read feedback",
+      text: "Positive comments from organisations appear here when shared with you.",
+      isComplete: hasPositiveFeedback,
+    },
+    {
+      icon: "📄",
+      title: "Print or save",
+      text: "Use Print / Save as PDF when you want a copy.",
+      isComplete: hasShareReadyCv,
+    },
+  ];
+
+  const completedGuideSteps = guideSteps.filter((step) => step.isComplete).length;
+  const guidePercent = Math.round((completedGuideSteps / guideSteps.length) * 100);
+
+  const topStrengths = [...recognisedSkills]
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 3);
+
   const listenText = simpleView
-    ? `This is your Positive Pathway CV. It shows your details, learning, skills and feedback. You have ${educationRows.length} education entr${educationRows.length === 1 ? "y" : "ies"} and ${reviews.length} review${reviews.length === 1 ? "" : "s"}. Use Print or Save as PDF if you want a copy.`
-    : `This is your Positive Pathway CV. It brings together your goals, interests, skills, education, qualifications, availability and positive skills reviews shared by organisations. You currently have ${educationRows.length} education entr${educationRows.length === 1 ? "y" : "ies"}, ${reviews.length} shared review${reviews.length === 1 ? "" : "s"} and ${recognisedSkills.length} recognised skill area${recognisedSkills.length === 1 ? "" : "s"}. Use Print or Save as PDF to open your browser print options. You can use your pathway and profile pages to update your details.`;
+    ? `This is your Positive Pathway CV. It shows your details, learning, skills and feedback. You have ${educationRows.length} education entr${educationRows.length === 1 ? "y" : "ies"} and ${reviews.length} review${reviews.length === 1 ? "" : "s"}. The guide shows what is complete. Use Print or Save as PDF if you want a copy.`
+    : `This is your Positive Pathway CV. It brings together your goals, interests, skills, education, qualifications, availability and positive skills reviews shared by organisations. The guide shows six steps: check your details, build your pathway profile, add learning, collect strengths, read feedback, and print or save. You currently have ${educationRows.length} education entr${educationRows.length === 1 ? "y" : "ies"}, ${reviews.length} shared review${reviews.length === 1 ? "" : "s"} and ${recognisedSkills.length} recognised skill area${recognisedSkills.length === 1 ? "" : "s"}. Use Print or Save as PDF to open your browser print options. You can use your pathway and profile pages to update your details.`;
 
   const shellClassName = [
     "dashboard-bg",
@@ -500,12 +660,21 @@ export default async function PositivePathwayCvPage() {
                 📄
               </span>
               <div>
-                <h2>{simpleView ? "CV" : "CV preview"}</h2>
+                <h2>{simpleView ? "CV" : "CV readiness"}</h2>
                 <p>
-                  {simpleView
-                    ? "Save or print when ready."
-                    : "Use Print / Save as PDF to save or share this page from your browser."}
+                  {completedGuideSteps} of {guideSteps.length} guide steps
+                  complete.
                 </p>
+              </div>
+            </div>
+
+            <div className="positive-cv-progress-wrap no-print">
+              <div className="positive-cv-progress-meta">
+                <span>{guidePercent === 100 ? "Ready" : "In progress"}</span>
+                <span>{guidePercent}%</span>
+              </div>
+              <div className="positive-cv-progress-track" aria-hidden="true">
+                <span style={{ width: `${guidePercent}%` }} />
               </div>
             </div>
 
@@ -525,6 +694,92 @@ export default async function PositivePathwayCvPage() {
               </p>
             ) : null}
           </aside>
+        </section>
+
+        <CvGuide steps={guideSteps} />
+
+        <section
+          className="positive-cv-explainer no-print"
+          aria-labelledby="positive-cv-explainer-title"
+        >
+          <div className="positive-cv-explainer-icon" aria-hidden="true">
+            🌱
+          </div>
+
+          <div>
+            <p className="dashboard-kicker">What this CV shows</p>
+            <h2 id="positive-cv-explainer-title">
+              A positive picture of your skills and progress
+            </h2>
+            <p>
+              This is not a traditional CV that focuses only on jobs. It brings
+              together your goals, learning, interests, skills and positive
+              volunteering feedback so you can talk about what you can do and
+              what you are building.
+            </p>
+          </div>
+        </section>
+
+        <section
+          className="positive-cv-strength-summary no-print"
+          aria-labelledby="strength-summary-title"
+        >
+          <div className="positive-cv-strength-heading">
+            <span aria-hidden="true">🏅</span>
+
+            <div>
+              <p className="dashboard-kicker">Strengths summary</p>
+              <h2 id="strength-summary-title">Your pathway at a glance</h2>
+              <p>
+                These cards summarise what is already recorded in your profile
+                and shared positive reviews.
+              </p>
+            </div>
+          </div>
+
+          <div className="strength-summary-grid">
+            <StrengthSummaryCard
+              icon="🌱"
+              title="Profile progress"
+              value={`${completionCount}/5`}
+              text="Goals, interests, skills, area and availability."
+            />
+            <StrengthSummaryCard
+              icon="📚"
+              title="Learning recorded"
+              value={educationRows.length}
+              text="Education, qualifications, courses or training."
+            />
+            <StrengthSummaryCard
+              icon="⭐"
+              title="Shared reviews"
+              value={reviews.length}
+              text="Positive evidence shared by organisations."
+            />
+            <StrengthSummaryCard
+              icon="🏅"
+              title="Recognised strengths"
+              value={recognisedSkills.length}
+              text="Skill areas recognised through volunteering."
+            />
+          </div>
+
+          {topStrengths.length > 0 ? (
+            <div className="top-strengths-panel">
+              <p className="dashboard-card-label">Most recognised strengths</p>
+              <div className="top-strengths-list">
+                {topStrengths.map((skill) => (
+                  <span key={skill.key}>
+                    <span aria-hidden="true">{skill.icon}</span>
+                    <strong>{skill.label}</strong>
+                    <small>
+                      {skill.count} review{skill.count === 1 ? "" : "s"}
+                    </small>
+                  </span>
+                ))}
+              </div>
+            </div>
+          ) : null}
         </section>
 
         <section className="positive-cv-document" aria-label="Positive Pathway CV">
@@ -634,11 +889,13 @@ export default async function PositivePathwayCvPage() {
                 </p>
                 <p>
                   <strong>Preferred contact:</strong>{" "}
-                  {volunteerProfile?.preferred_contact_method || "Not added yet"}
+                  {formatContactMethod(volunteerProfile?.preferred_contact_method)}
                 </p>
                 <p>
                   <strong>Volunteering preference:</strong>{" "}
-                  {volunteerProfile?.volunteering_preference || "Not added yet"}
+                  {formatVolunteeringPreference(
+                    volunteerProfile?.volunteering_preference,
+                  )}
                 </p>
               </div>
             </CvSection>
@@ -805,6 +1062,342 @@ export default async function PositivePathwayCvPage() {
           flex-wrap: wrap;
           gap: 10px;
           margin-top: 16px;
+        }
+
+        .positive-cv-progress-wrap {
+          display: grid;
+          gap: 8px;
+          margin: 14px 0 12px;
+        }
+
+        .positive-cv-progress-meta {
+          display: flex;
+          gap: 12px;
+          align-items: center;
+          justify-content: space-between;
+          color: #60706a;
+          font-size: 0.88rem;
+          font-weight: 900;
+        }
+
+        .positive-cv-progress-track {
+          width: 100%;
+          height: 10px;
+          overflow: hidden;
+          border-radius: 999px;
+          background: rgba(108, 92, 160, 0.12);
+        }
+
+        .positive-cv-progress-track span {
+          display: block;
+          height: 100%;
+          border-radius: inherit;
+          background: linear-gradient(90deg, #8fb29e, #4f8d68);
+        }
+
+        .positive-cv-guide {
+          display: grid;
+          gap: 18px;
+          padding: 20px;
+          border: 1px solid rgba(108, 92, 160, 0.16);
+          border-radius: 28px;
+          background:
+            radial-gradient(circle at top left, rgba(222, 214, 255, 0.34), transparent 34%),
+            linear-gradient(135deg, rgba(248, 245, 255, 0.92), rgba(255, 255, 255, 0.9));
+          box-shadow: 0 18px 42px rgba(33, 56, 48, 0.07);
+        }
+
+        .positive-cv-guide-heading {
+          display: grid;
+          grid-template-columns: auto 1fr;
+          gap: 14px;
+          align-items: start;
+        }
+
+        .positive-cv-guide-heading > span {
+          display: inline-flex;
+          width: 62px;
+          height: 62px;
+          align-items: center;
+          justify-content: center;
+          border-radius: 22px;
+          background: rgba(108, 92, 160, 0.12);
+          box-shadow: inset 0 0 0 1px rgba(108, 92, 160, 0.14);
+          font-size: 1.85rem;
+        }
+
+        .positive-cv-guide-heading h2,
+        .positive-cv-explainer h2,
+        .positive-cv-strength-heading h2 {
+          margin: 0 0 8px;
+          color: #315f48;
+          font-size: clamp(1.3rem, 3vw, 1.75rem);
+          font-weight: 950;
+          letter-spacing: -0.035em;
+          line-height: 1.1;
+        }
+
+        .positive-cv-guide-heading p,
+        .positive-cv-explainer p,
+        .positive-cv-strength-heading p {
+          margin: 0;
+          color: #60706a;
+          font-weight: 760;
+          line-height: 1.5;
+        }
+
+        .positive-cv-guide-grid {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 12px;
+        }
+
+        .positive-cv-guide-step {
+          position: relative;
+          display: grid;
+          gap: 10px;
+          min-height: 178px;
+          padding: 15px;
+          border: 1px solid rgba(108, 92, 160, 0.14);
+          border-radius: 22px;
+          background: rgba(255, 255, 255, 0.78);
+          box-shadow: 0 12px 28px rgba(33, 56, 48, 0.05);
+        }
+
+        .positive-cv-guide-step-complete {
+          border-color: rgba(34, 124, 78, 0.26);
+          background:
+            radial-gradient(circle at top left, rgba(155, 232, 190, 0.28), transparent 34%),
+            rgba(244, 255, 249, 0.92);
+          box-shadow: 0 14px 30px rgba(33, 96, 61, 0.08);
+        }
+
+        .positive-cv-guide-step-number {
+          position: absolute;
+          top: 12px;
+          right: 12px;
+          display: inline-flex;
+          width: 30px;
+          height: 30px;
+          align-items: center;
+          justify-content: center;
+          border-radius: 999px;
+          background: rgba(108, 92, 160, 0.12);
+          color: #4f4b82;
+          font-size: 0.82rem;
+          font-weight: 950;
+          line-height: 1;
+        }
+
+        .positive-cv-guide-step-complete .positive-cv-guide-step-number {
+          background: rgba(34, 124, 78, 0.14);
+          color: #145c38;
+        }
+
+        .positive-cv-guide-step-icon {
+          display: inline-flex;
+          width: 52px;
+          height: 52px;
+          align-items: center;
+          justify-content: center;
+          border-radius: 18px;
+          background: rgba(248, 248, 252, 0.96);
+          box-shadow: inset 0 0 0 1px rgba(108, 92, 160, 0.08);
+          font-size: 1.55rem;
+        }
+
+        .positive-cv-guide-step-complete .positive-cv-guide-step-icon {
+          background: rgba(34, 124, 78, 0.12);
+          box-shadow: inset 0 0 0 1px rgba(34, 124, 78, 0.14);
+        }
+
+        .positive-cv-guide-step-copy {
+          display: grid;
+          gap: 6px;
+        }
+
+        .positive-cv-guide-step-kicker {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+          align-items: center;
+          margin: 0;
+          padding-right: 34px;
+          color: #6c5ca0;
+          font-size: 0.78rem;
+          font-weight: 950;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+        }
+
+        .positive-cv-guide-step-kicker span {
+          display: inline-flex;
+          min-height: 24px;
+          align-items: center;
+          justify-content: center;
+          padding: 5px 8px;
+          border-radius: 999px;
+          background: rgba(108, 92, 160, 0.1);
+          color: #6c5ca0;
+          font-size: 0.68rem;
+          letter-spacing: 0;
+          text-transform: none;
+        }
+
+        .positive-cv-guide-step-complete .positive-cv-guide-step-kicker,
+        .positive-cv-guide-step-complete .positive-cv-guide-step-kicker span {
+          color: #145c38;
+        }
+
+        .positive-cv-guide-step-complete .positive-cv-guide-step-kicker span {
+          background: rgba(34, 124, 78, 0.12);
+        }
+
+        .positive-cv-guide-step-copy h3 {
+          margin: 0;
+          padding-right: 32px;
+          color: #315f48;
+          font-size: 1rem;
+          font-weight: 950;
+          line-height: 1.14;
+        }
+
+        .positive-cv-guide-step-copy p {
+          margin: 0;
+          color: #60706a;
+          font-size: 0.92rem;
+          font-weight: 740;
+          line-height: 1.42;
+        }
+
+        .positive-cv-explainer,
+        .positive-cv-strength-summary {
+          display: grid;
+          gap: 18px;
+          padding: 20px;
+          border: 1px solid rgba(34, 124, 78, 0.24);
+          border-radius: 28px;
+          background:
+            radial-gradient(circle at top left, rgba(155, 232, 190, 0.38), transparent 34%),
+            linear-gradient(135deg, rgba(244, 255, 249, 0.94), rgba(255, 255, 255, 0.9));
+          box-shadow: 0 18px 42px rgba(33, 96, 61, 0.1);
+        }
+
+        .positive-cv-explainer {
+          grid-template-columns: auto 1fr;
+          align-items: start;
+        }
+
+        .positive-cv-explainer-icon,
+        .positive-cv-strength-heading > span {
+          display: inline-flex;
+          width: 62px;
+          height: 62px;
+          align-items: center;
+          justify-content: center;
+          border-radius: 22px;
+          background: rgba(34, 124, 78, 0.12);
+          box-shadow: inset 0 0 0 1px rgba(34, 124, 78, 0.16);
+          font-size: 1.9rem;
+        }
+
+        .positive-cv-strength-heading {
+          display: grid;
+          grid-template-columns: auto 1fr;
+          gap: 14px;
+          align-items: start;
+        }
+
+        .strength-summary-grid {
+          display: grid;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 12px;
+        }
+
+        .strength-summary-card {
+          display: grid;
+          grid-template-columns: auto 1fr;
+          gap: 12px;
+          min-height: 126px;
+          padding: 14px;
+          border: 1px solid rgba(83, 111, 99, 0.18);
+          border-radius: 20px;
+          background: rgba(255, 255, 255, 0.78);
+        }
+
+        .strength-summary-card > span {
+          display: inline-flex;
+          width: 44px;
+          height: 44px;
+          align-items: center;
+          justify-content: center;
+          border-radius: 16px;
+          background: rgba(143, 178, 158, 0.14);
+          font-size: 1.35rem;
+        }
+
+        .strength-summary-card p {
+          margin: 0 0 5px;
+          color: #60706a;
+          font-size: 0.82rem;
+          font-weight: 900;
+          line-height: 1.15;
+        }
+
+        .strength-summary-card strong {
+          display: block;
+          color: #315f48;
+          font-size: 1.75rem;
+          line-height: 1;
+        }
+
+        .strength-summary-card small {
+          display: block;
+          margin-top: 8px;
+          color: #60706a;
+          font-size: 0.78rem;
+          font-weight: 750;
+          line-height: 1.25;
+        }
+
+        .top-strengths-panel {
+          display: grid;
+          gap: 10px;
+          padding: 14px;
+          border: 1px solid rgba(83, 111, 99, 0.16);
+          border-radius: 22px;
+          background: rgba(255, 255, 255, 0.78);
+        }
+
+        .top-strengths-list {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 10px;
+        }
+
+        .top-strengths-list span {
+          display: grid;
+          gap: 5px;
+          padding: 12px;
+          border: 1px solid rgba(143, 178, 158, 0.18);
+          border-radius: 18px;
+          background: rgba(244, 255, 249, 0.78);
+          color: #315f48;
+          font-weight: 900;
+        }
+
+        .top-strengths-list span span {
+          display: inline;
+          padding: 0;
+          border: 0;
+          border-radius: 0;
+          background: transparent;
+          font-size: 1.35rem;
+        }
+
+        .top-strengths-list small {
+          color: #60706a;
+          font-weight: 750;
         }
 
         .positive-cv-document {
@@ -1022,6 +1615,12 @@ export default async function PositivePathwayCvPage() {
           align-items: center;
         }
 
+        .preference-view-simple .positive-cv-guide,
+        .preference-view-simple .positive-cv-strength-summary,
+        .preference-view-simple .positive-cv-explainer {
+          gap: 14px;
+        }
+
         .preference-view-simple .positive-cv-document {
           gap: 14px;
         }
@@ -1067,7 +1666,10 @@ export default async function PositivePathwayCvPage() {
         .preference-theme-calm_green .dashboard-welcome-card,
         .preference-theme-calm_green .dashboard-progress-card,
         .preference-theme-calm_green .positive-cv-document,
-        .preference-theme-calm_green .cv-section {
+        .preference-theme-calm_green .cv-section,
+        .preference-theme-calm_green .positive-cv-guide,
+        .preference-theme-calm_green .positive-cv-explainer,
+        .preference-theme-calm_green .positive-cv-strength-summary {
           border-color: rgba(83, 111, 99, 0.2);
         }
 
@@ -1085,7 +1687,10 @@ export default async function PositivePathwayCvPage() {
         .preference-theme-soft_blue .dashboard-welcome-card,
         .preference-theme-soft_blue .dashboard-progress-card,
         .preference-theme-soft_blue .positive-cv-document,
-        .preference-theme-soft_blue .cv-section {
+        .preference-theme-soft_blue .cv-section,
+        .preference-theme-soft_blue .positive-cv-guide,
+        .preference-theme-soft_blue .positive-cv-explainer,
+        .preference-theme-soft_blue .positive-cv-strength-summary {
           border-color: rgba(74, 112, 160, 0.2);
         }
 
@@ -1103,7 +1708,10 @@ export default async function PositivePathwayCvPage() {
         .preference-theme-warm_peach .dashboard-welcome-card,
         .preference-theme-warm_peach .dashboard-progress-card,
         .preference-theme-warm_peach .positive-cv-document,
-        .preference-theme-warm_peach .cv-section {
+        .preference-theme-warm_peach .cv-section,
+        .preference-theme-warm_peach .positive-cv-guide,
+        .preference-theme-warm_peach .positive-cv-explainer,
+        .preference-theme-warm_peach .positive-cv-strength-summary {
           border-color: rgba(190, 118, 76, 0.2);
         }
 
@@ -1125,7 +1733,14 @@ export default async function PositivePathwayCvPage() {
         .preference-theme-high_contrast .recognised-skill-card,
         .preference-theme-high_contrast .feedback-card,
         .preference-theme-high_contrast .feedback-skill-row span,
-        .preference-theme-high_contrast .summary-pill {
+        .preference-theme-high_contrast .summary-pill,
+        .preference-theme-high_contrast .positive-cv-guide,
+        .preference-theme-high_contrast .positive-cv-guide-step,
+        .preference-theme-high_contrast .positive-cv-explainer,
+        .preference-theme-high_contrast .positive-cv-strength-summary,
+        .preference-theme-high_contrast .strength-summary-card,
+        .preference-theme-high_contrast .top-strengths-panel,
+        .preference-theme-high_contrast .top-strengths-list span {
           border: 2px solid #1f2937;
           background: rgba(255, 255, 255, 0.98);
         }
@@ -1134,7 +1749,12 @@ export default async function PositivePathwayCvPage() {
         .preference-theme-high_contrast .cv-section-heading h2,
         .preference-theme-high_contrast .education-cv-entry h3,
         .preference-theme-high_contrast .feedback-card h3,
-        .preference-theme-high_contrast .recognised-skill-card {
+        .preference-theme-high_contrast .recognised-skill-card,
+        .preference-theme-high_contrast .positive-cv-guide-heading h2,
+        .preference-theme-high_contrast .positive-cv-guide-step-copy h3,
+        .preference-theme-high_contrast .positive-cv-explainer h2,
+        .preference-theme-high_contrast .positive-cv-strength-heading h2,
+        .preference-theme-high_contrast .strength-summary-card strong {
           color: #111827;
         }
 
@@ -1145,12 +1765,23 @@ export default async function PositivePathwayCvPage() {
         .preference-theme-high_contrast .education-cv-entry p,
         .preference-theme-high_contrast .feedback-card p,
         .preference-theme-high_contrast .education-cv-note,
-        .preference-theme-high_contrast .feedback-comment {
+        .preference-theme-high_contrast .feedback-comment,
+        .preference-theme-high_contrast .positive-cv-guide-heading p,
+        .preference-theme-high_contrast .positive-cv-guide-step-copy p,
+        .preference-theme-high_contrast .positive-cv-explainer p,
+        .preference-theme-high_contrast .positive-cv-strength-heading p,
+        .preference-theme-high_contrast .strength-summary-card p,
+        .preference-theme-high_contrast .strength-summary-card small {
           color: #1f2937 !important;
         }
 
         .preference-theme-high_contrast .cv-section-heading > span,
-        .preference-theme-high_contrast .dashboard-progress-icon {
+        .preference-theme-high_contrast .dashboard-progress-icon,
+        .preference-theme-high_contrast .positive-cv-guide-heading > span,
+        .preference-theme-high_contrast .positive-cv-guide-step-icon,
+        .preference-theme-high_contrast .positive-cv-explainer-icon,
+        .preference-theme-high_contrast .positive-cv-strength-heading > span,
+        .preference-theme-high_contrast .strength-summary-card > span {
           border: 2px solid #1f2937;
           background: #ffffff;
           color: #111827;
@@ -1169,7 +1800,14 @@ export default async function PositivePathwayCvPage() {
         .preference-theme-neon_arcade .cv-section,
         .preference-theme-neon_arcade .education-cv-entry,
         .preference-theme-neon_arcade .recognised-skill-card,
-        .preference-theme-neon_arcade .feedback-card {
+        .preference-theme-neon_arcade .feedback-card,
+        .preference-theme-neon_arcade .positive-cv-guide,
+        .preference-theme-neon_arcade .positive-cv-guide-step,
+        .preference-theme-neon_arcade .positive-cv-explainer,
+        .preference-theme-neon_arcade .positive-cv-strength-summary,
+        .preference-theme-neon_arcade .strength-summary-card,
+        .preference-theme-neon_arcade .top-strengths-panel,
+        .preference-theme-neon_arcade .top-strengths-list span {
           border-color: rgba(34, 211, 238, 0.42);
           background: rgba(15, 23, 42, 0.86);
           box-shadow:
@@ -1184,7 +1822,13 @@ export default async function PositivePathwayCvPage() {
         .preference-theme-neon_arcade .recognised-skill-card,
         .preference-theme-neon_arcade .summary-pill strong,
         .preference-theme-neon_arcade .dashboard-progress-card h2,
-        .preference-theme-neon_arcade .dashboard-progress-note strong {
+        .preference-theme-neon_arcade .dashboard-progress-note strong,
+        .preference-theme-neon_arcade .positive-cv-guide-heading h2,
+        .preference-theme-neon_arcade .positive-cv-guide-step-copy h3,
+        .preference-theme-neon_arcade .positive-cv-explainer h2,
+        .preference-theme-neon_arcade .positive-cv-strength-heading h2,
+        .preference-theme-neon_arcade .strength-summary-card strong,
+        .preference-theme-neon_arcade .top-strengths-list strong {
           color: #e0f2fe;
         }
 
@@ -1197,7 +1841,14 @@ export default async function PositivePathwayCvPage() {
         .preference-theme-neon_arcade .education-cv-entry p,
         .preference-theme-neon_arcade .feedback-card p,
         .preference-theme-neon_arcade .education-cv-note,
-        .preference-theme-neon_arcade .feedback-comment {
+        .preference-theme-neon_arcade .feedback-comment,
+        .preference-theme-neon_arcade .positive-cv-guide-heading p,
+        .preference-theme-neon_arcade .positive-cv-guide-step-copy p,
+        .preference-theme-neon_arcade .positive-cv-explainer p,
+        .preference-theme-neon_arcade .positive-cv-strength-heading p,
+        .preference-theme-neon_arcade .strength-summary-card p,
+        .preference-theme-neon_arcade .strength-summary-card small,
+        .preference-theme-neon_arcade .top-strengths-list small {
           color: #dbeafe !important;
         }
 
@@ -1205,10 +1856,24 @@ export default async function PositivePathwayCvPage() {
         .preference-theme-neon_arcade .dashboard-progress-icon,
         .preference-theme-neon_arcade .summary-pill,
         .preference-theme-neon_arcade .education-cv-meta span,
-        .preference-theme-neon_arcade .feedback-skill-row span {
+        .preference-theme-neon_arcade .feedback-skill-row span,
+        .preference-theme-neon_arcade .positive-cv-guide-heading > span,
+        .preference-theme-neon_arcade .positive-cv-guide-step-icon,
+        .preference-theme-neon_arcade .positive-cv-explainer-icon,
+        .preference-theme-neon_arcade .positive-cv-strength-heading > span,
+        .preference-theme-neon_arcade .strength-summary-card > span {
           border-color: rgba(34, 211, 238, 0.42);
           background: rgba(34, 211, 238, 0.12);
           color: #a7f3d0;
+        }
+
+        .preference-theme-neon_arcade .positive-cv-progress-track {
+          background: rgba(15, 23, 42, 0.9);
+          border: 1px solid rgba(34, 211, 238, 0.28);
+        }
+
+        .preference-theme-neon_arcade .positive-cv-progress-track span {
+          background: linear-gradient(90deg, #22d3ee, #a7f3d0, #d946ef);
         }
 
         .preference-theme-neon_arcade .print-button,
@@ -1228,8 +1893,16 @@ export default async function PositivePathwayCvPage() {
             0 0 0 1px rgba(34, 211, 238, 0.16);
         }
 
+        @media (max-width: 1040px) {
+          .strength-summary-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+        }
+
         @media (max-width: 900px) {
-          .recognised-skill-grid {
+          .recognised-skill-grid,
+          .positive-cv-guide-grid,
+          .top-strengths-list {
             grid-template-columns: repeat(2, minmax(0, 1fr));
           }
         }
@@ -1259,6 +1932,27 @@ export default async function PositivePathwayCvPage() {
             line-height: 1.04 !important;
           }
 
+          .positive-cv-guide,
+          .positive-cv-explainer,
+          .positive-cv-strength-summary {
+            padding: 18px;
+            border-radius: 24px;
+          }
+
+          .positive-cv-guide-heading,
+          .positive-cv-explainer,
+          .positive-cv-strength-heading {
+            grid-template-columns: 1fr;
+          }
+
+          .positive-cv-guide-heading > span,
+          .positive-cv-explainer-icon,
+          .positive-cv-strength-heading > span {
+            width: 56px;
+            height: 56px;
+            border-radius: 20px;
+          }
+
           .positive-cv-document {
             border-radius: 26px;
             padding: 16px;
@@ -1266,7 +1960,10 @@ export default async function PositivePathwayCvPage() {
 
           .cv-detail-grid,
           .recognised-skill-grid,
-          .preference-view-simple .recognised-skill-grid {
+          .preference-view-simple .recognised-skill-grid,
+          .positive-cv-guide-grid,
+          .strength-summary-grid,
+          .top-strengths-list {
             grid-template-columns: 1fr;
           }
 
@@ -1390,7 +2087,10 @@ export default async function PositivePathwayCvPage() {
 
           .preference-theme-neon_arcade .dashboard-progress-card,
           .preference-theme-neon_arcade .cv-section,
-          .preference-theme-neon_arcade .positive-cv-document {
+          .preference-theme-neon_arcade .positive-cv-document,
+          .preference-theme-neon_arcade .positive-cv-guide,
+          .preference-theme-neon_arcade .positive-cv-explainer,
+          .preference-theme-neon_arcade .positive-cv-strength-summary {
             border-color: rgba(34, 211, 238, 0.36);
           }
         }
@@ -1422,7 +2122,10 @@ export default async function PositivePathwayCvPage() {
 
           .no-print,
           .dashboard-topbar,
-          .positive-cv-footer-actions {
+          .positive-cv-footer-actions,
+          .positive-cv-guide,
+          .positive-cv-explainer,
+          .positive-cv-strength-summary {
             display: none !important;
           }
 
