@@ -33,6 +33,22 @@ type OpportunityRow = {
   id: string;
   title: string;
   status: string | null;
+  minimum_age_stage: string | null;
+  suitable_for_pupils: boolean | null;
+  parent_carer_consent_required: boolean | null;
+  school_approval_required: boolean | null;
+  safeguarding_check_region: string | null;
+  safeguarding_review_required: boolean | null;
+  supervision_required: boolean | null;
+  no_lone_working: boolean | null;
+  no_home_visits: boolean | null;
+  no_money_handling: boolean | null;
+  no_personal_care: boolean | null;
+  no_private_messaging: boolean | null;
+  risk_assessment_completed: boolean | null;
+  named_safeguarding_contact: string | null;
+  legal_safeguarding_notes: string | null;
+  role_frequency_pattern: string | null;
 };
 
 type ReviewRow = {
@@ -48,6 +64,25 @@ type ReviewRow = {
   updated_at: string | null;
 };
 
+type InterestStatus = "new" | "contacted" | "accepted" | "closed";
+
+type RoleSafetyBadge = {
+  icon: string;
+  label: string;
+  tone: "ready" | "warning" | "neutral";
+};
+
+type VolunteerConnectionRole = {
+  interestId: string;
+  opportunityId: string;
+  title: string;
+  status: InterestStatus;
+  createdAt: string;
+  safetyBadges: RoleSafetyBadge[];
+  hasSafetyContext: boolean;
+  needsSafetyAttention: boolean;
+};
+
 type VolunteerConnection = {
   key: string;
   volunteerUserId: string | null;
@@ -57,7 +92,7 @@ type VolunteerConnection = {
   city: string;
   preferredContactMethod: string;
   latestActivity: string;
-  latestStatus: "new" | "contacted" | "accepted" | "closed";
+  latestStatus: InterestStatus;
   interestCount: number;
   acceptedCount: number;
   contactedCount: number;
@@ -65,18 +100,14 @@ type VolunteerConnection = {
   sharedReviewCount: number;
   draftReviewCount: number;
   hiddenReviewCount: number;
-  roles: {
-    interestId: string;
-    opportunityId: string;
-    title: string;
-    status: "new" | "contacted" | "accepted" | "closed";
-    createdAt: string;
-  }[];
+  roles: VolunteerConnectionRole[];
   goals: string[];
   interests: string[];
   skills: string[];
   supportShared: boolean;
   supportNeeds: string;
+  roleSafetyCount: number;
+  roleSafetyAttentionCount: number;
 };
 
 type ConnectionGuideStep = {
@@ -94,7 +125,7 @@ function normaliseUserType(value: string | null | undefined) {
 
 function normaliseInterestStatus(
   status: string | null | undefined,
-): "new" | "contacted" | "accepted" | "closed" {
+): InterestStatus {
   if (status === "contacted") return "contacted";
   if (status === "accepted") return "accepted";
   if (status === "closed") return "closed";
@@ -187,16 +218,14 @@ function uniqueList(values: Array<string[] | null | undefined>) {
   return result;
 }
 
-function sortStatusPriority(status: "new" | "contacted" | "accepted" | "closed") {
+function sortStatusPriority(status: InterestStatus) {
   if (status === "accepted") return 4;
   if (status === "contacted") return 3;
   if (status === "new") return 2;
   return 1;
 }
 
-function getLatestStatus(
-  statuses: Array<"new" | "contacted" | "accepted" | "closed">,
-) {
+function getLatestStatus(statuses: InterestStatus[]) {
   return (
     statuses.sort((a, b) => sortStatusPriority(b) - sortStatusPriority(a))[0] ||
     "new"
@@ -224,6 +253,264 @@ function makeConnectionKey(interest: InterestRow) {
   );
 }
 
+function hasText(value: string | null | undefined) {
+  return Boolean(value && value.trim().length > 0);
+}
+
+function getMinimumAgeStageLabel(value: string | null | undefined) {
+  if (value === "adults_only") return "Adults only";
+  if (value === "sixteen_plus") return "16+";
+  if (value === "fourteen_plus") return "14+";
+  if (value === "school_pupils_with_approval") {
+    return "School approval needed";
+  }
+  if (value === "school_pupils_with_parent_carer_consent") {
+    return "Parent/carer consent needed";
+  }
+
+  return "";
+}
+
+function getSafeguardingCheckRegionLabel(value: string | null | undefined) {
+  if (value === "scotland_pvg") return "Scotland - PVG";
+  if (value === "england_wales_dbs") return "England / Wales - DBS";
+  if (value === "northern_ireland_accessni") return "Northern Ireland - AccessNI";
+  if (value === "not_expected") return "No check expected";
+  if (value === "not_sure") return "Check needs review";
+
+  return "";
+}
+
+function getFrequencyPatternLabel(value: string | null | undefined) {
+  if (value === "one_off") return "One-off";
+  if (value === "occasional") return "Occasional";
+  if (value === "weekly_or_regular") return "Weekly or regular";
+  if (value === "more_than_three_days_in_thirty") {
+    return "More than 3 days in 30";
+  }
+  if (value === "overnight") return "Overnight / late-night";
+  if (value === "not_sure") return "Frequency unsure";
+
+  return "";
+}
+
+function hasRoleSafetyInformation(opportunity: OpportunityRow | undefined) {
+  if (!opportunity) return false;
+
+  return Boolean(
+    (opportunity.minimum_age_stage &&
+      opportunity.minimum_age_stage !== "not_set") ||
+      (opportunity.safeguarding_check_region &&
+        opportunity.safeguarding_check_region !== "organisation_default") ||
+      (opportunity.role_frequency_pattern &&
+        opportunity.role_frequency_pattern !== "not_set") ||
+      opportunity.suitable_for_pupils === true ||
+      opportunity.parent_carer_consent_required === true ||
+      opportunity.school_approval_required === true ||
+      opportunity.safeguarding_review_required === true ||
+      opportunity.supervision_required === true ||
+      opportunity.no_lone_working === true ||
+      opportunity.no_home_visits === true ||
+      opportunity.no_money_handling === true ||
+      opportunity.no_personal_care === true ||
+      opportunity.no_private_messaging === true ||
+      opportunity.risk_assessment_completed === true ||
+      hasText(opportunity.named_safeguarding_contact) ||
+      hasText(opportunity.legal_safeguarding_notes),
+  );
+}
+
+function needsRoleSafetyAttention(opportunity: OpportunityRow | undefined) {
+  if (!opportunity) return false;
+
+  return Boolean(
+    opportunity.suitable_for_pupils === true ||
+      opportunity.parent_carer_consent_required === true ||
+      opportunity.school_approval_required === true ||
+      opportunity.safeguarding_review_required === true ||
+      opportunity.role_frequency_pattern === "more_than_three_days_in_thirty" ||
+      opportunity.role_frequency_pattern === "overnight" ||
+      opportunity.role_frequency_pattern === "not_sure" ||
+      opportunity.safeguarding_check_region === "not_sure",
+  );
+}
+
+function getRoleSafetyBadges(
+  opportunity: OpportunityRow | undefined,
+): RoleSafetyBadge[] {
+  if (!opportunity) {
+    return [
+      {
+        icon: "🛡️",
+        label: "Role safety unavailable",
+        tone: "neutral",
+      },
+    ];
+  }
+
+  const badges: RoleSafetyBadge[] = [];
+
+  const minimumAgeLabel = getMinimumAgeStageLabel(opportunity.minimum_age_stage);
+
+  if (minimumAgeLabel) {
+    badges.push({
+      icon: "👥",
+      label: minimumAgeLabel,
+      tone:
+        opportunity.minimum_age_stage === "school_pupils_with_approval" ||
+        opportunity.minimum_age_stage === "school_pupils_with_parent_carer_consent"
+          ? "warning"
+          : "ready",
+    });
+  }
+
+  const checkLabel = getSafeguardingCheckRegionLabel(
+    opportunity.safeguarding_check_region,
+  );
+
+  if (checkLabel) {
+    badges.push({
+      icon: "🛡️",
+      label: checkLabel,
+      tone:
+        opportunity.safeguarding_check_region === "not_sure"
+          ? "warning"
+          : "ready",
+    });
+  }
+
+  const frequencyLabel = getFrequencyPatternLabel(
+    opportunity.role_frequency_pattern,
+  );
+
+  if (frequencyLabel) {
+    badges.push({
+      icon: "🔁",
+      label: frequencyLabel,
+      tone:
+        opportunity.role_frequency_pattern === "not_sure" ||
+        opportunity.role_frequency_pattern === "more_than_three_days_in_thirty" ||
+        opportunity.role_frequency_pattern === "overnight"
+          ? "warning"
+          : "ready",
+    });
+  }
+
+  if (opportunity.suitable_for_pupils === true) {
+    badges.push({
+      icon: "🏫",
+      label: "Pupil suitable",
+      tone: "warning",
+    });
+  }
+
+  if (opportunity.school_approval_required === true) {
+    badges.push({
+      icon: "✅",
+      label: "School approval",
+      tone: "warning",
+    });
+  }
+
+  if (opportunity.parent_carer_consent_required === true) {
+    badges.push({
+      icon: "👪",
+      label: "Parent/carer consent",
+      tone: "warning",
+    });
+  }
+
+  if (opportunity.safeguarding_review_required === true) {
+    badges.push({
+      icon: "⚖️",
+      label: "Review required",
+      tone: "warning",
+    });
+  }
+
+  if (opportunity.supervision_required === true) {
+    badges.push({
+      icon: "👀",
+      label: "Supervision",
+      tone: "ready",
+    });
+  }
+
+  if (opportunity.no_lone_working === true) {
+    badges.push({
+      icon: "🚫",
+      label: "No lone working",
+      tone: "ready",
+    });
+  }
+
+  if (opportunity.no_home_visits === true) {
+    badges.push({
+      icon: "🏠",
+      label: "No home visits",
+      tone: "ready",
+    });
+  }
+
+  if (opportunity.no_money_handling === true) {
+    badges.push({
+      icon: "💷",
+      label: "No money handling",
+      tone: "ready",
+    });
+  }
+
+  if (opportunity.no_personal_care === true) {
+    badges.push({
+      icon: "🤲",
+      label: "No personal care",
+      tone: "ready",
+    });
+  }
+
+  if (opportunity.no_private_messaging === true) {
+    badges.push({
+      icon: "📵",
+      label: "Approved contact only",
+      tone: "ready",
+    });
+  }
+
+  if (opportunity.risk_assessment_completed === true) {
+    badges.push({
+      icon: "📋",
+      label: "Risk checked",
+      tone: "ready",
+    });
+  }
+
+  if (hasText(opportunity.named_safeguarding_contact)) {
+    badges.push({
+      icon: "👤",
+      label: "Safeguarding contact",
+      tone: "ready",
+    });
+  }
+
+  if (badges.length === 0) {
+    return [
+      {
+        icon: "🛡️",
+        label: "Safety details not started",
+        tone: "neutral",
+      },
+    ];
+  }
+
+  return badges;
+}
+
+function getSafetyBadgeClass(tone: RoleSafetyBadge["tone"]) {
+  if (tone === "ready") return "connection-safety-badge ready";
+  if (tone === "warning") return "connection-safety-badge warning";
+  return "connection-safety-badge neutral";
+}
+
 function ChipList({
   values,
   emptyText,
@@ -245,6 +532,36 @@ function ChipList({
       {values.length > 8 ? (
         <span className="connection-chip connection-chip-more">
           +{values.length - 8} more
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
+function SafetyBadgeList({
+  badges,
+  limit = 4,
+}: {
+  badges: RoleSafetyBadge[];
+  limit?: number;
+}) {
+  const visibleBadges = badges.slice(0, limit);
+  const hiddenCount = Math.max(0, badges.length - visibleBadges.length);
+
+  return (
+    <div className="connection-safety-badge-list">
+      {visibleBadges.map((badge) => (
+        <span
+          key={`${badge.icon}-${badge.label}`}
+          className={getSafetyBadgeClass(badge.tone)}
+        >
+          <span aria-hidden="true">{badge.icon}</span>
+          <span>{badge.label}</span>
+        </span>
+      ))}
+      {hiddenCount > 0 ? (
+        <span className="connection-safety-badge neutral">
+          +{hiddenCount} more
         </span>
       ) : null}
     </div>
@@ -379,7 +696,9 @@ export default async function OrganisationVolunteersPage() {
   if (opportunityIds.length > 0) {
     const { data: opportunities } = await supabase
       .from("opportunities")
-      .select("id,title,status")
+      .select(
+        "id,title,status,minimum_age_stage,suitable_for_pupils,parent_carer_consent_required,school_approval_required,safeguarding_check_region,safeguarding_review_required,supervision_required,no_lone_working,no_home_visits,no_money_handling,no_personal_care,no_private_messaging,risk_assessment_completed,named_safeguarding_contact,legal_safeguarding_notes,role_frequency_pattern",
+      )
       .eq("organisation_user_id", user.id)
       .in("id", opportunityIds);
 
@@ -475,6 +794,27 @@ export default async function OrganisationVolunteersPage() {
         (review) => normaliseReviewStatus(review.status) === "hidden",
       ).length;
 
+      const roles = sortedRows.map((interest) => {
+        const opportunity = opportunityById.get(interest.opportunity_id);
+        const safetyBadges = getRoleSafetyBadges(opportunity);
+
+        return {
+          interestId: interest.id,
+          opportunityId: interest.opportunity_id,
+          title: opportunity?.title || "Role not available",
+          status: normaliseInterestStatus(interest.status),
+          createdAt: interest.created_at,
+          safetyBadges,
+          hasSafetyContext: hasRoleSafetyInformation(opportunity),
+          needsSafetyAttention: needsRoleSafetyAttention(opportunity),
+        };
+      });
+
+      const roleSafetyCount = roles.filter((role) => role.hasSafetyContext).length;
+      const roleSafetyAttentionCount = roles.filter(
+        (role) => role.needsSafetyAttention,
+      ).length;
+
       return {
         key,
         volunteerUserId,
@@ -498,17 +838,7 @@ export default async function OrganisationVolunteersPage() {
         sharedReviewCount,
         draftReviewCount,
         hiddenReviewCount,
-        roles: sortedRows.map((interest) => {
-          const opportunity = opportunityById.get(interest.opportunity_id);
-
-          return {
-            interestId: interest.id,
-            opportunityId: interest.opportunity_id,
-            title: opportunity?.title || "Role not available",
-            status: normaliseInterestStatus(interest.status),
-            createdAt: interest.created_at,
-          };
-        }),
+        roles,
         goals: uniqueList(sortedRows.map((row) => row.volunteer_goals)),
         interests: uniqueList(sortedRows.map((row) => row.volunteer_interests)),
         skills: uniqueList(sortedRows.map((row) => row.volunteer_skills)),
@@ -523,6 +853,8 @@ export default async function OrganisationVolunteersPage() {
                 row.volunteer_support_needs?.trim(),
             )
             ?.volunteer_support_needs?.trim() || "",
+        roleSafetyCount,
+        roleSafetyAttentionCount,
       };
     })
     .sort(
@@ -551,6 +883,14 @@ export default async function OrganisationVolunteersPage() {
     (total, connection) => total + connection.draftReviewCount,
     0,
   );
+  const totalRoleSafetyContexts = connections.reduce(
+    (total, connection) => total + connection.roleSafetyCount,
+    0,
+  );
+  const totalRoleSafetyAttention = connections.reduce(
+    (total, connection) => total + connection.roleSafetyAttentionCount,
+    0,
+  );
 
   const guideSteps: ConnectionGuideStep[] = [
     {
@@ -560,10 +900,10 @@ export default async function OrganisationVolunteersPage() {
       isComplete: totalConnections > 0,
     },
     {
-      icon: "📞",
-      title: "Use the chosen contact route",
-      text: "Respect the volunteer’s saved email, text or phone preference.",
-      isComplete: totalConnections > 0,
+      icon: "⚖️",
+      title: "Check role safety",
+      text: "Review safety, consent and supervision notes attached to connected roles.",
+      isComplete: totalRoleSafetyContexts > 0,
     },
     {
       icon: "⭐",
@@ -580,7 +920,7 @@ export default async function OrganisationVolunteersPage() {
   ];
 
   const listenText =
-    "This is the organisation volunteer connections page. It only shows volunteers who have interacted with your organisation through an interest or a positive skills review. It is not a public volunteer database and it does not show all volunteers on the platform. Each card shows the volunteer name, contact route, city, roles they connected with, status history and positive review counts. Support information is only shown if the volunteer chose to share it with your organisation.";
+    "This is the organisation volunteer connections page. It only shows volunteers who have interacted with your organisation through an interest or a positive skills review. It is not a public volunteer database and it does not show all volunteers on the platform. Each card shows the volunteer name, contact route, city, roles they connected with, role safety context, status history and positive review counts. Support information is only shown if the volunteer chose to share it with your organisation.";
 
   return (
     <main className="dashboard-bg organisation-connections-page">
@@ -713,6 +1053,12 @@ export default async function OrganisationVolunteersPage() {
             <p className="dashboard-progress-note">
               Shared reviews: <strong>{totalSharedReviews}</strong>
             </p>
+            <p className="dashboard-progress-note">
+              Role safety contexts: <strong>{totalRoleSafetyContexts}</strong>
+            </p>
+            <p className="dashboard-progress-note">
+              Needs safety attention: <strong>{totalRoleSafetyAttention}</strong>
+            </p>
           </aside>
         </section>
 
@@ -764,10 +1110,10 @@ export default async function OrganisationVolunteersPage() {
             helper="At least one accepted role"
           />
           <StatCard
-            icon="⭐"
-            label="Reviewed"
-            value={reviewedConnections}
-            helper="At least one shared review"
+            icon="⚖️"
+            label="Role safety"
+            value={totalRoleSafetyContexts}
+            helper="Connected roles with safety context"
           />
         </section>
 
@@ -864,11 +1210,13 @@ export default async function OrganisationVolunteersPage() {
                     <div>
                       <h3>Suggested next step</h3>
                       <p>
-                        {connection.acceptedCount > 0
-                          ? "This volunteer has at least one accepted role. Keep communication practical, kind and relevant."
-                          : connection.contactedCount > 0
-                            ? "This volunteer has been contacted. Update the role status when the next step is clear."
-                            : "This volunteer has expressed interest. Review their interest before contacting them."}
+                        {connection.roleSafetyAttentionCount > 0
+                          ? "Review the role safety context before arranging next steps with this volunteer."
+                          : connection.acceptedCount > 0
+                            ? "This volunteer has at least one accepted role. Keep communication practical, kind and relevant."
+                            : connection.contactedCount > 0
+                              ? "This volunteer has been contacted. Update the role status when the next step is clear."
+                              : "This volunteer has expressed interest. Review their interest before contacting them."}
                       </p>
                     </div>
                   </div>
@@ -889,6 +1237,64 @@ export default async function OrganisationVolunteersPage() {
                         Open skills reviews
                       </Link>
                     ) : null}
+                  </div>
+                </section>
+
+                <section
+                  className={
+                    connection.roleSafetyAttentionCount > 0
+                      ? "connection-section connection-safety-section connection-safety-section-warning"
+                      : "connection-section connection-safety-section"
+                  }
+                  aria-label={`Role safety context for ${connection.name}`}
+                >
+                  <div className="connection-section-heading">
+                    <span aria-hidden="true">⚖️</span>
+                    <div>
+                      <h3>Role safety context</h3>
+                      <p>
+                        {connection.roleSafetyCount > 0
+                          ? `${connection.roleSafetyCount} connected role${
+                              connection.roleSafetyCount === 1 ? "" : "s"
+                            } with safety context.`
+                          : "No connected roles have role-level safety context yet."}
+                        {connection.roleSafetyAttentionCount > 0
+                          ? ` ${connection.roleSafetyAttentionCount} role${
+                              connection.roleSafetyAttentionCount === 1
+                                ? ""
+                                : "s"
+                            } need extra attention.`
+                          : ""}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="connection-safety-role-grid">
+                    {connection.roles.slice(0, 3).map((role) => (
+                      <div
+                        key={`safety-${role.interestId}`}
+                        className={
+                          role.needsSafetyAttention
+                            ? "connection-safety-role-card warning"
+                            : role.hasSafetyContext
+                              ? "connection-safety-role-card ready"
+                              : "connection-safety-role-card neutral"
+                        }
+                      >
+                        <div className="connection-safety-role-heading">
+                          <strong>{role.title}</strong>
+                          <span>
+                            {role.needsSafetyAttention
+                              ? "Check before next step"
+                              : role.hasSafetyContext
+                                ? "Safety context added"
+                                : "Safety details not started"}
+                          </span>
+                        </div>
+
+                        <SafetyBadgeList badges={role.safetyBadges} limit={4} />
+                      </div>
+                    ))}
                   </div>
                 </section>
 
@@ -953,6 +1359,7 @@ export default async function OrganisationVolunteersPage() {
                               {formatInterestStatus(role.status)} · Received{" "}
                               {safeDate(role.createdAt)}
                             </small>
+                            <SafetyBadgeList badges={role.safetyBadges} limit={3} />
                           </div>
                         </Link>
 
@@ -1518,6 +1925,20 @@ export default async function OrganisationVolunteersPage() {
             rgba(244, 255, 249, 0.78);
         }
 
+        .connection-safety-section {
+          border-color: rgba(108, 92, 160, 0.16);
+          background:
+            radial-gradient(circle at top left, rgba(222, 214, 255, 0.22), transparent 35%),
+            rgba(248, 245, 255, 0.68);
+        }
+
+        .connection-safety-section-warning {
+          border-color: rgba(191, 146, 72, 0.26);
+          background:
+            radial-gradient(circle at top left, rgba(255, 229, 184, 0.32), transparent 35%),
+            rgba(255, 250, 241, 0.86);
+        }
+
         .connection-section-heading {
           display: grid;
           grid-template-columns: auto 1fr;
@@ -1579,6 +2000,92 @@ export default async function OrganisationVolunteersPage() {
         .connection-review-link:hover {
           border-color: rgba(83, 111, 99, 0.34);
           background: rgba(244, 255, 249, 0.96);
+        }
+
+        .connection-safety-role-grid {
+          display: grid;
+          gap: 10px;
+        }
+
+        .connection-safety-role-card {
+          display: grid;
+          gap: 10px;
+          padding: 12px;
+          border-radius: 18px;
+          background: rgba(255, 255, 255, 0.78);
+        }
+
+        .connection-safety-role-card.ready {
+          border: 1px solid rgba(83, 111, 99, 0.2);
+        }
+
+        .connection-safety-role-card.warning {
+          border: 1px solid rgba(191, 146, 72, 0.24);
+          background: rgba(255, 250, 241, 0.9);
+        }
+
+        .connection-safety-role-card.neutral {
+          border: 1px solid rgba(100, 100, 110, 0.14);
+          background: rgba(248, 248, 252, 0.86);
+        }
+
+        .connection-safety-role-heading {
+          display: grid;
+          gap: 4px;
+        }
+
+        .connection-safety-role-heading strong {
+          color: #315f48;
+          font-size: 0.94rem;
+          font-weight: 950;
+          line-height: 1.2;
+          overflow-wrap: anywhere;
+        }
+
+        .connection-safety-role-heading span {
+          color: #60706a;
+          font-size: 0.8rem;
+          font-weight: 850;
+          line-height: 1.2;
+        }
+
+        .connection-safety-badge-list {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 7px;
+          align-items: flex-start;
+        }
+
+        .connection-safety-badge {
+          display: inline-flex;
+          width: fit-content;
+          max-width: 100%;
+          align-items: center;
+          gap: 6px;
+          padding: 7px 9px;
+          border-radius: 999px;
+          font-size: 0.76rem;
+          font-weight: 900;
+          line-height: 1.15;
+          overflow-wrap: anywhere;
+        }
+
+        .connection-safety-badge.ready {
+          border: 1px solid rgba(83, 111, 99, 0.2);
+          background: rgba(244, 255, 249, 0.96);
+          color: #536f63;
+        }
+
+        .connection-safety-badge.warning {
+          border: 1px solid rgba(191, 146, 72, 0.24);
+          background: rgba(255, 250, 241, 0.96);
+          color: #8a6630;
+        }
+
+        .connection-safety-badge.neutral {
+          border: 1px solid rgba(100, 100, 110, 0.14);
+          background: rgba(248, 248, 252, 0.96);
+          color: #5d6677;
         }
 
         .connection-contact-grid {
@@ -1652,6 +2159,8 @@ export default async function OrganisationVolunteersPage() {
         }
 
         .connection-role-main-link small {
+          display: block;
+          margin-bottom: 8px;
           color: #60706a;
           font-weight: 750;
           line-height: 1.3;
@@ -1861,7 +2370,8 @@ export default async function OrganisationVolunteersPage() {
           .connection-summary-grid,
           .connection-contact-grid,
           .connection-snapshot-grid,
-          .connection-review-grid {
+          .connection-review-grid,
+          .connection-safety-role-grid {
             grid-template-columns: 1fr;
           }
 
@@ -1895,6 +2405,13 @@ export default async function OrganisationVolunteersPage() {
 
           .connection-review-link {
             justify-content: center;
+          }
+
+          .connection-safety-badge {
+            width: 100%;
+            justify-content: center;
+            border-radius: 18px;
+            text-align: center;
           }
 
           .connection-empty-action {
