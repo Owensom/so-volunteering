@@ -47,6 +47,23 @@ type OpportunityRow = {
   status: string;
   contact_name: string | null;
   contact_email: string | null;
+
+  minimum_age_stage: string | null;
+  suitable_for_pupils: boolean | null;
+  parent_carer_consent_required: boolean | null;
+  school_approval_required: boolean | null;
+  safeguarding_check_region: string | null;
+  safeguarding_review_required: boolean | null;
+  supervision_required: boolean | null;
+  no_lone_working: boolean | null;
+  no_home_visits: boolean | null;
+  no_money_handling: boolean | null;
+  no_personal_care: boolean | null;
+  no_private_messaging: boolean | null;
+  risk_assessment_completed: boolean | null;
+  named_safeguarding_contact: string | null;
+  legal_safeguarding_notes: string | null;
+  role_frequency_pattern: string | null;
 };
 
 type OrganisationProfileRow = {
@@ -61,6 +78,12 @@ type InterestGuideStep = {
   title: string;
   text: string;
   isComplete: boolean;
+};
+
+type SafetyBadge = {
+  icon: string;
+  label: string;
+  className: string;
 };
 
 function normaliseUserType(value: string | null | undefined) {
@@ -294,6 +317,265 @@ function formatDate(value: string | null | undefined) {
   }).format(date);
 }
 
+function hasText(value: string | null | undefined) {
+  return Boolean(value && value.trim().length > 0);
+}
+
+function getMinimumAgeStageLabel(value: string | null | undefined) {
+  if (value === "adults_only") return "Adults only";
+  if (value === "sixteen_plus") return "16+";
+  if (value === "fourteen_plus") return "14+";
+  if (value === "school_pupils_with_approval") {
+    return "School approval";
+  }
+  if (value === "school_pupils_with_parent_carer_consent") {
+    return "Parent/carer consent";
+  }
+
+  return "";
+}
+
+function getSafeguardingCheckRegionLabel(value: string | null | undefined) {
+  if (value === "scotland_pvg") return "PVG";
+  if (value === "england_wales_dbs") return "DBS";
+  if (value === "northern_ireland_accessni") return "AccessNI";
+  if (value === "not_expected") return "No check expected";
+  if (value === "not_sure") return "Check needs review";
+
+  return "";
+}
+
+function getFrequencyPatternLabel(value: string | null | undefined) {
+  if (value === "one_off") return "One-off";
+  if (value === "occasional") return "Occasional";
+  if (value === "weekly_or_regular") return "Weekly/regular";
+  if (value === "more_than_three_days_in_thirty") {
+    return "3+ days in 30";
+  }
+  if (value === "overnight") return "Overnight";
+  if (value === "not_sure") return "Frequency unsure";
+
+  return "";
+}
+
+function hasRoleSafetyInformation(opportunity: OpportunityRow) {
+  return Boolean(
+    (opportunity.minimum_age_stage &&
+      opportunity.minimum_age_stage !== "not_set") ||
+      (opportunity.safeguarding_check_region &&
+        opportunity.safeguarding_check_region !== "organisation_default") ||
+      (opportunity.role_frequency_pattern &&
+        opportunity.role_frequency_pattern !== "not_set") ||
+      opportunity.suitable_for_pupils === true ||
+      opportunity.parent_carer_consent_required === true ||
+      opportunity.school_approval_required === true ||
+      opportunity.safeguarding_review_required === true ||
+      opportunity.supervision_required === true ||
+      opportunity.no_lone_working === true ||
+      opportunity.no_home_visits === true ||
+      opportunity.no_money_handling === true ||
+      opportunity.no_personal_care === true ||
+      opportunity.no_private_messaging === true ||
+      opportunity.risk_assessment_completed === true ||
+      hasText(opportunity.named_safeguarding_contact) ||
+      hasText(opportunity.legal_safeguarding_notes),
+  );
+}
+
+function getSafetyBadges(opportunity: OpportunityRow): SafetyBadge[] {
+  const badges: SafetyBadge[] = [];
+
+  const minimumAgeLabel = getMinimumAgeStageLabel(
+    opportunity.minimum_age_stage,
+  );
+
+  if (minimumAgeLabel) {
+    badges.push({
+      icon: "👥",
+      label: minimumAgeLabel,
+      className: "role-safety-badge-info",
+    });
+  }
+
+  const checkLabel = getSafeguardingCheckRegionLabel(
+    opportunity.safeguarding_check_region,
+  );
+
+  if (checkLabel) {
+    badges.push({
+      icon: "🛡️",
+      label: checkLabel,
+      className:
+        opportunity.safeguarding_check_region === "not_sure"
+          ? "role-safety-badge-warning"
+          : "role-safety-badge-info",
+    });
+  }
+
+  const frequencyLabel = getFrequencyPatternLabel(
+    opportunity.role_frequency_pattern,
+  );
+
+  if (frequencyLabel) {
+    badges.push({
+      icon: "🔁",
+      label: frequencyLabel,
+      className:
+        opportunity.role_frequency_pattern === "not_sure" ||
+        opportunity.role_frequency_pattern === "more_than_three_days_in_thirty" ||
+        opportunity.role_frequency_pattern === "overnight"
+          ? "role-safety-badge-warning"
+          : "role-safety-badge-info",
+    });
+  }
+
+  if (opportunity.suitable_for_pupils === true) {
+    badges.push({
+      icon: "🏫",
+      label: "Pupil suitable",
+      className: "role-safety-badge-warning",
+    });
+  }
+
+  if (opportunity.school_approval_required === true) {
+    badges.push({
+      icon: "✅",
+      label: "School approval",
+      className: "role-safety-badge-warning",
+    });
+  }
+
+  if (opportunity.parent_carer_consent_required === true) {
+    badges.push({
+      icon: "👪",
+      label: "Parent/carer consent",
+      className: "role-safety-badge-warning",
+    });
+  }
+
+  if (opportunity.safeguarding_review_required === true) {
+    badges.push({
+      icon: "⚖️",
+      label: "Review needed",
+      className: "role-safety-badge-warning",
+    });
+  }
+
+  if (opportunity.supervision_required === true) {
+    badges.push({
+      icon: "👀",
+      label: "Supervision",
+      className: "role-safety-badge-ready",
+    });
+  }
+
+  if (opportunity.no_lone_working === true) {
+    badges.push({
+      icon: "🚫",
+      label: "No lone working",
+      className: "role-safety-badge-ready",
+    });
+  }
+
+  if (opportunity.no_home_visits === true) {
+    badges.push({
+      icon: "🏠",
+      label: "No home visits",
+      className: "role-safety-badge-ready",
+    });
+  }
+
+  if (opportunity.no_money_handling === true) {
+    badges.push({
+      icon: "💷",
+      label: "No money handling",
+      className: "role-safety-badge-ready",
+    });
+  }
+
+  if (opportunity.no_personal_care === true) {
+    badges.push({
+      icon: "🤲",
+      label: "No personal care",
+      className: "role-safety-badge-ready",
+    });
+  }
+
+  if (opportunity.no_private_messaging === true) {
+    badges.push({
+      icon: "📵",
+      label: "Approved contact only",
+      className: "role-safety-badge-ready",
+    });
+  }
+
+  if (opportunity.risk_assessment_completed === true) {
+    badges.push({
+      icon: "📋",
+      label: "Risk checked",
+      className: "role-safety-badge-ready",
+    });
+  }
+
+  return badges.slice(0, 7);
+}
+
+function RoleSafetyPreview({
+  opportunity,
+  simpleView,
+}: {
+  opportunity: OpportunityRow;
+  simpleView: boolean;
+}) {
+  const hasSafetyInfo = hasRoleSafetyInformation(opportunity);
+  const safetyBadges = getSafetyBadges(opportunity);
+
+  if (!hasSafetyInfo) {
+    return (
+      <div className="role-safety-preview role-safety-preview-muted">
+        <div className="role-safety-preview-header">
+          <span aria-hidden="true">🛡️</span>
+          <div>
+            <p className="dashboard-card-label">Role safety</p>
+            <strong>Safety details on role page</strong>
+          </div>
+        </div>
+
+        {!simpleView ? (
+          <p>
+            Open the role to read safety notes, support and first-visit
+            information before moving forward.
+          </p>
+        ) : null}
+      </div>
+    );
+  }
+
+  return (
+    <div className="role-safety-preview">
+      <div className="role-safety-preview-header">
+        <span aria-hidden="true">🛡️</span>
+        <div>
+          <p className="dashboard-card-label">Role safety</p>
+          <strong>Safety information added</strong>
+        </div>
+      </div>
+
+      <div className="role-safety-badge-grid">
+        {safetyBadges.map((badge) => (
+          <span
+            key={`${opportunity.id}-${badge.icon}-${badge.label}`}
+            className={`role-safety-badge ${badge.className}`}
+          >
+            <span aria-hidden="true">{badge.icon}</span>
+            {badge.label}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function InterestGuide({ steps }: { steps: InterestGuideStep[] }) {
   return (
     <section
@@ -436,7 +718,7 @@ export default async function MyInterestsPage({
     ? await supabase
         .from("opportunities")
         .select(
-          "id,title,summary,location_type,location,location_town_city,location_area,location_venue,location_postcode,hide_exact_location,time_commitment,status,contact_name,contact_email",
+          "id,title,summary,location_type,location,location_town_city,location_area,location_venue,location_postcode,hide_exact_location,time_commitment,status,contact_name,contact_email,minimum_age_stage,suitable_for_pupils,parent_carer_consent_required,school_approval_required,safeguarding_check_region,safeguarding_review_required,supervision_required,no_lone_working,no_home_visits,no_money_handling,no_personal_care,no_private_messaging,risk_assessment_completed,named_safeguarding_contact,legal_safeguarding_notes,role_frequency_pattern",
         )
         .in("id", opportunityIds)
     : { data: [] as OpportunityRow[] };
@@ -460,6 +742,8 @@ export default async function MyInterestsPage({
       (organisationProfile) => [organisationProfile.user_id, organisationProfile],
     ),
   );
+
+  const opportunityRows = (opportunities as OpportunityRow[] | null) ?? [];
 
   const viewMode = normaliseViewMode(preferences?.view_mode);
   const colourTheme = normaliseColourTheme(preferences?.colour_theme);
@@ -486,6 +770,10 @@ export default async function MyInterestsPage({
     (row) => normaliseInterestStatus(row.status) === "closed",
   ).length;
 
+  const rolesWithSafetyInfoCount = opportunityRows.filter((opportunity) =>
+    hasRoleSafetyInformation(opportunity),
+  ).length;
+
   const activeCount = newCount + contactedCount + acceptedCount;
   const preferredContactLabel = formatContactMethod(
     volunteerProfile?.preferred_contact_method,
@@ -498,6 +786,12 @@ export default async function MyInterestsPage({
       title: "Interest sent",
       text: "Your interest is saved and visible to that organisation.",
       isComplete: rows.length > 0,
+    },
+    {
+      icon: "🛡️",
+      title: "Check role safety",
+      text: "Review supervision, contact, location and safeguarding notes before moving forward.",
+      isComplete: rolesWithSafetyInfoCount > 0,
     },
     {
       icon: "📬",
@@ -520,8 +814,8 @@ export default async function MyInterestsPage({
   ];
 
   const listenText = simpleView
-    ? `You are on the Roles I am interested in page. You have ${rows.length} saved role${rows.length === 1 ? "" : "s"}. New interest means the organisation has not updated it yet. Contacted means the organisation has contacted you. Accepted means the organisation would like to move forward. Closed means the role is not progressing. Open a role to read it again, or remove interest if you no longer want the organisation to see it.`
-    : `You are on the Roles I am interested in page. This page tracks roles where you clicked I’m interested. You have ${rows.length} saved role${rows.length === 1 ? "" : "s"}, ${newCount} new, ${contactedCount} contacted, ${acceptedCount} accepted and ${closedCount} closed. The guide explains what happens after you express interest. Each card shows the organisation name or logo when available, role title, current status, what the status means, safe location details, next-step guidance and your supporting statement if you wrote one. Your preferred contact method is ${preferredContactLabel}. Remember that SO Volunteering and organisations using the app should never ask for money, bank details, passwords or financial information. Use Open opportunity to return to the role details. Use Remove interest if you no longer want the organisation to see that you are interested.`;
+    ? `You are on the Roles I am interested in page. You have ${rows.length} saved role${rows.length === 1 ? "" : "s"}. New interest means the organisation has not updated it yet. Contacted means the organisation has contacted you. Accepted means the organisation would like to move forward. Closed means the role is not progressing. Each card can show role safety information such as supervision, no lone working, no home visits, no money handling, no personal care, approved contact routes and safeguarding wording. Open a role to read it again, or remove interest if you no longer want the organisation to see it.`
+    : `You are on the Roles I am interested in page. This page tracks roles where you clicked I’m interested. You have ${rows.length} saved role${rows.length === 1 ? "" : "s"}, ${newCount} new, ${contactedCount} contacted, ${acceptedCount} accepted and ${closedCount} closed. ${rolesWithSafetyInfoCount} saved role${rolesWithSafetyInfoCount === 1 ? "" : "s"} include extra role safety information. Each card shows the organisation name or logo when available, role title, current status, what the status means, safe location details, role safety information, next-step guidance and your supporting statement if you wrote one. Your preferred contact method is ${preferredContactLabel}. Remember that SO Volunteering and organisations using the app should never ask for money, bank details, passwords or financial information. Use Open opportunity to return to the role details. Use Remove interest if you no longer want the organisation to see that you are interested.`;
 
   const shellClassName = [
     "dashboard-bg",
@@ -661,6 +955,9 @@ export default async function MyInterestsPage({
               <p className="dashboard-progress-note">
                 Closed: <strong>{closedCount}</strong>
               </p>
+              <p className="dashboard-progress-note">
+                Safety info added: <strong>{rolesWithSafetyInfoCount}</strong>
+              </p>
             </div>
 
             <div className="my-interest-contact-summary">
@@ -737,10 +1034,10 @@ export default async function MyInterestsPage({
             helper="Organisation wants to move forward"
           />
           <StatCard
-            icon="🌙"
-            label="Closed"
-            value={closedCount}
-            helper="Not progressing at the moment"
+            icon="🛡️"
+            label="Safety"
+            value={rolesWithSafetyInfoCount}
+            helper="Saved roles with safety info"
           />
         </section>
 
@@ -854,6 +1151,13 @@ export default async function MyInterestsPage({
                         <span aria-hidden="true">➡️</span>
                         <p>{nextStepHelp(normalisedStatus, simpleView)}</p>
                       </div>
+
+                      {opportunity ? (
+                        <RoleSafetyPreview
+                          opportunity={opportunity}
+                          simpleView={simpleView}
+                        />
+                      ) : null}
 
                       {opportunity ? (
                         <div className="my-interest-location">
@@ -984,7 +1288,7 @@ export default async function MyInterestsPage({
         }
 
         .my-interest-card {
-          min-height: 360px;
+          min-height: 390px;
         }
 
         .dashboard-card-copy,
@@ -1099,7 +1403,7 @@ export default async function MyInterestsPage({
 
         .my-interests-guide-grid {
           display: grid;
-          grid-template-columns: repeat(4, minmax(0, 1fr));
+          grid-template-columns: repeat(5, minmax(0, 1fr));
           gap: 12px;
         }
 
@@ -1340,7 +1644,8 @@ export default async function MyInterestsPage({
         .my-interest-status-panel,
         .my-interest-location,
         .my-interest-contact-card,
-        .my-interest-next-step {
+        .my-interest-next-step,
+        .role-safety-preview {
           display: grid;
           gap: 4px;
           padding: 12px;
@@ -1361,7 +1666,8 @@ export default async function MyInterestsPage({
         .my-interest-status-panel strong,
         .my-interest-location strong,
         .my-interest-contact-card strong,
-        .my-interest-next-step strong {
+        .my-interest-next-step strong,
+        .role-safety-preview strong {
           color: #315f48;
         }
 
@@ -1383,6 +1689,87 @@ export default async function MyInterestsPage({
         .status-panel-closed {
           border-color: rgba(100, 100, 110, 0.16);
           background: rgba(248, 248, 252, 0.86);
+        }
+
+        .role-safety-preview {
+          gap: 10px;
+          border-color: rgba(83, 111, 99, 0.2);
+          background: rgba(244, 255, 249, 0.86);
+        }
+
+        .role-safety-preview-muted {
+          border-color: rgba(108, 92, 160, 0.12);
+          background: rgba(248, 248, 252, 0.88);
+        }
+
+        .role-safety-preview-header {
+          display: grid;
+          grid-template-columns: auto 1fr;
+          gap: 10px;
+          align-items: start;
+        }
+
+        .role-safety-preview-header > span {
+          display: inline-flex;
+          width: 40px;
+          height: 40px;
+          align-items: center;
+          justify-content: center;
+          border-radius: 14px;
+          background: rgba(143, 178, 158, 0.14);
+          font-size: 1.28rem;
+        }
+
+        .role-safety-preview-header strong {
+          display: block;
+          color: #315f48;
+          font-size: 0.95rem;
+          font-weight: 950;
+          line-height: 1.18;
+        }
+
+        .role-safety-preview p {
+          color: #60706a;
+          font-size: 0.9rem;
+          font-weight: 750;
+          line-height: 1.35;
+        }
+
+        .role-safety-badge-grid {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 7px;
+        }
+
+        .role-safety-badge {
+          display: inline-flex;
+          min-height: 30px;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+          padding: 6px 9px;
+          border-radius: 999px;
+          font-size: 0.76rem;
+          font-weight: 950;
+          line-height: 1.12;
+        }
+
+        .role-safety-badge-ready {
+          border: 1px solid rgba(83, 111, 99, 0.2);
+          background: rgba(244, 255, 249, 0.96);
+          color: #536f63;
+        }
+
+        .role-safety-badge-info {
+          border: 1px solid rgba(108, 92, 160, 0.16);
+          background: rgba(248, 245, 255, 0.94);
+          color: #5c5488;
+        }
+
+        .role-safety-badge-warning {
+          border: 1px solid rgba(191, 146, 72, 0.24);
+          background: rgba(255, 250, 241, 0.96);
+          color: #8a6630;
         }
 
         .my-interest-message {
@@ -1468,7 +1855,8 @@ export default async function MyInterestsPage({
 
         .preference-text-large .dashboard-lead,
         .preference-text-large .dashboard-card-copy p,
-        .preference-text-large .dashboard-progress-note {
+        .preference-text-large .dashboard-progress-note,
+        .preference-text-large .role-safety-preview p {
           font-size: 1.04em;
         }
 
@@ -1481,7 +1869,7 @@ export default async function MyInterestsPage({
         }
 
         .preference-view-simple .my-interest-card {
-          min-height: 260px;
+          min-height: 280px;
         }
 
         .preference-view-simple .dashboard-card-icon {
@@ -1489,7 +1877,7 @@ export default async function MyInterestsPage({
         }
 
         .preference-view-detailed .my-interest-card {
-          min-height: 390px;
+          min-height: 420px;
         }
 
         .preference-theme-calm_green {
@@ -1503,12 +1891,14 @@ export default async function MyInterestsPage({
         .preference-theme-calm_green .dashboard-progress-card,
         .preference-theme-calm_green .my-interests-guide-panel,
         .preference-theme-calm_green .my-interest-safety-panel,
-        .preference-theme-calm_green .my-interest-stat-card {
+        .preference-theme-calm_green .my-interest-stat-card,
+        .preference-theme-calm_green .role-safety-preview {
           border-color: rgba(83, 111, 99, 0.2);
         }
 
         .preference-theme-calm_green .dashboard-card-icon,
-        .preference-theme-calm_green .dashboard-progress-icon {
+        .preference-theme-calm_green .dashboard-progress-icon,
+        .preference-theme-calm_green .role-safety-preview-header > span {
           background: rgba(226, 255, 239, 0.86);
         }
 
@@ -1523,12 +1913,14 @@ export default async function MyInterestsPage({
         .preference-theme-soft_blue .dashboard-progress-card,
         .preference-theme-soft_blue .my-interests-guide-panel,
         .preference-theme-soft_blue .my-interest-safety-panel,
-        .preference-theme-soft_blue .my-interest-stat-card {
+        .preference-theme-soft_blue .my-interest-stat-card,
+        .preference-theme-soft_blue .role-safety-preview {
           border-color: rgba(74, 112, 160, 0.2);
         }
 
         .preference-theme-soft_blue .dashboard-card-icon,
-        .preference-theme-soft_blue .dashboard-progress-icon {
+        .preference-theme-soft_blue .dashboard-progress-icon,
+        .preference-theme-soft_blue .role-safety-preview-header > span {
           background: rgba(231, 244, 255, 0.92);
         }
 
@@ -1543,12 +1935,14 @@ export default async function MyInterestsPage({
         .preference-theme-warm_peach .dashboard-progress-card,
         .preference-theme-warm_peach .my-interests-guide-panel,
         .preference-theme-warm_peach .my-interest-safety-panel,
-        .preference-theme-warm_peach .my-interest-stat-card {
+        .preference-theme-warm_peach .my-interest-stat-card,
+        .preference-theme-warm_peach .role-safety-preview {
           border-color: rgba(190, 118, 76, 0.2);
         }
 
         .preference-theme-warm_peach .dashboard-card-icon,
-        .preference-theme-warm_peach .dashboard-progress-icon {
+        .preference-theme-warm_peach .dashboard-progress-icon,
+        .preference-theme-warm_peach .role-safety-preview-header > span {
           background: rgba(255, 239, 226, 0.92);
         }
 
@@ -1566,7 +1960,9 @@ export default async function MyInterestsPage({
         .preference-theme-high_contrast .my-interests-guide-panel,
         .preference-theme-high_contrast .my-interests-guide-step,
         .preference-theme-high_contrast .my-interest-safety-panel,
-        .preference-theme-high_contrast .my-interest-stat-card {
+        .preference-theme-high_contrast .my-interest-stat-card,
+        .preference-theme-high_contrast .role-safety-preview,
+        .preference-theme-high_contrast .role-safety-badge {
           border: 2px solid #1f2937;
           background: rgba(255, 255, 255, 0.98);
         }
@@ -1581,7 +1977,8 @@ export default async function MyInterestsPage({
         .preference-theme-high_contrast .my-interests-guide-step-copy h3,
         .preference-theme-high_contrast .my-interest-safety-panel h2,
         .preference-theme-high_contrast .my-interest-stat-card strong,
-        .preference-theme-high_contrast .my-interest-organisation h3 {
+        .preference-theme-high_contrast .my-interest-organisation h3,
+        .preference-theme-high_contrast .role-safety-preview strong {
           color: #111827;
         }
 
@@ -1596,7 +1993,10 @@ export default async function MyInterestsPage({
         .preference-theme-high_contrast .my-interests-guide-step-copy p,
         .preference-theme-high_contrast .my-interest-safety-panel p,
         .preference-theme-high_contrast .my-interest-stat-card p,
-        .preference-theme-high_contrast .my-interest-stat-card small {
+        .preference-theme-high_contrast .my-interest-stat-card small,
+        .preference-theme-high_contrast .role-safety-preview,
+        .preference-theme-high_contrast .role-safety-preview p,
+        .preference-theme-high_contrast .role-safety-badge {
           color: #1f2937;
         }
 
@@ -1605,7 +2005,8 @@ export default async function MyInterestsPage({
         .preference-theme-high_contrast .my-interests-guide-heading > span,
         .preference-theme-high_contrast .my-interests-guide-step-icon,
         .preference-theme-high_contrast .my-interest-safety-icon,
-        .preference-theme-high_contrast .my-interest-stat-card > span {
+        .preference-theme-high_contrast .my-interest-stat-card > span,
+        .preference-theme-high_contrast .role-safety-preview-header > span {
           border: 2px solid #1f2937;
           background: #ffffff;
           color: #111827;
@@ -1634,7 +2035,8 @@ export default async function MyInterestsPage({
         .preference-theme-neon_arcade .my-interests-guide-panel,
         .preference-theme-neon_arcade .my-interests-guide-step,
         .preference-theme-neon_arcade .my-interest-safety-panel,
-        .preference-theme-neon_arcade .my-interest-stat-card {
+        .preference-theme-neon_arcade .my-interest-stat-card,
+        .preference-theme-neon_arcade .role-safety-preview {
           border-color: rgba(34, 211, 238, 0.42);
           background: rgba(15, 23, 42, 0.86);
           box-shadow:
@@ -1653,7 +2055,8 @@ export default async function MyInterestsPage({
         .preference-theme-neon_arcade .my-interests-guide-step-copy h3,
         .preference-theme-neon_arcade .my-interest-safety-panel h2,
         .preference-theme-neon_arcade .my-interest-stat-card strong,
-        .preference-theme-neon_arcade .my-interest-organisation h3 {
+        .preference-theme-neon_arcade .my-interest-organisation h3,
+        .preference-theme-neon_arcade .role-safety-preview strong {
           color: #e0f2fe;
         }
 
@@ -1673,7 +2076,8 @@ export default async function MyInterestsPage({
         .preference-theme-neon_arcade .my-interest-safety-panel p,
         .preference-theme-neon_arcade .my-interest-stat-card p,
         .preference-theme-neon_arcade .my-interest-stat-card small,
-        .preference-theme-neon_arcade .my-interest-date {
+        .preference-theme-neon_arcade .my-interest-date,
+        .preference-theme-neon_arcade .role-safety-preview p {
           color: #dbeafe;
         }
 
@@ -1684,14 +2088,16 @@ export default async function MyInterestsPage({
         .preference-theme-neon_arcade .my-interest-safety-icon,
         .preference-theme-neon_arcade .my-interest-stat-card > span,
         .preference-theme-neon_arcade .my-interest-organisation-logo,
-        .preference-theme-neon_arcade .my-interest-organisation-logo-fallback {
+        .preference-theme-neon_arcade .my-interest-organisation-logo-fallback,
+        .preference-theme-neon_arcade .role-safety-preview-header > span {
           border: 1px solid rgba(34, 211, 238, 0.42);
           background: rgba(34, 211, 238, 0.12);
           color: #a7f3d0;
           box-shadow: inset 0 0 0 1px rgba(217, 70, 239, 0.14);
         }
 
-        .preference-theme-neon_arcade .dashboard-card-action-pill {
+        .preference-theme-neon_arcade .dashboard-card-action-pill,
+        .preference-theme-neon_arcade .role-safety-badge {
           border-color: rgba(34, 211, 238, 0.42);
           background: rgba(34, 211, 238, 0.12);
           color: #a7f3d0;
@@ -1727,7 +2133,10 @@ export default async function MyInterestsPage({
         }
 
         @media (max-width: 1180px) {
-          .my-interests-guide-grid,
+          .my-interests-guide-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+          }
+
           .my-interest-stat-grid {
             grid-template-columns: repeat(2, minmax(0, 1fr));
           }
@@ -1784,8 +2193,19 @@ export default async function MyInterestsPage({
           .my-interest-status-panel,
           .my-interest-location,
           .my-interest-contact-card,
-          .my-interest-next-step {
+          .my-interest-next-step,
+          .role-safety-preview {
             border-radius: 16px;
+          }
+
+          .role-safety-preview-header {
+            align-items: center;
+          }
+
+          .role-safety-badge {
+            width: 100%;
+            justify-content: center;
+            text-align: center;
           }
 
           .my-interest-actions {
