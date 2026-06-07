@@ -33,6 +33,10 @@ type VolunteerPreferences = {
   listen_mode: string | null;
 };
 
+type EducationSummary = {
+  id: string;
+};
+
 type SkillReview = {
   id: string;
   opportunity_title: string | null;
@@ -69,6 +73,15 @@ type SkillBadge = {
   >;
   label: string;
   icon: string;
+};
+
+type PathwayGuideStep = {
+  icon: string;
+  title: string;
+  text: string;
+  href: string;
+  action: string;
+  isComplete: boolean;
 };
 
 const skillBadges: SkillBadge[] = [
@@ -178,6 +191,18 @@ function getReviewSkills(review: SkillReview) {
   return skillBadges.filter((skill) => review[skill.key] === true);
 }
 
+function getRecognisedSkillCount(reviews: SkillReview[]) {
+  const recognised = new Set<string>();
+
+  reviews.forEach((review) => {
+    getReviewSkills(review).forEach((skill) => {
+      recognised.add(skill.key);
+    });
+  });
+
+  return recognised.size;
+}
+
 function getVolunteerProgress(volunteerProfile: VolunteerProfile | null) {
   if (!volunteerProfile) {
     return {
@@ -254,7 +279,14 @@ function PathwayStepCard({
   simpleView: boolean;
 }) {
   return (
-    <Link href={href} className="info-card dashboard-pathway-card">
+    <Link
+      href={href}
+      className={
+        complete
+          ? "info-card dashboard-pathway-card pathway-step-card pathway-step-card-complete"
+          : "info-card dashboard-pathway-card pathway-step-card"
+      }
+    >
       <div className="dashboard-card-icon" aria-hidden="true">
         {complete ? "✅" : icon}
       </div>
@@ -318,6 +350,81 @@ function PositiveReviewCard({ review }: { review: SkillReview }) {
   );
 }
 
+function PathwayGuide({ steps }: { steps: PathwayGuideStep[] }) {
+  return (
+    <section className="pathway-guide-panel" aria-labelledby="pathway-guide-title">
+      <div className="pathway-guide-heading">
+        <span aria-hidden="true">🧭</span>
+
+        <div>
+          <p className="dashboard-kicker">Step-by-step guide</p>
+          <h2 id="pathway-guide-title">How to build your pathway</h2>
+          <p>
+            Work through your setup steps, add learning, collect positive
+            evidence and open your Positive Pathway CV when you want to share or
+            save it.
+          </p>
+        </div>
+      </div>
+
+      <div className="pathway-guide-grid">
+        {steps.map((step, index) => (
+          <Link
+            key={step.title}
+            href={step.href}
+            className={
+              step.isComplete
+                ? "pathway-guide-step pathway-guide-step-complete"
+                : "pathway-guide-step"
+            }
+          >
+            <span className="pathway-guide-step-number">
+              {step.isComplete ? "✓" : index + 1}
+            </span>
+
+            <div className="pathway-guide-step-icon" aria-hidden="true">
+              {step.icon}
+            </div>
+
+            <div className="pathway-guide-step-copy">
+              <p className="pathway-guide-step-kicker">
+                Step {index + 1}
+                <span>{step.isComplete ? "Complete" : "To do"}</span>
+              </p>
+              <h3>{step.title}</h3>
+              <p>{step.text}</p>
+              <strong>{step.action}</strong>
+            </div>
+          </Link>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function StrengthSummaryCard({
+  icon,
+  title,
+  value,
+  text,
+}: {
+  icon: string;
+  title: string;
+  value: string | number;
+  text: string;
+}) {
+  return (
+    <article className="pathway-summary-card">
+      <span aria-hidden="true">{icon}</span>
+      <div>
+        <p>{title}</p>
+        <strong>{value}</strong>
+        <small>{text}</small>
+      </div>
+    </article>
+  );
+}
+
 export default async function PathwayPage() {
   const supabase = await createClient();
 
@@ -360,6 +467,11 @@ export default async function PathwayPage() {
     .eq("user_id", user.id)
     .maybeSingle<VolunteerPreferences>();
 
+  const { data: educationEntries } = await supabase
+    .from("volunteer_education_entries")
+    .select("id")
+    .eq("volunteer_user_id", user.id);
+
   const { data: skillReviews } = await supabase
     .from("volunteer_skill_reviews")
     .select(
@@ -370,6 +482,7 @@ export default async function PathwayPage() {
     .order("updated_at", { ascending: false });
 
   const sharedReviews = (skillReviews as SkillReview[] | null) ?? [];
+  const educationRows = (educationEntries as EducationSummary[] | null) ?? [];
 
   const viewMode = normaliseViewMode(preferences?.view_mode);
   const colourTheme = normaliseColourTheme(preferences?.colour_theme);
@@ -388,13 +501,78 @@ export default async function PathwayPage() {
     (total, review) => total + getReviewSkills(review).length,
     0,
   );
+  const recognisedSkillCount = getRecognisedSkillCount(sharedReviews);
+  const educationCount = educationRows.length;
+  const hasPositiveCvEvidence =
+    progress.completedSteps > 0 || educationCount > 0 || reviewCount > 0;
+
+  const guideSteps: PathwayGuideStep[] = [
+    {
+      icon: "🌱",
+      title: "Set your goals",
+      text: "Add your town or city and choose what you want volunteering to help with.",
+      href: "/onboarding/volunteer",
+      action: progress.goalsComplete ? "Review goals" : "Continue goals",
+      isComplete: progress.goalsComplete,
+    },
+    {
+      icon: "💚",
+      title: "Choose interests",
+      text: "Choose what you enjoy, care about or might like to try.",
+      href: "/onboarding/volunteer/interests",
+      action: progress.interestsComplete
+        ? "Review interests"
+        : "Continue interests",
+      isComplete: progress.interestsComplete,
+    },
+    {
+      icon: "⭐",
+      title: "Add skills",
+      text: "Choose skills you already have or would like to build.",
+      href: "/onboarding/volunteer/skills",
+      action: progress.skillsComplete ? "Review skills" : "Continue skills",
+      isComplete: progress.skillsComplete,
+    },
+    {
+      icon: "💛",
+      title: "Add support",
+      text: "Choose anything that helps you feel comfortable, safe and included.",
+      href: "/onboarding/volunteer/accessibility",
+      action: progress.accessibilityComplete
+        ? "Review support"
+        : "Continue support",
+      isComplete: progress.accessibilityComplete,
+    },
+    {
+      icon: "📅",
+      title: "Add availability",
+      text: "Tell the app when volunteering might work for you.",
+      href: "/onboarding/volunteer/availability",
+      action: progress.availabilityComplete
+        ? "Review availability"
+        : "Continue availability",
+      isComplete: progress.availabilityComplete,
+    },
+    {
+      icon: "📄",
+      title: "Open your CV",
+      text: "See your goals, skills, learning and positive evidence in one place.",
+      href: "/pathway/cv",
+      action: "Open Positive Pathway CV",
+      isComplete: hasPositiveCvEvidence,
+    },
+  ];
+
+  const guideCompleteCount = guideSteps.filter((step) => step.isComplete).length;
+  const guidePercent = Math.round((guideCompleteCount / guideSteps.length) * 100);
 
   const listenText = simpleView
-    ? `You are on your pathway page. This page shows five setup steps, your positive skills reviews and a button to open your Positive Pathway CV. You have ${reviewCount} shared skills review${reviewCount === 1 ? "" : "s"}. Each card says complete or to do. Open a card to review or finish that step. Use Dashboard to go back.`
-    : `You are on your SO Volunteering pathway page. It shows your five profile setup steps: goals, interests, skills, wellbeing and support, and availability. It also shows positive skills reviews shared by organisations after volunteering activity. You can open your Positive Pathway CV from the main button. You currently have ${reviewCount} shared skills review${reviewCount === 1 ? "" : "s"} and ${reviewSkillCount} positive skill badge${reviewSkillCount === 1 ? "" : "s"}. First, check the Progress card on the right to see how many steps are complete. Each card below says whether the step is complete or still to do. You can select any card to review or update that part of your profile. Use View my profile to see your full profile summary, or Back to dashboard to return home.`;
+    ? `You are on your pathway page. This page shows your setup guide, your positive skills reviews and a button to open your Positive Pathway CV. You have ${reviewCount} shared skills review${reviewCount === 1 ? "" : "s"}. Each card says complete or to do. Open a card to review or finish that step. Use Dashboard to go back.`
+    : `You are on your SO Volunteering pathway page. It now works as a pathway control centre. It shows a step by step guide for goals, interests, skills, wellbeing and support, availability, and your Positive Pathway CV. It also shows positive skills reviews shared by organisations after volunteering activity. You currently have ${reviewCount} shared skills review${reviewCount === 1 ? "" : "s"}, ${educationCount} education entr${educationCount === 1 ? "y" : "ies"} and ${reviewSkillCount} positive skill badge${reviewSkillCount === 1 ? "" : "s"}. First, check the Progress card on the right to see how many steps are complete. Use Open Positive Pathway CV to see your strengths-based CV. Use Best roles for me to browse matched opportunities. Use View my profile to see your full profile summary, or Back to dashboard to return home.`;
 
   const shellClassName = [
     "dashboard-bg",
+    "pathway-page",
     getThemeClass(colourTheme),
     getTextClass(textSize),
     getViewClass(viewMode),
@@ -441,7 +619,7 @@ export default async function PathwayPage() {
         </header>
 
         <section
-          className="dashboard-welcome-card"
+          className="dashboard-welcome-card pathway-hero"
           aria-labelledby="pathway-title"
         >
           <div className="dashboard-welcome-copy">
@@ -454,8 +632,8 @@ export default async function PathwayPage() {
 
             <p className="dashboard-lead">
               {simpleView
-                ? `Hi ${displayName}. Check your five setup steps, positive reviews and CV.`
-                : `Hi ${displayName}. This page shows your volunteering pathway setup, positive skills evidence and Positive Pathway CV.`}
+                ? `Hi ${displayName}. Check your setup steps, positive reviews and CV.`
+                : `Hi ${displayName}. This is your pathway control centre. Build your setup profile, review positive evidence, open your CV and find roles that fit you.`}
             </p>
 
             <div className="dashboard-primary-actions pathway-primary-actions">
@@ -466,6 +644,16 @@ export default async function PathwayPage() {
                 <span className="dashboard-button-inner">
                   <span aria-hidden="true">📄</span>
                   <span>Open Positive Pathway CV</span>
+                </span>
+              </Link>
+
+              <Link
+                href="/opportunities"
+                className="secondary-button dashboard-main-action"
+              >
+                <span className="dashboard-button-inner">
+                  <span aria-hidden="true">🔎</span>
+                  <span>Best roles for me</span>
                 </span>
               </Link>
 
@@ -499,7 +687,7 @@ export default async function PathwayPage() {
               <div>
                 <h2>Progress</h2>
                 <p>
-                  {progress.completedSteps} of {progress.totalSteps} steps
+                  {progress.completedSteps} of {progress.totalSteps} setup steps
                   complete.
                 </p>
               </div>
@@ -520,13 +708,17 @@ export default async function PathwayPage() {
               </div>
             </div>
 
-            <p className="dashboard-progress-note">
-              Account type: <strong>{userType}</strong>
-            </p>
-
-            <p className="dashboard-progress-note">
-              Positive reviews: <strong>{reviewCount}</strong>
-            </p>
+            <div className="pathway-mini-status">
+              <p className="dashboard-progress-note">
+                Positive reviews: <strong>{reviewCount}</strong>
+              </p>
+              <p className="dashboard-progress-note">
+                Education entries: <strong>{educationCount}</strong>
+              </p>
+              <p className="dashboard-progress-note">
+                Recognised strengths: <strong>{recognisedSkillCount}</strong>
+              </p>
+            </div>
 
             {detailedView ? (
               <p className="dashboard-progress-note">
@@ -535,6 +727,53 @@ export default async function PathwayPage() {
               </p>
             ) : null}
           </aside>
+        </section>
+
+        <PathwayGuide steps={guideSteps} />
+
+        <section
+          className="pathway-summary-panel"
+          aria-labelledby="pathway-summary-title"
+        >
+          <div className="pathway-summary-heading">
+            <span aria-hidden="true">🌈</span>
+
+            <div>
+              <p className="dashboard-kicker">Pathway summary</p>
+              <h2 id="pathway-summary-title">Your progress at a glance</h2>
+              <p>
+                These cards show what is already helping build your Positive
+                Pathway CV.
+              </p>
+            </div>
+          </div>
+
+          <div className="pathway-summary-grid">
+            <StrengthSummaryCard
+              icon="✅"
+              title="Setup progress"
+              value={`${progress.completedSteps}/5`}
+              text="Goals, interests, skills, support and availability."
+            />
+            <StrengthSummaryCard
+              icon="📚"
+              title="Learning added"
+              value={educationCount}
+              text="Education, qualifications, training or certificates."
+            />
+            <StrengthSummaryCard
+              icon="⭐"
+              title="Shared reviews"
+              value={reviewCount}
+              text="Positive evidence shared by organisations."
+            />
+            <StrengthSummaryCard
+              icon="🏅"
+              title="Recognised strengths"
+              value={recognisedSkillCount}
+              text="Skill areas recognised through volunteering."
+            />
+          </div>
         </section>
 
         {sharedReviews.length > 0 ? (
@@ -669,44 +908,127 @@ export default async function PathwayPage() {
             simpleView={simpleView}
           />
 
-          {!simpleView ? (
-            <article className="info-card dashboard-pathway-card">
-              <div className="dashboard-card-icon" aria-hidden="true">
-                🔎
-              </div>
+          <Link
+            href="/profile/education"
+            className={
+              educationCount > 0
+                ? "info-card dashboard-pathway-card pathway-step-card pathway-step-card-complete"
+                : "info-card dashboard-pathway-card pathway-step-card"
+            }
+          >
+            <div className="dashboard-card-icon" aria-hidden="true">
+              {educationCount > 0 ? "✅" : "📚"}
+            </div>
 
-              <div className="dashboard-card-copy">
-                <div className="dashboard-card-main">
-                  <p className="dashboard-card-label">Coming soon</p>
-                  <h2>Opportunity matching</h2>
-                  <p>
-                    Your pathway helps match you with inclusive volunteering
-                    opportunities.
-                  </p>
-                </div>
-
-                <p className="dashboard-muted-action pathway-muted-action">
-                  Not live yet
+            <div className="dashboard-card-copy">
+              <div className="dashboard-card-main">
+                <p className="dashboard-card-label">
+                  {educationCount > 0 ? "Learning added" : "Optional step"}
+                </p>
+                <h2>Education and training</h2>
+                <p>
+                  {simpleView
+                    ? "Add learning to your CV."
+                    : "Add education, qualifications, certificates or training to strengthen your Positive Pathway CV."}
                 </p>
               </div>
-            </article>
-          ) : null}
+
+              <span className="dashboard-card-action-pill">
+                {educationCount > 0 ? "Review education" : "Add education"}
+              </span>
+            </div>
+          </Link>
+
+          <Link href="/opportunities" className="info-card dashboard-pathway-card">
+            <div className="dashboard-card-icon" aria-hidden="true">
+              🔎
+            </div>
+
+            <div className="dashboard-card-copy">
+              <div className="dashboard-card-main">
+                <p className="dashboard-card-label">Matched roles</p>
+                <h2>Best roles for me</h2>
+                <p>
+                  {simpleView
+                    ? "Find volunteering roles."
+                    : "Your pathway helps sort published volunteering roles by the strongest match to your goals, interests and skills."}
+                </p>
+              </div>
+
+              <span className="dashboard-card-action-pill">Open best roles</span>
+            </div>
+          </Link>
+
+          <Link href="/pathway/cv" className="info-card dashboard-pathway-card">
+            <div className="dashboard-card-icon" aria-hidden="true">
+              📄
+            </div>
+
+            <div className="dashboard-card-copy">
+              <div className="dashboard-card-main">
+                <p className="dashboard-card-label">Positive Pathway CV</p>
+                <h2>Open your CV</h2>
+                <p>
+                  {simpleView
+                    ? "See your strengths and feedback."
+                    : "See your goals, skills, learning, recognised strengths and positive feedback in one place."}
+                </p>
+              </div>
+
+              <span className="dashboard-card-action-pill">Open CV</span>
+            </div>
+          </Link>
         </section>
       </section>
 
       <style>{`
+        .pathway-page,
+        .pathway-page * {
+          box-sizing: border-box;
+        }
+
         .dashboard-grid {
           align-items: stretch;
         }
 
         .pathway-primary-actions {
+          display: grid !important;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
           gap: 10px;
+          width: min(100%, 620px);
+          align-items: stretch;
+        }
+
+        .pathway-primary-actions .dashboard-main-action {
+          width: 100%;
+          min-height: 54px;
+          justify-content: center;
+          text-align: center;
+        }
+
+        .pathway-mini-status {
+          display: grid;
+          gap: 7px;
+          margin-top: 12px;
+          padding-top: 12px;
+          border-top: 1px solid rgba(83, 111, 99, 0.12);
+        }
+
+        .pathway-mini-status .dashboard-progress-note {
+          margin: 0;
         }
 
         .dashboard-pathway-card {
           height: 100%;
           min-height: 220px;
           align-items: stretch;
+        }
+
+        .pathway-step-card-complete {
+          border-color: rgba(34, 124, 78, 0.24);
+          background:
+            radial-gradient(circle at top left, rgba(155, 232, 190, 0.22), transparent 34%),
+            linear-gradient(135deg, rgba(244, 255, 249, 0.9), rgba(255, 255, 255, 0.94));
         }
 
         .dashboard-card-copy {
@@ -755,10 +1077,8 @@ export default async function PathwayPage() {
           background: rgba(244, 255, 249, 0.96);
         }
 
-        .pathway-muted-action {
-          margin-top: auto !important;
-        }
-
+        .pathway-guide-panel,
+        .pathway-summary-panel,
         .positive-reviews-panel {
           padding: clamp(20px, 4vw, 28px);
           border: 1px solid rgba(143, 178, 158, 0.22);
@@ -767,6 +1087,274 @@ export default async function PathwayPage() {
           box-shadow: 0 18px 56px rgba(38, 50, 56, 0.07);
           display: grid;
           gap: 18px;
+          overflow: hidden;
+        }
+
+        .pathway-guide-panel {
+          border-color: rgba(108, 92, 160, 0.16);
+          background:
+            radial-gradient(circle at top left, rgba(222, 214, 255, 0.34), transparent 34%),
+            linear-gradient(135deg, rgba(248, 245, 255, 0.92), rgba(255, 255, 255, 0.9));
+        }
+
+        .pathway-summary-panel {
+          border-color: rgba(34, 124, 78, 0.24);
+          background:
+            radial-gradient(circle at top left, rgba(155, 232, 190, 0.38), transparent 34%),
+            linear-gradient(135deg, rgba(244, 255, 249, 0.94), rgba(255, 255, 255, 0.9));
+        }
+
+        .pathway-guide-heading,
+        .pathway-summary-heading {
+          display: grid;
+          grid-template-columns: auto 1fr;
+          gap: 14px;
+          align-items: start;
+        }
+
+        .pathway-guide-heading > span,
+        .pathway-summary-heading > span {
+          display: inline-flex;
+          width: 62px;
+          height: 62px;
+          align-items: center;
+          justify-content: center;
+          border-radius: 22px;
+          background: rgba(108, 92, 160, 0.12);
+          box-shadow: inset 0 0 0 1px rgba(108, 92, 160, 0.14);
+          font-size: 1.85rem;
+        }
+
+        .pathway-summary-heading > span {
+          background: rgba(34, 124, 78, 0.12);
+          box-shadow: inset 0 0 0 1px rgba(34, 124, 78, 0.16);
+        }
+
+        .pathway-guide-heading h2,
+        .pathway-summary-heading h2,
+        .positive-reviews-header h2 {
+          margin: 2px 0 8px;
+          color: #315f48;
+          font-size: clamp(1.35rem, 3vw, 1.8rem);
+          font-weight: 950;
+          letter-spacing: -0.035em;
+          line-height: 1.1;
+        }
+
+        .pathway-guide-heading p,
+        .pathway-summary-heading p,
+        .positive-reviews-header p {
+          margin: 0;
+          max-width: 760px;
+          color: #60706a;
+          font-weight: 750;
+          line-height: 1.55;
+        }
+
+        .pathway-guide-grid {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 12px;
+        }
+
+        .pathway-guide-step {
+          position: relative;
+          display: grid;
+          gap: 10px;
+          min-height: 190px;
+          padding: 15px;
+          border: 1px solid rgba(108, 92, 160, 0.14);
+          border-radius: 22px;
+          background: rgba(255, 255, 255, 0.78);
+          color: inherit;
+          text-decoration: none;
+          box-shadow: 0 12px 28px rgba(33, 56, 48, 0.05);
+          transition:
+            transform 160ms ease,
+            border-color 160ms ease,
+            background 160ms ease;
+        }
+
+        .pathway-guide-step:hover {
+          transform: translateY(-1px);
+          border-color: rgba(83, 111, 99, 0.28);
+          background: rgba(255, 255, 255, 0.94);
+        }
+
+        .pathway-guide-step-complete {
+          border-color: rgba(34, 124, 78, 0.26);
+          background:
+            radial-gradient(circle at top left, rgba(155, 232, 190, 0.28), transparent 34%),
+            rgba(244, 255, 249, 0.92);
+          box-shadow: 0 14px 30px rgba(33, 96, 61, 0.08);
+        }
+
+        .pathway-guide-step-number {
+          position: absolute;
+          top: 12px;
+          right: 12px;
+          display: inline-flex;
+          width: 30px;
+          height: 30px;
+          align-items: center;
+          justify-content: center;
+          border-radius: 999px;
+          background: rgba(108, 92, 160, 0.12);
+          color: #4f4b82;
+          font-size: 0.82rem;
+          font-weight: 950;
+          line-height: 1;
+        }
+
+        .pathway-guide-step-complete .pathway-guide-step-number {
+          background: rgba(34, 124, 78, 0.14);
+          color: #145c38;
+        }
+
+        .pathway-guide-step-icon {
+          display: inline-flex;
+          width: 52px;
+          height: 52px;
+          align-items: center;
+          justify-content: center;
+          border-radius: 18px;
+          background: rgba(248, 248, 252, 0.96);
+          box-shadow: inset 0 0 0 1px rgba(108, 92, 160, 0.08);
+          font-size: 1.55rem;
+        }
+
+        .pathway-guide-step-complete .pathway-guide-step-icon {
+          background: rgba(34, 124, 78, 0.12);
+          box-shadow: inset 0 0 0 1px rgba(34, 124, 78, 0.14);
+        }
+
+        .pathway-guide-step-copy {
+          display: grid;
+          gap: 6px;
+        }
+
+        .pathway-guide-step-kicker {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+          align-items: center;
+          margin: 0;
+          padding-right: 34px;
+          color: #6c5ca0;
+          font-size: 0.78rem;
+          font-weight: 950;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+        }
+
+        .pathway-guide-step-kicker span {
+          display: inline-flex;
+          min-height: 24px;
+          align-items: center;
+          justify-content: center;
+          padding: 5px 8px;
+          border-radius: 999px;
+          background: rgba(108, 92, 160, 0.1);
+          color: #6c5ca0;
+          font-size: 0.68rem;
+          letter-spacing: 0;
+          text-transform: none;
+        }
+
+        .pathway-guide-step-complete .pathway-guide-step-kicker,
+        .pathway-guide-step-complete .pathway-guide-step-kicker span {
+          color: #145c38;
+        }
+
+        .pathway-guide-step-complete .pathway-guide-step-kicker span {
+          background: rgba(34, 124, 78, 0.12);
+        }
+
+        .pathway-guide-step-copy h3 {
+          margin: 0;
+          padding-right: 32px;
+          color: #315f48;
+          font-size: 1rem;
+          font-weight: 950;
+          line-height: 1.14;
+        }
+
+        .pathway-guide-step-copy p {
+          margin: 0;
+          color: #60706a;
+          font-size: 0.92rem;
+          font-weight: 740;
+          line-height: 1.42;
+        }
+
+        .pathway-guide-step-copy strong {
+          display: inline-flex;
+          width: fit-content;
+          max-width: 100%;
+          min-height: 34px;
+          align-items: center;
+          justify-content: center;
+          margin-top: 4px;
+          padding: 8px 11px;
+          border-radius: 999px;
+          background: rgba(255, 255, 255, 0.82);
+          color: #536f63;
+          font-size: 0.82rem;
+          font-weight: 950;
+          line-height: 1.1;
+          box-shadow: 0 8px 18px rgba(33, 56, 48, 0.05);
+        }
+
+        .pathway-summary-grid {
+          display: grid;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 12px;
+        }
+
+        .pathway-summary-card {
+          display: grid;
+          grid-template-columns: auto 1fr;
+          gap: 12px;
+          min-height: 126px;
+          padding: 14px;
+          border: 1px solid rgba(83, 111, 99, 0.18);
+          border-radius: 20px;
+          background: rgba(255, 255, 255, 0.78);
+        }
+
+        .pathway-summary-card > span {
+          display: inline-flex;
+          width: 44px;
+          height: 44px;
+          align-items: center;
+          justify-content: center;
+          border-radius: 16px;
+          background: rgba(143, 178, 158, 0.14);
+          font-size: 1.35rem;
+        }
+
+        .pathway-summary-card p {
+          margin: 0 0 5px;
+          color: #60706a;
+          font-size: 0.82rem;
+          font-weight: 900;
+          line-height: 1.15;
+        }
+
+        .pathway-summary-card strong {
+          display: block;
+          color: #315f48;
+          font-size: 1.75rem;
+          line-height: 1;
+        }
+
+        .pathway-summary-card small {
+          display: block;
+          margin-top: 8px;
+          color: #60706a;
+          font-size: 0.78rem;
+          font-weight: 750;
+          line-height: 1.25;
         }
 
         .positive-reviews-header {
@@ -775,20 +1363,6 @@ export default async function PathwayPage() {
           justify-content: space-between;
           align-items: flex-start;
           flex-wrap: wrap;
-        }
-
-        .positive-reviews-header h2 {
-          margin: 2px 0 8px;
-          color: #315f48;
-          font-size: clamp(1.35rem, 3vw, 1.8rem);
-          letter-spacing: -0.035em;
-        }
-
-        .positive-reviews-header p {
-          margin: 0;
-          max-width: 720px;
-          color: #60706a;
-          line-height: 1.55;
         }
 
         .positive-review-summary {
@@ -953,7 +1527,9 @@ export default async function PathwayPage() {
         .preference-theme-calm_green .dashboard-welcome-card,
         .preference-theme-calm_green .info-card,
         .preference-theme-calm_green .dashboard-progress-card,
-        .preference-theme-calm_green .positive-reviews-panel {
+        .preference-theme-calm_green .positive-reviews-panel,
+        .preference-theme-calm_green .pathway-guide-panel,
+        .preference-theme-calm_green .pathway-summary-panel {
           border-color: rgba(83, 111, 99, 0.2);
         }
 
@@ -971,7 +1547,9 @@ export default async function PathwayPage() {
         .preference-theme-soft_blue .dashboard-welcome-card,
         .preference-theme-soft_blue .info-card,
         .preference-theme-soft_blue .dashboard-progress-card,
-        .preference-theme-soft_blue .positive-reviews-panel {
+        .preference-theme-soft_blue .positive-reviews-panel,
+        .preference-theme-soft_blue .pathway-guide-panel,
+        .preference-theme-soft_blue .pathway-summary-panel {
           border-color: rgba(74, 112, 160, 0.2);
         }
 
@@ -989,7 +1567,9 @@ export default async function PathwayPage() {
         .preference-theme-warm_peach .dashboard-welcome-card,
         .preference-theme-warm_peach .info-card,
         .preference-theme-warm_peach .dashboard-progress-card,
-        .preference-theme-warm_peach .positive-reviews-panel {
+        .preference-theme-warm_peach .positive-reviews-panel,
+        .preference-theme-warm_peach .pathway-guide-panel,
+        .preference-theme-warm_peach .pathway-summary-panel {
           border-color: rgba(190, 118, 76, 0.2);
         }
 
@@ -1005,7 +1585,11 @@ export default async function PathwayPage() {
         .preference-theme-high_contrast .dashboard-welcome-card,
         .preference-theme-high_contrast .info-card,
         .preference-theme-high_contrast .dashboard-progress-card,
-        .preference-theme-high_contrast .positive-reviews-panel {
+        .preference-theme-high_contrast .positive-reviews-panel,
+        .preference-theme-high_contrast .pathway-guide-panel,
+        .preference-theme-high_contrast .pathway-guide-step,
+        .preference-theme-high_contrast .pathway-summary-panel,
+        .preference-theme-high_contrast .pathway-summary-card {
           border: 2px solid #1f2937;
           background: rgba(255, 255, 255, 0.98);
         }
@@ -1014,7 +1598,11 @@ export default async function PathwayPage() {
         .preference-theme-high_contrast .dashboard-card-copy h2,
         .preference-theme-high_contrast .dashboard-progress-card h2,
         .preference-theme-high_contrast .positive-reviews-header h2,
-        .preference-theme-high_contrast .positive-review-title h2 {
+        .preference-theme-high_contrast .positive-review-title h2,
+        .preference-theme-high_contrast .pathway-guide-heading h2,
+        .preference-theme-high_contrast .pathway-guide-step-copy h3,
+        .preference-theme-high_contrast .pathway-summary-heading h2,
+        .preference-theme-high_contrast .pathway-summary-card strong {
           color: #111827;
         }
 
@@ -1023,13 +1611,22 @@ export default async function PathwayPage() {
         .preference-theme-high_contrast .dashboard-progress-note,
         .preference-theme-high_contrast .positive-reviews-header p,
         .preference-theme-high_contrast .positive-review-title p,
-        .preference-theme-high_contrast .positive-comment-box p {
+        .preference-theme-high_contrast .positive-comment-box p,
+        .preference-theme-high_contrast .pathway-guide-heading p,
+        .preference-theme-high_contrast .pathway-guide-step-copy p,
+        .preference-theme-high_contrast .pathway-summary-heading p,
+        .preference-theme-high_contrast .pathway-summary-card p,
+        .preference-theme-high_contrast .pathway-summary-card small {
           color: #1f2937;
         }
 
         .preference-theme-high_contrast .dashboard-card-icon,
         .preference-theme-high_contrast .dashboard-progress-icon,
-        .preference-theme-high_contrast .empty-review-icon {
+        .preference-theme-high_contrast .empty-review-icon,
+        .preference-theme-high_contrast .pathway-guide-heading > span,
+        .preference-theme-high_contrast .pathway-guide-step-icon,
+        .preference-theme-high_contrast .pathway-summary-heading > span,
+        .preference-theme-high_contrast .pathway-summary-card > span {
           border: 2px solid #1f2937;
           background: #ffffff;
           color: #111827;
@@ -1053,7 +1650,11 @@ export default async function PathwayPage() {
         .preference-theme-neon_arcade .dashboard-welcome-card,
         .preference-theme-neon_arcade .dashboard-progress-card,
         .preference-theme-neon_arcade .info-card,
-        .preference-theme-neon_arcade .positive-reviews-panel {
+        .preference-theme-neon_arcade .positive-reviews-panel,
+        .preference-theme-neon_arcade .pathway-guide-panel,
+        .preference-theme-neon_arcade .pathway-guide-step,
+        .preference-theme-neon_arcade .pathway-summary-panel,
+        .preference-theme-neon_arcade .pathway-summary-card {
           border-color: rgba(34, 211, 238, 0.42);
           background: rgba(15, 23, 42, 0.86);
           box-shadow:
@@ -1061,7 +1662,8 @@ export default async function PathwayPage() {
             0 0 0 1px rgba(217, 70, 239, 0.12);
         }
 
-        .preference-theme-neon_arcade .empty-positive-reviews-panel {
+        .preference-theme-neon_arcade .empty-positive-reviews-panel,
+        .preference-theme-neon_arcade .pathway-step-card-complete {
           background:
             radial-gradient(circle at top left, rgba(34, 211, 238, 0.14), transparent 55%),
             linear-gradient(135deg, rgba(15, 23, 42, 0.92), rgba(49, 46, 129, 0.88));
@@ -1074,7 +1676,11 @@ export default async function PathwayPage() {
         .preference-theme-neon_arcade .positive-reviews-header h2,
         .preference-theme-neon_arcade .positive-review-title h2,
         .preference-theme-neon_arcade .positive-review-summary strong,
-        .preference-theme-neon_arcade .progress-meta {
+        .preference-theme-neon_arcade .progress-meta,
+        .preference-theme-neon_arcade .pathway-guide-heading h2,
+        .preference-theme-neon_arcade .pathway-guide-step-copy h3,
+        .preference-theme-neon_arcade .pathway-summary-heading h2,
+        .preference-theme-neon_arcade .pathway-summary-card strong {
           color: #e0f2fe;
         }
 
@@ -1087,13 +1693,22 @@ export default async function PathwayPage() {
         .preference-theme-neon_arcade .positive-review-title p,
         .preference-theme-neon_arcade .positive-review-muted,
         .preference-theme-neon_arcade .positive-comment-box p,
-        .preference-theme-neon_arcade .dashboard-muted-action {
+        .preference-theme-neon_arcade .dashboard-muted-action,
+        .preference-theme-neon_arcade .pathway-guide-heading p,
+        .preference-theme-neon_arcade .pathway-guide-step-copy p,
+        .preference-theme-neon_arcade .pathway-summary-heading p,
+        .preference-theme-neon_arcade .pathway-summary-card p,
+        .preference-theme-neon_arcade .pathway-summary-card small {
           color: #dbeafe;
         }
 
         .preference-theme-neon_arcade .dashboard-card-icon,
         .preference-theme-neon_arcade .dashboard-progress-icon,
-        .preference-theme-neon_arcade .empty-review-icon {
+        .preference-theme-neon_arcade .empty-review-icon,
+        .preference-theme-neon_arcade .pathway-guide-heading > span,
+        .preference-theme-neon_arcade .pathway-guide-step-icon,
+        .preference-theme-neon_arcade .pathway-summary-heading > span,
+        .preference-theme-neon_arcade .pathway-summary-card > span {
           border: 1px solid rgba(34, 211, 238, 0.42);
           background: rgba(34, 211, 238, 0.12);
           color: #a7f3d0;
@@ -1102,7 +1717,8 @@ export default async function PathwayPage() {
 
         .preference-theme-neon_arcade .dashboard-card-action-pill,
         .preference-theme-neon_arcade .positive-skill-badge,
-        .preference-theme-neon_arcade .positive-review-summary span {
+        .preference-theme-neon_arcade .positive-review-summary span,
+        .preference-theme-neon_arcade .pathway-guide-step-copy strong {
           border-color: rgba(34, 211, 238, 0.42);
           background: rgba(34, 211, 238, 0.12);
           color: #a7f3d0;
@@ -1131,8 +1747,40 @@ export default async function PathwayPage() {
           background: linear-gradient(90deg, #22d3ee, #a7f3d0, #d946ef);
         }
 
+        @media (max-width: 1040px) {
+          .pathway-summary-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+
+          .pathway-guide-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+        }
+
         @media (max-width: 760px) {
+          .pathway-primary-actions {
+            grid-template-columns: 1fr;
+            width: 100%;
+          }
+
           .positive-review-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .pathway-guide-heading,
+          .pathway-summary-heading {
+            grid-template-columns: 1fr;
+          }
+
+          .pathway-guide-heading > span,
+          .pathway-summary-heading > span {
+            width: 56px;
+            height: 56px;
+            border-radius: 20px;
+          }
+
+          .pathway-guide-grid,
+          .pathway-summary-grid {
             grid-template-columns: 1fr;
           }
 
@@ -1162,8 +1810,11 @@ export default async function PathwayPage() {
             font-size: 1.03rem;
           }
 
-          .positive-reviews-panel {
+          .positive-reviews-panel,
+          .pathway-guide-panel,
+          .pathway-summary-panel {
             border-radius: 26px;
+            padding: 18px;
           }
 
           .positive-review-header {
