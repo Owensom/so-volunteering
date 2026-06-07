@@ -16,6 +16,9 @@ type OrganisationProfile = {
   contact_email: string | null;
   support_offered: string[] | null;
   profile_completed: boolean | null;
+  organisation_type: string | null;
+  safeguarding_region: string | null;
+  works_with_children_or_pupils: boolean | null;
 };
 
 type Opportunity = {
@@ -39,6 +42,23 @@ type Opportunity = {
   contact_email: string | null;
   safety_notes: string | null;
   status: string;
+
+  minimum_age_stage: string | null;
+  suitable_for_pupils: boolean | null;
+  parent_carer_consent_required: boolean | null;
+  school_approval_required: boolean | null;
+  safeguarding_check_region: string | null;
+  safeguarding_review_required: boolean | null;
+  supervision_required: boolean | null;
+  no_lone_working: boolean | null;
+  no_home_visits: boolean | null;
+  no_money_handling: boolean | null;
+  no_personal_care: boolean | null;
+  no_private_messaging: boolean | null;
+  risk_assessment_completed: boolean | null;
+  named_safeguarding_contact: string | null;
+  legal_safeguarding_notes: string | null;
+  role_frequency_pattern: string | null;
 };
 
 type ChoiceOption = {
@@ -85,6 +105,87 @@ function hasAny(values: string[] | null | undefined) {
   return Array.isArray(values) && values.length > 0;
 }
 
+function getSafeguardingRegionLabel(value: string | null | undefined) {
+  if (value === "england_wales") return "England / Wales - DBS";
+  if (value === "northern_ireland") return "Northern Ireland - AccessNI";
+  if (value === "other") return "Other / country-specific guidance";
+
+  return "Scotland - PVG";
+}
+
+function getOrganisationTypeLabel(value: string | null | undefined) {
+  if (value === "school_college") return "School / college";
+  if (value === "local_authority_employability") {
+    return "Local authority / employability partner";
+  }
+  if (value === "other") return "Other organisation";
+
+  return "Charity / community organisation";
+}
+
+function getMinimumAgeStageLabel(value: string | null | undefined) {
+  if (value === "adults_only") return "Adults only";
+  if (value === "sixteen_plus") return "16+";
+  if (value === "fourteen_plus") return "14+";
+  if (value === "school_pupils_with_approval") {
+    return "School pupils with school approval";
+  }
+  if (value === "school_pupils_with_parent_carer_consent") {
+    return "School pupils with parent/carer consent";
+  }
+
+  return "Not set yet";
+}
+
+function getSafeguardingCheckRegionLabel(value: string | null | undefined) {
+  if (value === "scotland_pvg") return "Scotland - PVG";
+  if (value === "england_wales_dbs") return "England / Wales - DBS";
+  if (value === "northern_ireland_accessni") {
+    return "Northern Ireland - AccessNI";
+  }
+  if (value === "not_expected") return "Not expected for this role";
+  if (value === "not_sure") return "Not sure - needs review";
+
+  return "Use organisation default";
+}
+
+function getFrequencyPatternLabel(value: string | null | undefined) {
+  if (value === "one_off") return "One-off";
+  if (value === "occasional") return "Occasional";
+  if (value === "weekly_or_regular") return "Weekly or regular";
+  if (value === "more_than_three_days_in_thirty") {
+    return "More than 3 days in 30 days";
+  }
+  if (value === "overnight") return "Overnight or late-night activity";
+  if (value === "not_sure") return "Not sure - needs review";
+
+  return "Not set yet";
+}
+
+function hasLegalSafeguardingReadiness(opportunity: Opportunity) {
+  return Boolean(
+    (opportunity.minimum_age_stage &&
+      opportunity.minimum_age_stage !== "not_set") ||
+      (opportunity.safeguarding_check_region &&
+        opportunity.safeguarding_check_region !== "organisation_default") ||
+      (opportunity.role_frequency_pattern &&
+        opportunity.role_frequency_pattern !== "not_set") ||
+      opportunity.suitable_for_pupils === true ||
+      opportunity.parent_carer_consent_required === true ||
+      opportunity.school_approval_required === true ||
+      opportunity.safeguarding_review_required === true ||
+      opportunity.supervision_required === true ||
+      opportunity.no_lone_working === true ||
+      opportunity.no_home_visits === true ||
+      opportunity.no_money_handling === true ||
+      opportunity.no_personal_care === true ||
+      opportunity.no_private_messaging === true ||
+      opportunity.risk_assessment_completed === true ||
+      hasText(opportunity.named_safeguarding_contact) ||
+      hasText(opportunity.legal_safeguarding_notes),
+  );
+}
+
 function getReadinessItems(opportunity: Opportunity): ReadinessItem[] {
   const hasUsefulLocation =
     opportunity.location_type === "remote" ||
@@ -100,6 +201,24 @@ function getReadinessItems(opportunity: Opportunity): ReadinessItem[] {
     hasText(opportunity.location_venue) ||
     hasText(opportunity.location_postcode) ||
     opportunity.location_type === "remote";
+
+  const hasLegalReadiness = hasLegalSafeguardingReadiness(opportunity);
+
+  const needsSafeguardingAttention =
+    opportunity.suitable_for_pupils === true ||
+    opportunity.safeguarding_review_required === true ||
+    opportunity.school_approval_required === true ||
+    opportunity.parent_carer_consent_required === true ||
+    opportunity.role_frequency_pattern === "more_than_three_days_in_thirty" ||
+    opportunity.role_frequency_pattern === "overnight" ||
+    opportunity.role_frequency_pattern === "not_sure" ||
+    opportunity.safeguarding_check_region === "not_sure";
+
+  const hasSafeguardingNotes =
+    hasText(opportunity.legal_safeguarding_notes) ||
+    hasText(opportunity.named_safeguarding_contact) ||
+    opportunity.risk_assessment_completed === true ||
+    opportunity.supervision_required === true;
 
   return [
     {
@@ -181,6 +300,32 @@ function getReadinessItems(opportunity: Opportunity): ReadinessItem[] {
       status: exactLocationConsidered ? "ready" : "optional",
       label: exactLocationConsidered ? "Ready" : "Helpful",
     },
+    {
+      icon: "⚖️",
+      title: "Legal and safeguarding",
+      text: hasLegalReadiness
+        ? "Role-level legal and safeguarding readiness has been started."
+        : "Complete the legal and safeguarding section before relying on this role for pupils or younger volunteers.",
+      status: hasLegalReadiness ? "ready" : "attention",
+      label: hasLegalReadiness ? "Ready" : "Needs detail",
+    },
+    {
+      icon: "🏫",
+      title: "Pupil suitability review",
+      text: needsSafeguardingAttention
+        ? hasSafeguardingNotes
+          ? "This role has pupil/safeguarding flags and supporting review information."
+          : "This role has pupil/safeguarding flags. Add review notes, a named contact or risk assessment status."
+        : "No pupil-specific or high-risk safeguarding flags are currently selected.",
+      status:
+        needsSafeguardingAttention && !hasSafeguardingNotes
+          ? "attention"
+          : "optional",
+      label:
+        needsSafeguardingAttention && !hasSafeguardingNotes
+          ? "Needs review"
+          : "Checked",
+    },
   ];
 }
 
@@ -250,7 +395,7 @@ const interestOptions: ChoiceOption[] = [
     value: "Food and hospitality",
     label: "Food and hospitality",
     icon: "☕",
-    helpText: "Refreshments, café support, kitchen help or hosting.",
+    helpText: "Refreshments, cafe support, kitchen help or hosting.",
   },
   {
     value: "Sport and wellbeing",
@@ -454,6 +599,33 @@ function StepSection({
   );
 }
 
+function SafetyCheckbox({
+  name,
+  icon,
+  title,
+  text,
+  defaultChecked = false,
+}: {
+  name: string;
+  icon: string;
+  title: string;
+  text: string;
+  defaultChecked?: boolean;
+}) {
+  return (
+    <label className="safeguarding-check-card">
+      <input name={name} type="checkbox" defaultChecked={defaultChecked} />
+      <span className="safeguarding-check-icon" aria-hidden="true">
+        {icon}
+      </span>
+      <span>
+        <strong>{title}</strong>
+        <small>{text}</small>
+      </span>
+    </label>
+  );
+}
+
 export default async function EditOpportunityPage({
   params,
   searchParams,
@@ -497,14 +669,16 @@ export default async function EditOpportunityPage({
 
   const { data: organisationProfile } = await supabase
     .from("organisation_profiles")
-    .select("organisation_name,contact_email,support_offered,profile_completed")
+    .select(
+      "organisation_name,contact_email,support_offered,profile_completed,organisation_type,safeguarding_region,works_with_children_or_pupils",
+    )
     .eq("user_id", user.id)
     .maybeSingle<OrganisationProfile>();
 
   const { data: opportunity } = await supabase
     .from("opportunities")
     .select(
-      "id,title,summary,location_type,location,location_town_city,location_area,location_venue,location_postcode,travel_notes,accessibility_notes,hide_exact_location,time_commitment,interests,skills,support_offered,contact_name,contact_email,safety_notes,status",
+      "id,title,summary,location_type,location,location_town_city,location_area,location_venue,location_postcode,travel_notes,accessibility_notes,hide_exact_location,time_commitment,interests,skills,support_offered,contact_name,contact_email,safety_notes,status,minimum_age_stage,suitable_for_pupils,parent_carer_consent_required,school_approval_required,safeguarding_check_region,safeguarding_review_required,supervision_required,no_lone_working,no_home_visits,no_money_handling,no_personal_care,no_private_messaging,risk_assessment_completed,named_safeguarding_contact,legal_safeguarding_notes,role_frequency_pattern",
     )
     .eq("id", opportunityId)
     .eq("organisation_user_id", user.id)
@@ -517,6 +691,13 @@ export default async function EditOpportunityPage({
   const profileCompleted = organisationProfile?.profile_completed === true;
   const readinessItems = getReadinessItems(opportunity);
   const readinessSummary = getReadinessSummary(readinessItems);
+
+  const organisationTypeLabel = getOrganisationTypeLabel(
+    organisationProfile?.organisation_type,
+  );
+  const safeguardingRegionLabel = getSafeguardingRegionLabel(
+    organisationProfile?.safeguarding_region,
+  );
 
   const step1Complete = Boolean(hasText(opportunity.title) && hasText(opportunity.summary));
   const step2Complete = Boolean(
@@ -536,7 +717,8 @@ export default async function EditOpportunityPage({
       hasText(opportunity.accessibility_notes) ||
       opportunity.hide_exact_location === true,
   );
-  const step8Complete = hasText(opportunity.status);
+  const step8Complete = hasLegalSafeguardingReadiness(opportunity);
+  const step9Complete = hasText(opportunity.status);
 
   const guideSteps: GuideStep[] = [
     {
@@ -582,10 +764,16 @@ export default async function EditOpportunityPage({
       isComplete: step7Complete,
     },
     {
+      icon: "⚖️",
+      title: "Legal and safeguarding",
+      text: "Review pupil suitability, supervision, consent and safeguarding checks.",
+      isComplete: step8Complete,
+    },
+    {
       icon: "✅",
       title: "Save or publish",
       text: "Keep as draft, publish when ready, or close the role.",
-      isComplete: step8Complete,
+      isComplete: step9Complete,
     },
   ];
 
@@ -593,7 +781,7 @@ export default async function EditOpportunityPage({
   const completionPercent = Math.round((completedSteps / guideSteps.length) * 100);
 
   const listenText =
-    "This is the edit opportunity page. The role is split into eight sections. Step 1 is title and summary. Step 2 is location and travel. Step 3 is time commitment. Step 4 is interests and skills. Step 5 is support offered. Step 6 is contact person. Step 7 is safety notes. Step 8 is save or publish. Completed saved sections are green and show a tick. The role display readiness checklist shows whether the saved role has clear language, useful location details, support, skills, safety and privacy information. Use Skills reviews to add positive skills feedback for volunteers who registered interest in this role. Save changes returns you to the opportunities list.";
+    `This is the edit opportunity page. The role is split into nine sections. Step 1 is title and summary. Step 2 is location and travel. Step 3 is time commitment. Step 4 is interests and skills. Step 5 is support offered. Step 6 is contact person. Step 7 is safety notes. Step 8 is legal and safeguarding. Step 9 is save or publish. Completed saved sections are green and show a tick. The role display readiness checklist shows whether the saved role has clear language, useful location details, support, skills, safety, privacy and safeguarding information. The organisation type is currently ${organisationTypeLabel}. The safeguarding region is currently ${safeguardingRegionLabel}. Scotland uses PVG wording. England and Wales use DBS wording. Northern Ireland uses AccessNI wording. This phase records role-level legal and safeguarding readiness only. It does not change what pupils or volunteers can see yet. Use Skills reviews to add positive skills feedback for volunteers who registered interest in this role. Save changes returns you to the opportunities list.`;
 
   return (
     <main className="onboarding-shell opportunity-edit-page">
@@ -639,7 +827,7 @@ export default async function EditOpportunityPage({
                 <h1 className="onboarding-title">Edit volunteering role</h1>
                 <p className="onboarding-lead">
                   Review each step before volunteers see it. Keep the language
-                  clear, supportive and practical.
+                  clear, supportive, practical and safe.
                 </p>
 
                 <div className="opportunity-editor-hero-actions">
@@ -687,7 +875,7 @@ export default async function EditOpportunityPage({
             <div className="role-progress-summary">
               <div className="role-progress-label">
                 <span>Saved setup</span>
-                <strong>{completedSteps}/8 steps</strong>
+                <strong>{completedSteps}/9 steps</strong>
               </div>
               <div className="role-progress-meter" aria-hidden="true">
                 <span style={{ width: `${completionPercent}%` }} />
@@ -707,9 +895,9 @@ export default async function EditOpportunityPage({
               <p className="brand-eyebrow">Step-by-step guide</p>
               <h2 id="role-form-guide-title">How to review this role</h2>
               <p>
-                Completed saved steps are green and show a tick. Edit any section
-                that needs clearer wording, more support detail, or safer
-                location information.
+                Completed saved steps are green and show a tick. Edit any
+                section that needs clearer wording, more support detail, safer
+                location information, or safeguarding review.
               </p>
             </div>
           </div>
@@ -785,6 +973,53 @@ export default async function EditOpportunityPage({
           </div>
         </section>
 
+        <section
+          className="role-safeguarding-summary"
+          aria-labelledby="role-safeguarding-summary-title"
+        >
+          <div className="role-safeguarding-summary-icon" aria-hidden="true">
+            ⚖️
+          </div>
+
+          <div>
+            <p className="brand-eyebrow">School safety layer phase 1B</p>
+            <h2 id="role-safeguarding-summary-title">
+              Saved legal and safeguarding readiness
+            </h2>
+            <p>
+              This phase records role-level readiness only. It does not yet
+              change public visibility or pupil filtering.
+            </p>
+
+            <div className="role-safeguarding-summary-grid">
+              <span>
+                <strong>Organisation type:</strong> {organisationTypeLabel}
+              </span>
+              <span>
+                <strong>Organisation region:</strong> {safeguardingRegionLabel}
+              </span>
+              <span>
+                <strong>Minimum age/stage:</strong>{" "}
+                {getMinimumAgeStageLabel(opportunity.minimum_age_stage)}
+              </span>
+              <span>
+                <strong>Check wording:</strong>{" "}
+                {getSafeguardingCheckRegionLabel(
+                  opportunity.safeguarding_check_region,
+                )}
+              </span>
+              <span>
+                <strong>Frequency:</strong>{" "}
+                {getFrequencyPatternLabel(opportunity.role_frequency_pattern)}
+              </span>
+              <span>
+                <strong>Pupil suitable:</strong>{" "}
+                {opportunity.suitable_for_pupils ? "Marked" : "Not marked"}
+              </span>
+            </div>
+          </div>
+        </section>
+
         {!profileCompleted ? (
           <div className="alert alert-error">
             Complete your organisation profile before publishing. You can still
@@ -818,7 +1053,7 @@ export default async function EditOpportunityPage({
                 type="text"
                 required
                 defaultValue={opportunity.title}
-                placeholder="Example: Community café welcome volunteer"
+                placeholder="Example: Community cafe welcome volunteer"
               />
             </label>
 
@@ -834,7 +1069,7 @@ export default async function EditOpportunityPage({
                 rows={5}
                 required
                 defaultValue={opportunity.summary}
-                placeholder="Example: Help welcome visitors, offer tea and coffee, and keep the café area calm and friendly."
+                placeholder="Example: Help welcome visitors, offer tea and coffee, and keep the cafe area calm and friendly."
               />
             </label>
           </StepSection>
@@ -1179,10 +1414,261 @@ export default async function EditOpportunityPage({
 
           <StepSection
             stepNumber={8}
+            icon="⚖️"
+            title="Legal and safeguarding readiness"
+            description="Review pupil suitability, consent, supervision and safeguarding checks before publishing."
+            isComplete={step8Complete}
+          >
+            <section
+              className="role-legal-panel"
+              aria-labelledby="role-legal-title"
+            >
+              <div className="role-legal-heading">
+                <span className="role-legal-icon" aria-hidden="true">
+                  ⚖️
+                </span>
+
+                <div>
+                  <p className="brand-eyebrow">Role-level readiness</p>
+                  <h2 id="role-legal-title">
+                    Legal and safeguarding questions
+                  </h2>
+                  <p>
+                    These fields help your organisation review pupil suitability,
+                    supervision, consent and safeguarding checks. They are saved
+                    for readiness only in this phase.
+                  </p>
+                </div>
+              </div>
+
+              <div className="dashboard-grid">
+                <label className="field-label">
+                  <span className="field-label-row">
+                    <span className="field-label-icon" aria-hidden="true">
+                      👥
+                    </span>
+                    <span>Minimum age / stage</span>
+                  </span>
+                  <select
+                    name="minimum_age_stage"
+                    defaultValue={opportunity.minimum_age_stage || "not_set"}
+                  >
+                    <option value="not_set">Not set yet</option>
+                    <option value="adults_only">Adults only</option>
+                    <option value="sixteen_plus">16+</option>
+                    <option value="fourteen_plus">14+</option>
+                    <option value="school_pupils_with_approval">
+                      School pupils with school approval
+                    </option>
+                    <option value="school_pupils_with_parent_carer_consent">
+                      School pupils with parent/carer consent
+                    </option>
+                  </select>
+                </label>
+
+                <label className="field-label">
+                  <span className="field-label-row">
+                    <span className="field-label-icon" aria-hidden="true">
+                      🛡️
+                    </span>
+                    <span>Safeguarding check wording</span>
+                  </span>
+                  <select
+                    name="safeguarding_check_region"
+                    defaultValue={
+                      opportunity.safeguarding_check_region ||
+                      "organisation_default"
+                    }
+                  >
+                    <option value="organisation_default">
+                      Use organisation default
+                    </option>
+                    <option value="scotland_pvg">Scotland - PVG</option>
+                    <option value="england_wales_dbs">
+                      England / Wales - DBS
+                    </option>
+                    <option value="northern_ireland_accessni">
+                      Northern Ireland - AccessNI
+                    </option>
+                    <option value="not_expected">Not expected for this role</option>
+                    <option value="not_sure">Not sure - needs review</option>
+                  </select>
+                </label>
+
+                <label className="field-label">
+                  <span className="field-label-row">
+                    <span className="field-label-icon" aria-hidden="true">
+                      🔁
+                    </span>
+                    <span>Frequency pattern</span>
+                  </span>
+                  <select
+                    name="role_frequency_pattern"
+                    defaultValue={opportunity.role_frequency_pattern || "not_set"}
+                  >
+                    <option value="not_set">Not set yet</option>
+                    <option value="one_off">One-off</option>
+                    <option value="occasional">Occasional</option>
+                    <option value="weekly_or_regular">Weekly or regular</option>
+                    <option value="more_than_three_days_in_thirty">
+                      More than 3 days in 30 days
+                    </option>
+                    <option value="overnight">
+                      Overnight or late-night activity
+                    </option>
+                    <option value="not_sure">Not sure - needs review</option>
+                  </select>
+                </label>
+              </div>
+
+              <div className="safeguarding-warning-card">
+                <span aria-hidden="true">⚠️</span>
+                <div>
+                  <strong>This is not legal advice.</strong>
+                  <p>
+                    Do not rely on a simple number of hours. Safeguarding checks
+                    depend on the role activity, supervision, setting, frequency
+                    and region. Roles involving children, pupils, care,
+                    supervision, teaching, coaching, mentoring, transport or
+                    overnight activity should be reviewed before publishing.
+                  </p>
+                </div>
+              </div>
+
+              <div className="safeguarding-check-grid">
+                <SafetyCheckbox
+                  name="suitable_for_pupils"
+                  icon="🏫"
+                  title="Potentially suitable for pupils"
+                  text="Mark only if this role could later be shown in a school-approved pupil pathway."
+                  defaultChecked={opportunity.suitable_for_pupils === true}
+                />
+
+                <SafetyCheckbox
+                  name="parent_carer_consent_required"
+                  icon="👪"
+                  title="Parent/carer consent required"
+                  text="Useful where pupils or younger volunteers may be involved."
+                  defaultChecked={
+                    opportunity.parent_carer_consent_required === true
+                  }
+                />
+
+                <SafetyCheckbox
+                  name="school_approval_required"
+                  icon="✅"
+                  title="School approval required"
+                  text="Role should be approved by the school before school-linked pupils see it later."
+                  defaultChecked={opportunity.school_approval_required === true}
+                />
+
+                <SafetyCheckbox
+                  name="safeguarding_review_required"
+                  icon="⚖️"
+                  title="Safeguarding review required"
+                  text="Use when the role needs a safeguarding lead or coordinator to review it."
+                  defaultChecked={
+                    opportunity.safeguarding_review_required === true
+                  }
+                />
+
+                <SafetyCheckbox
+                  name="supervision_required"
+                  icon="👀"
+                  title="Supervision required"
+                  text="A named adult or approved staff member should supervise this role."
+                  defaultChecked={opportunity.supervision_required === true}
+                />
+
+                <SafetyCheckbox
+                  name="no_lone_working"
+                  icon="🚫"
+                  title="No lone working"
+                  text="Volunteer should not be left alone with a child, pupil or vulnerable person."
+                  defaultChecked={opportunity.no_lone_working === true}
+                />
+
+                <SafetyCheckbox
+                  name="no_home_visits"
+                  icon="🏠"
+                  title="No home visits"
+                  text="Role does not involve visiting someone's home."
+                  defaultChecked={opportunity.no_home_visits === true}
+                />
+
+                <SafetyCheckbox
+                  name="no_money_handling"
+                  icon="💷"
+                  title="No money handling"
+                  text="Role does not involve handling money, payments or financial details."
+                  defaultChecked={opportunity.no_money_handling === true}
+                />
+
+                <SafetyCheckbox
+                  name="no_personal_care"
+                  icon="🤲"
+                  title="No personal care"
+                  text="Role does not involve personal care tasks."
+                  defaultChecked={opportunity.no_personal_care === true}
+                />
+
+                <SafetyCheckbox
+                  name="no_private_messaging"
+                  icon="📵"
+                  title="No private messaging outside approved route"
+                  text="Communication should stay through approved organisation contact routes."
+                  defaultChecked={opportunity.no_private_messaging === true}
+                />
+
+                <SafetyCheckbox
+                  name="risk_assessment_completed"
+                  icon="📋"
+                  title="Risk assessment completed"
+                  text="Mark when your organisation has completed or checked the risk assessment."
+                  defaultChecked={opportunity.risk_assessment_completed === true}
+                />
+              </div>
+
+              <div className="dashboard-grid">
+                <label className="field-label">
+                  <span className="field-label-row">
+                    <span className="field-label-icon" aria-hidden="true">
+                      👤
+                    </span>
+                    <span>Named safeguarding contact optional</span>
+                  </span>
+                  <input
+                    name="named_safeguarding_contact"
+                    type="text"
+                    defaultValue={opportunity.named_safeguarding_contact || ""}
+                    placeholder="Example: Safeguarding lead, volunteer coordinator, school contact"
+                  />
+                </label>
+
+                <label className="field-label">
+                  <span className="field-label-row">
+                    <span className="field-label-icon" aria-hidden="true">
+                      📝
+                    </span>
+                    <span>Legal or safeguarding notes optional</span>
+                  </span>
+                  <textarea
+                    name="legal_safeguarding_notes"
+                    rows={4}
+                    defaultValue={opportunity.legal_safeguarding_notes || ""}
+                    placeholder="Optional. Example: School approval required before pupils can access this role. PVG/DBS/AccessNI requirements to be checked before activity starts."
+                  />
+                </label>
+              </div>
+            </section>
+          </StepSection>
+
+          <StepSection
+            stepNumber={9}
             icon="✅"
             title="Save or publish"
             description="Keep as draft, publish when ready, close the role, or save changes."
-            isComplete={step8Complete}
+            isComplete={step9Complete}
           >
             <label className="field-label">
               <span className="field-label-row">
@@ -1272,17 +1758,82 @@ export default async function EditOpportunityPage({
           background: linear-gradient(90deg, #8fb29e, #4f8d68);
         }
 
-        .role-form-guide {
+        .role-form-guide,
+        .role-safeguarding-summary {
           display: grid;
           gap: 18px;
           margin: 22px 0;
           padding: 20px;
-          border: 1px solid rgba(108, 92, 160, 0.16);
           border-radius: 28px;
+          box-shadow: 0 18px 42px rgba(33, 56, 48, 0.07);
+        }
+
+        .role-form-guide {
+          border: 1px solid rgba(108, 92, 160, 0.16);
           background:
             radial-gradient(circle at top left, rgba(222, 214, 255, 0.34), transparent 34%),
             linear-gradient(135deg, rgba(248, 245, 255, 0.92), rgba(255, 255, 255, 0.9));
-          box-shadow: 0 18px 42px rgba(33, 56, 48, 0.07);
+        }
+
+        .role-safeguarding-summary {
+          grid-template-columns: auto 1fr;
+          border: 1px solid rgba(108, 92, 160, 0.18);
+          background:
+            radial-gradient(circle at top left, rgba(222, 214, 255, 0.32), transparent 34%),
+            linear-gradient(135deg, rgba(248, 245, 255, 0.94), rgba(255, 255, 255, 0.9));
+        }
+
+        .role-safeguarding-summary-icon {
+          display: inline-flex;
+          width: 62px;
+          height: 62px;
+          align-items: center;
+          justify-content: center;
+          border-radius: 22px;
+          background: rgba(108, 92, 160, 0.12);
+          box-shadow: inset 0 0 0 1px rgba(108, 92, 160, 0.14);
+          font-size: 1.85rem;
+        }
+
+        .role-safeguarding-summary h2 {
+          margin: 0 0 8px;
+          color: #4f4b82;
+          font-size: clamp(1.3rem, 3vw, 1.75rem);
+          font-weight: 950;
+          letter-spacing: -0.035em;
+          line-height: 1.1;
+        }
+
+        .role-safeguarding-summary p {
+          margin: 0;
+          color: #5f6072;
+          font-weight: 760;
+          line-height: 1.5;
+        }
+
+        .role-safeguarding-summary-grid {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 8px;
+          margin-top: 12px;
+        }
+
+        .role-safeguarding-summary-grid span {
+          display: block;
+          min-width: 0;
+          padding: 10px 12px;
+          border: 1px solid rgba(108, 92, 160, 0.12);
+          border-radius: 16px;
+          background: rgba(255, 255, 255, 0.76);
+          color: #5f6072;
+          font-size: 0.88rem;
+          font-weight: 800;
+          line-height: 1.28;
+          overflow-wrap: anywhere;
+        }
+
+        .role-safeguarding-summary-grid strong {
+          color: #4f4b82;
         }
 
         .role-form-guide-heading {
@@ -1322,7 +1873,7 @@ export default async function EditOpportunityPage({
 
         .role-form-guide-grid {
           display: grid;
-          grid-template-columns: repeat(4, minmax(0, 1fr));
+          grid-template-columns: repeat(3, minmax(0, 1fr));
           gap: 12px;
         }
 
@@ -1445,20 +1996,33 @@ export default async function EditOpportunityPage({
         }
 
         .role-readiness-panel,
-        .location-details-panel {
+        .location-details-panel,
+        .role-legal-panel {
           display: grid;
           gap: 18px;
           padding: clamp(18px, 4vw, 24px);
-          border: 1px solid rgba(143, 178, 158, 0.22);
           border-radius: 28px;
-          background:
-            linear-gradient(135deg, rgba(244, 255, 249, 0.72), rgba(255, 255, 255, 0.86)),
-            rgba(255, 255, 255, 0.82);
           box-shadow: 0 18px 48px rgba(33, 56, 48, 0.07);
         }
 
+        .role-readiness-panel,
+        .location-details-panel {
+          border: 1px solid rgba(143, 178, 158, 0.22);
+          background:
+            linear-gradient(135deg, rgba(244, 255, 249, 0.72), rgba(255, 255, 255, 0.86)),
+            rgba(255, 255, 255, 0.82);
+        }
+
+        .role-legal-panel {
+          border: 1px solid rgba(108, 92, 160, 0.18);
+          background:
+            linear-gradient(135deg, rgba(248, 245, 255, 0.88), rgba(255, 255, 255, 0.92)),
+            rgba(255, 255, 255, 0.84);
+        }
+
         .role-readiness-heading,
-        .location-details-heading {
+        .location-details-heading,
+        .role-legal-heading {
           display: grid;
           grid-template-columns: auto 1fr;
           gap: 14px;
@@ -1466,19 +2030,30 @@ export default async function EditOpportunityPage({
         }
 
         .role-readiness-icon,
-        .location-details-icon {
+        .location-details-icon,
+        .role-legal-icon {
           display: inline-flex;
           width: 58px;
           height: 58px;
           align-items: center;
           justify-content: center;
           border-radius: 20px;
-          background: rgba(143, 178, 158, 0.14);
           font-size: 1.8rem;
         }
 
+        .role-readiness-icon,
+        .location-details-icon {
+          background: rgba(143, 178, 158, 0.14);
+        }
+
+        .role-legal-icon {
+          background: rgba(108, 92, 160, 0.12);
+          box-shadow: inset 0 0 0 1px rgba(108, 92, 160, 0.14);
+        }
+
         .role-readiness-heading h2,
-        .location-details-heading h2 {
+        .location-details-heading h2,
+        .role-legal-heading h2 {
           margin: 0 0 8px;
           color: #315f48;
           font-size: clamp(1.25rem, 3vw, 1.65rem);
@@ -1486,8 +2061,13 @@ export default async function EditOpportunityPage({
           line-height: 1.12;
         }
 
+        .role-legal-heading h2 {
+          color: #4f4b82;
+        }
+
         .role-readiness-heading p,
-        .location-details-heading p {
+        .location-details-heading p,
+        .role-legal-heading p {
           margin: 0;
           color: #60706a;
           font-weight: 750;
@@ -1572,6 +2152,91 @@ export default async function EditOpportunityPage({
           font-size: 0.88rem;
           font-weight: 700;
           line-height: 1.38;
+        }
+
+        .safeguarding-warning-card {
+          display: grid;
+          grid-template-columns: auto 1fr;
+          gap: 12px;
+          align-items: start;
+          padding: 16px;
+          border: 1px solid rgba(191, 146, 72, 0.24);
+          border-radius: 22px;
+          background: rgba(255, 250, 241, 0.92);
+        }
+
+        .safeguarding-warning-card > span {
+          display: inline-flex;
+          width: 46px;
+          height: 46px;
+          align-items: center;
+          justify-content: center;
+          border-radius: 16px;
+          background: rgba(255, 255, 255, 0.78);
+          font-size: 1.35rem;
+        }
+
+        .safeguarding-warning-card strong {
+          display: block;
+          margin-bottom: 5px;
+          color: #8a6630;
+          font-weight: 950;
+          line-height: 1.2;
+        }
+
+        .safeguarding-warning-card p {
+          margin: 0;
+          color: #715529;
+          font-weight: 760;
+          line-height: 1.45;
+        }
+
+        .safeguarding-check-grid {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 12px;
+        }
+
+        .safeguarding-check-card {
+          display: grid;
+          grid-template-columns: auto auto 1fr;
+          gap: 12px;
+          align-items: start;
+          padding: 15px;
+          border: 1px solid rgba(108, 92, 160, 0.14);
+          border-radius: 22px;
+          background: rgba(255, 255, 255, 0.76);
+          color: #315f48;
+          cursor: pointer;
+        }
+
+        .safeguarding-check-card input {
+          width: 22px;
+          height: 22px;
+          margin-top: 2px;
+          accent-color: #4f8d68;
+        }
+
+        .safeguarding-check-icon {
+          font-size: 1.35rem;
+          line-height: 1;
+        }
+
+        .safeguarding-check-card strong,
+        .safeguarding-check-card small {
+          display: block;
+        }
+
+        .safeguarding-check-card strong {
+          margin-bottom: 5px;
+          font-weight: 950;
+          line-height: 1.2;
+        }
+
+        .safeguarding-check-card small {
+          color: #60706a;
+          font-weight: 740;
+          line-height: 1.35;
         }
 
         .role-step-section {
@@ -1709,6 +2374,10 @@ export default async function EditOpportunityPage({
           .role-form-guide-grid {
             grid-template-columns: repeat(2, minmax(0, 1fr));
           }
+
+          .role-safeguarding-summary-grid {
+            grid-template-columns: 1fr;
+          }
         }
 
         @media (max-width: 760px) {
@@ -1737,14 +2406,18 @@ export default async function EditOpportunityPage({
           .role-form-guide-heading,
           .role-readiness-heading,
           .location-details-heading,
-          .role-step-heading {
+          .role-legal-heading,
+          .role-step-heading,
+          .role-safeguarding-summary {
             grid-template-columns: 1fr;
           }
 
           .role-form-guide,
           .role-readiness-panel,
           .location-details-panel,
-          .role-step-section {
+          .role-legal-panel,
+          .role-step-section,
+          .role-safeguarding-summary {
             padding: 18px;
             border-radius: 24px;
           }
@@ -1752,14 +2425,17 @@ export default async function EditOpportunityPage({
           .role-form-guide-heading > span,
           .role-readiness-icon,
           .location-details-icon,
-          .role-step-icon {
+          .role-legal-icon,
+          .role-step-icon,
+          .role-safeguarding-summary-icon {
             width: 56px;
             height: 56px;
             border-radius: 20px;
           }
 
           .role-form-guide-grid,
-          .role-readiness-grid {
+          .role-readiness-grid,
+          .safeguarding-check-grid {
             grid-template-columns: 1fr;
           }
 
@@ -1768,12 +2444,15 @@ export default async function EditOpportunityPage({
             min-height: 0;
           }
 
-          .role-readiness-card {
+          .role-readiness-card,
+          .privacy-check-row,
+          .safeguarding-warning-card,
+          .safeguarding-check-card {
             grid-template-columns: 1fr;
           }
 
-          .privacy-check-row {
-            grid-template-columns: 1fr;
+          .safeguarding-check-icon {
+            display: none;
           }
         }
       `}</style>
