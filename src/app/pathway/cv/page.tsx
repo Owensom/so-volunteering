@@ -22,6 +22,7 @@ type VolunteerProfile = {
   availability_notes: string | null;
   preferred_contact_method: string | null;
   volunteering_preference: string | null;
+  phone_number: string | null;
 };
 
 type VolunteerPreferences = {
@@ -430,7 +431,7 @@ export default async function PositivePathwayCvPage() {
   const { data: volunteerProfile } = await supabase
     .from("volunteer_profiles")
     .select(
-      "city,goals,interests,skills,bio,availability_notes,preferred_contact_method,volunteering_preference",
+      "city,goals,interests,skills,bio,availability_notes,preferred_contact_method,volunteering_preference,phone_number",
     )
     .eq("user_id", user.id)
     .maybeSingle<VolunteerProfile>();
@@ -474,9 +475,15 @@ export default async function PositivePathwayCvPage() {
   const completionCount = getProfileCompletion(volunteerProfile);
   const displayName = profile?.full_name?.trim() || "Volunteer";
   const contactEmail = profile?.email || user.email || "Not added yet";
+  const phoneNumber =
+    volunteerProfile?.phone_number?.trim() ||
+    profile?.phone?.trim() ||
+    "Not added yet";
 
   const hasProfileBasics =
-    hasText(profile?.full_name) || hasText(contactEmail) || hasText(volunteerProfile?.city);
+    hasText(profile?.full_name) ||
+    hasText(contactEmail) ||
+    hasText(volunteerProfile?.city);
   const hasPathwayProfile =
     hasList(volunteerProfile?.goals) ||
     hasList(volunteerProfile?.interests) ||
@@ -793,7 +800,7 @@ export default async function PositivePathwayCvPage() {
               </p>
               {!simpleView ? (
                 <p>
-                  <strong>Phone:</strong> {profile?.phone || "Not added yet"}
+                  <strong>Phone:</strong> {phoneNumber}
                 </p>
               ) : null}
               <p>
@@ -1724,173 +1731,11 @@ export default async function PositivePathwayCvPage() {
           background: #f8fafc;
         }
 
-        .preference-theme-high_contrast .dashboard-welcome-card,
-        .preference-theme-high_contrast .dashboard-progress-card,
-        .preference-theme-high_contrast .positive-cv-document,
-        .preference-theme-high_contrast .cv-section,
-        .preference-theme-high_contrast .education-cv-entry,
-        .preference-theme-high_contrast .education-cv-meta span,
-        .preference-theme-high_contrast .recognised-skill-card,
-        .preference-theme-high_contrast .feedback-card,
-        .preference-theme-high_contrast .feedback-skill-row span,
-        .preference-theme-high_contrast .summary-pill,
-        .preference-theme-high_contrast .positive-cv-guide,
-        .preference-theme-high_contrast .positive-cv-guide-step,
-        .preference-theme-high_contrast .positive-cv-explainer,
-        .preference-theme-high_contrast .positive-cv-strength-summary,
-        .preference-theme-high_contrast .strength-summary-card,
-        .preference-theme-high_contrast .top-strengths-panel,
-        .preference-theme-high_contrast .top-strengths-list span {
-          border: 2px solid #1f2937;
-          background: rgba(255, 255, 255, 0.98);
-        }
-
-        .preference-theme-high_contrast .dashboard-title,
-        .preference-theme-high_contrast .cv-section-heading h2,
-        .preference-theme-high_contrast .education-cv-entry h3,
-        .preference-theme-high_contrast .feedback-card h3,
-        .preference-theme-high_contrast .recognised-skill-card,
-        .preference-theme-high_contrast .positive-cv-guide-heading h2,
-        .preference-theme-high_contrast .positive-cv-guide-step-copy h3,
-        .preference-theme-high_contrast .positive-cv-explainer h2,
-        .preference-theme-high_contrast .positive-cv-strength-heading h2,
-        .preference-theme-high_contrast .strength-summary-card strong {
-          color: #111827;
-        }
-
-        .preference-theme-high_contrast .dashboard-lead,
-        .preference-theme-high_contrast .dashboard-progress-note,
-        .preference-theme-high_contrast .cv-body-text,
-        .preference-theme-high_contrast .cv-detail-grid p,
-        .preference-theme-high_contrast .education-cv-entry p,
-        .preference-theme-high_contrast .feedback-card p,
-        .preference-theme-high_contrast .education-cv-note,
-        .preference-theme-high_contrast .feedback-comment,
-        .preference-theme-high_contrast .positive-cv-guide-heading p,
-        .preference-theme-high_contrast .positive-cv-guide-step-copy p,
-        .preference-theme-high_contrast .positive-cv-explainer p,
-        .preference-theme-high_contrast .positive-cv-strength-heading p,
-        .preference-theme-high_contrast .strength-summary-card p,
-        .preference-theme-high_contrast .strength-summary-card small {
-          color: #1f2937 !important;
-        }
-
-        .preference-theme-high_contrast .cv-section-heading > span,
-        .preference-theme-high_contrast .dashboard-progress-icon,
-        .preference-theme-high_contrast .positive-cv-guide-heading > span,
-        .preference-theme-high_contrast .positive-cv-guide-step-icon,
-        .preference-theme-high_contrast .positive-cv-explainer-icon,
-        .preference-theme-high_contrast .positive-cv-strength-heading > span,
-        .preference-theme-high_contrast .strength-summary-card > span {
-          border: 2px solid #1f2937;
-          background: #ffffff;
-          color: #111827;
-        }
-
         .preference-theme-neon_arcade {
           background:
             radial-gradient(circle at top left, rgba(34, 211, 238, 0.28), transparent 34%),
             radial-gradient(circle at top right, rgba(217, 70, 239, 0.24), transparent 30%),
             linear-gradient(135deg, #101827 0%, #15132c 46%, #071827 100%);
-        }
-
-        .preference-theme-neon_arcade .dashboard-welcome-card,
-        .preference-theme-neon_arcade .dashboard-progress-card,
-        .preference-theme-neon_arcade .positive-cv-document,
-        .preference-theme-neon_arcade .cv-section,
-        .preference-theme-neon_arcade .education-cv-entry,
-        .preference-theme-neon_arcade .recognised-skill-card,
-        .preference-theme-neon_arcade .feedback-card,
-        .preference-theme-neon_arcade .positive-cv-guide,
-        .preference-theme-neon_arcade .positive-cv-guide-step,
-        .preference-theme-neon_arcade .positive-cv-explainer,
-        .preference-theme-neon_arcade .positive-cv-strength-summary,
-        .preference-theme-neon_arcade .strength-summary-card,
-        .preference-theme-neon_arcade .top-strengths-panel,
-        .preference-theme-neon_arcade .top-strengths-list span {
-          border-color: rgba(34, 211, 238, 0.42);
-          background: rgba(15, 23, 42, 0.86);
-          box-shadow:
-            0 24px 70px rgba(0, 0, 0, 0.28),
-            0 0 0 1px rgba(217, 70, 239, 0.12);
-        }
-
-        .preference-theme-neon_arcade .dashboard-title,
-        .preference-theme-neon_arcade .cv-section-heading h2,
-        .preference-theme-neon_arcade .education-cv-entry h3,
-        .preference-theme-neon_arcade .feedback-card h3,
-        .preference-theme-neon_arcade .recognised-skill-card,
-        .preference-theme-neon_arcade .summary-pill strong,
-        .preference-theme-neon_arcade .dashboard-progress-card h2,
-        .preference-theme-neon_arcade .dashboard-progress-note strong,
-        .preference-theme-neon_arcade .positive-cv-guide-heading h2,
-        .preference-theme-neon_arcade .positive-cv-guide-step-copy h3,
-        .preference-theme-neon_arcade .positive-cv-explainer h2,
-        .preference-theme-neon_arcade .positive-cv-strength-heading h2,
-        .preference-theme-neon_arcade .strength-summary-card strong,
-        .preference-theme-neon_arcade .top-strengths-list strong {
-          color: #e0f2fe;
-        }
-
-        .preference-theme-neon_arcade .dashboard-kicker,
-        .preference-theme-neon_arcade .dashboard-lead,
-        .preference-theme-neon_arcade .dashboard-progress-note,
-        .preference-theme-neon_arcade .dashboard-progress-header p,
-        .preference-theme-neon_arcade .cv-body-text,
-        .preference-theme-neon_arcade .cv-detail-grid p,
-        .preference-theme-neon_arcade .education-cv-entry p,
-        .preference-theme-neon_arcade .feedback-card p,
-        .preference-theme-neon_arcade .education-cv-note,
-        .preference-theme-neon_arcade .feedback-comment,
-        .preference-theme-neon_arcade .positive-cv-guide-heading p,
-        .preference-theme-neon_arcade .positive-cv-guide-step-copy p,
-        .preference-theme-neon_arcade .positive-cv-explainer p,
-        .preference-theme-neon_arcade .positive-cv-strength-heading p,
-        .preference-theme-neon_arcade .strength-summary-card p,
-        .preference-theme-neon_arcade .strength-summary-card small,
-        .preference-theme-neon_arcade .top-strengths-list small {
-          color: #dbeafe !important;
-        }
-
-        .preference-theme-neon_arcade .cv-section-heading > span,
-        .preference-theme-neon_arcade .dashboard-progress-icon,
-        .preference-theme-neon_arcade .summary-pill,
-        .preference-theme-neon_arcade .education-cv-meta span,
-        .preference-theme-neon_arcade .feedback-skill-row span,
-        .preference-theme-neon_arcade .positive-cv-guide-heading > span,
-        .preference-theme-neon_arcade .positive-cv-guide-step-icon,
-        .preference-theme-neon_arcade .positive-cv-explainer-icon,
-        .preference-theme-neon_arcade .positive-cv-strength-heading > span,
-        .preference-theme-neon_arcade .strength-summary-card > span {
-          border-color: rgba(34, 211, 238, 0.42);
-          background: rgba(34, 211, 238, 0.12);
-          color: #a7f3d0;
-        }
-
-        .preference-theme-neon_arcade .positive-cv-progress-track {
-          background: rgba(15, 23, 42, 0.9);
-          border: 1px solid rgba(34, 211, 238, 0.28);
-        }
-
-        .preference-theme-neon_arcade .positive-cv-progress-track span {
-          background: linear-gradient(90deg, #22d3ee, #a7f3d0, #d946ef);
-        }
-
-        .preference-theme-neon_arcade .print-button,
-        .preference-theme-neon_arcade .secondary-button {
-          border-color: rgba(34, 211, 238, 0.42);
-          background: rgba(34, 211, 238, 0.12);
-          color: #e0f2fe;
-          box-shadow:
-            0 10px 24px rgba(0, 0, 0, 0.22),
-            inset 0 0 0 1px rgba(217, 70, 239, 0.12);
-        }
-
-        .preference-theme-neon_arcade .primary-button {
-          border-color: rgba(167, 243, 208, 0.58);
-          box-shadow:
-            0 10px 26px rgba(0, 0, 0, 0.26),
-            0 0 0 1px rgba(34, 211, 238, 0.16);
         }
 
         @media (max-width: 1040px) {
@@ -2083,15 +1928,6 @@ export default async function PositivePathwayCvPage() {
 
           .positive-cv-page .dashboard-title {
             font-size: 2rem !important;
-          }
-
-          .preference-theme-neon_arcade .dashboard-progress-card,
-          .preference-theme-neon_arcade .cv-section,
-          .preference-theme-neon_arcade .positive-cv-document,
-          .preference-theme-neon_arcade .positive-cv-guide,
-          .preference-theme-neon_arcade .positive-cv-explainer,
-          .preference-theme-neon_arcade .positive-cv-strength-summary {
-            border-color: rgba(34, 211, 238, 0.36);
           }
         }
 
