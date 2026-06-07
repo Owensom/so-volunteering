@@ -38,6 +38,10 @@ type InterestSummary = {
   status: string;
 };
 
+type SchoolMembershipSummary = {
+  membership_status: string;
+};
+
 function normaliseUserType(value: string | null | undefined) {
   return value?.trim().toLowerCase() === "organisation"
     ? "organisation"
@@ -90,6 +94,20 @@ function normaliseInterestStatus(status: string | null | undefined) {
   }
 
   return "new";
+}
+
+function normaliseMembershipStatus(status: string | null | undefined) {
+  if (
+    status === "pending" ||
+    status === "active" ||
+    status === "paused" ||
+    status === "left" ||
+    status === "removed"
+  ) {
+    return status;
+  }
+
+  return "active";
 }
 
 function hasArrayValue(value: string[] | null | undefined) {
@@ -290,7 +308,14 @@ export default async function DashboardPage() {
     .select("status")
     .eq("volunteer_user_id", user.id);
 
+  const { data: schoolMemberships } = await supabase
+    .from("school_pupil_memberships")
+    .select("membership_status")
+    .eq("volunteer_user_id", user.id);
+
   const interestRows = (interests as InterestSummary[] | null) ?? [];
+  const schoolMembershipRows =
+    (schoolMemberships as SchoolMembershipSummary[] | null) ?? [];
 
   const newInterestCount = interestRows.filter(
     (interest) => normaliseInterestStatus(interest.status) === "new",
@@ -311,6 +336,14 @@ export default async function DashboardPage() {
   const activeInterestCount =
     newInterestCount + contactedInterestCount + acceptedInterestCount;
 
+  const activeSchoolMembershipCount = schoolMembershipRows.filter(
+    (membership) => normaliseMembershipStatus(membership.membership_status) === "active",
+  ).length;
+
+  const pausedSchoolMembershipCount = schoolMembershipRows.filter(
+    (membership) => normaliseMembershipStatus(membership.membership_status) === "paused",
+  ).length;
+
   const viewMode = normaliseViewMode(preferences?.view_mode);
   const colourTheme = normaliseColourTheme(preferences?.colour_theme);
   const textSize = normaliseTextSize(preferences?.text_size);
@@ -330,8 +363,8 @@ export default async function DashboardPage() {
   const detailedView = viewMode === "detailed";
 
   const listenText = simpleView
-    ? "You are on your SO Volunteering dashboard. This is your home page. First, check your progress. Then use the main button to continue. You can open your Positive Pathway CV, find your best roles, check your saved roles, view your profile, change your app settings, install SO Volunteering on your device, or get help using the app."
-    : "You are on your SO Volunteering dashboard. This is your home base. First, check the Profile progress card on the right to see how many setup steps are complete. Use the main button near the top to continue your next step, or to open Best roles for me if your setup is complete. Open Positive Pathway CV shows your strengths-based volunteering CV. Use the Roles I am interested in button to track roles where you clicked I’m interested. The cards below give quick links. Best roles for me opens published volunteering roles sorted by match. View my profile opens your saved details. See my pathway shows all setup steps and positive reviews. Wellbeing and support lets you review what helps you feel comfortable. Roles I am interested in shows roles you have saved and their current status. Personalise my app lets you choose view mode, colour theme, text size, avatar and Listen preference. The Install SO Volunteering card explains how to add the app to your phone, tablet or computer home screen. Help using the app is for getting help if you are stuck, something is not working, or you want to report a problem with SO Volunteering.";
+    ? "You are on your SO Volunteering dashboard. This is your home page. First, check your progress. Then use the main button to continue. You can open your Positive Pathway CV, find your best roles, check your saved roles, link to your school, view your profile, change your app settings, install SO Volunteering on your device, or get help using the app."
+    : "You are on your SO Volunteering dashboard. This is your home base. First, check the Profile progress card on the right to see how many setup steps are complete. Use the main button near the top to continue your next step, or to open Best roles for me if your setup is complete. Open Positive Pathway CV shows your strengths-based volunteering CV. Use the Roles I am interested in button to track roles where you clicked I’m interested. Link to your school lets you enter a school join code if your school or college gives you one. This prepares a school-approved volunteering pathway for later but does not change opportunity browsing yet. The cards below give quick links. Best roles for me opens published volunteering roles sorted by match. View my profile opens your saved details. See my pathway shows all setup steps and positive reviews. Wellbeing and support lets you review what helps you feel comfortable. Roles I am interested in shows roles you have saved and their current status. Personalise my app lets you choose view mode, colour theme, text size, avatar and Listen preference. The Install SO Volunteering card explains how to add the app to your phone, tablet or computer home screen. Help using the app is for getting help if you are stuck, something is not working, or you want to report a problem with SO Volunteering.";
 
   const shellClassName = [
     "dashboard-bg",
@@ -397,7 +430,7 @@ export default async function DashboardPage() {
             <p className="dashboard-lead">
               {simpleView
                 ? "Choose what you want to do next."
-                : "Your volunteering journey is ready. Use this dashboard to continue your pathway, open your Positive Pathway CV, track your interests and browse your best-matching opportunities."}
+                : "Your volunteering journey is ready. Use this dashboard to continue your pathway, open your Positive Pathway CV, track your interests, link to your school if you have a join code, and browse your best-matching opportunities."}
             </p>
 
             <div className="dashboard-primary-actions">
@@ -428,6 +461,16 @@ export default async function DashboardPage() {
                 <span className="dashboard-button-inner">
                   <span aria-hidden="true">📬</span>
                   <span>Roles I am interested in</span>
+                </span>
+              </Link>
+
+              <Link
+                href="/profile/school"
+                className="secondary-button dashboard-main-action"
+              >
+                <span className="dashboard-button-inner">
+                  <span aria-hidden="true">🏫</span>
+                  <span>Link to your school</span>
                 </span>
               </Link>
 
@@ -482,6 +525,15 @@ export default async function DashboardPage() {
               <p className="dashboard-progress-note">
                 Accepted: <strong>{acceptedInterestCount}</strong> · Closed:{" "}
                 <strong>{closedInterestCount}</strong>
+              </p>
+              <p className="dashboard-progress-note">
+                School links: <strong>{activeSchoolMembershipCount}</strong>
+                {pausedSchoolMembershipCount > 0 ? (
+                  <>
+                    {" "}
+                    · Paused: <strong>{pausedSchoolMembershipCount}</strong>
+                  </>
+                ) : null}
               </p>
             </div>
 
@@ -553,6 +605,31 @@ export default async function DashboardPage() {
               </div>
               <span className="dashboard-card-action-pill">
                 Open interested roles
+              </span>
+            </div>
+          </Link>
+
+          <Link
+            href="/profile/school"
+            className="info-card dashboard-pathway-card school-link-card"
+          >
+            <div className="dashboard-card-icon" aria-hidden="true">
+              🏫
+            </div>
+            <div className="dashboard-card-copy">
+              <div className="dashboard-card-main">
+                <p className="dashboard-card-label">School link</p>
+                <h2>Link to your school</h2>
+                <p>
+                  {simpleView
+                    ? "Enter a school code."
+                    : "Enter a school join code if your school or college gives you one. This prepares a safer school-approved pathway for later without changing opportunity browsing yet."}
+                </p>
+              </div>
+              <span className="dashboard-card-action-pill">
+                {activeSchoolMembershipCount > 0
+                  ? "View school links"
+                  : "Enter school code"}
               </span>
             </div>
           </Link>
@@ -705,6 +782,13 @@ export default async function DashboardPage() {
           border-color: rgba(143, 178, 158, 0.3);
           background:
             linear-gradient(135deg, rgba(244, 255, 249, 0.82), rgba(255, 255, 255, 0.94));
+        }
+
+        .school-link-card {
+          border-color: rgba(108, 92, 160, 0.22);
+          background:
+            radial-gradient(circle at top left, rgba(222, 214, 255, 0.3), transparent 34%),
+            linear-gradient(135deg, rgba(248, 245, 255, 0.9), rgba(255, 255, 255, 0.94));
         }
 
         .install-app-card {
@@ -934,6 +1018,7 @@ export default async function DashboardPage() {
 
         .preference-theme-neon_arcade .best-roles-card,
         .preference-theme-neon_arcade .positive-cv-card,
+        .preference-theme-neon_arcade .school-link-card,
         .preference-theme-neon_arcade .install-app-card {
           border-color: rgba(167, 243, 208, 0.5);
           background:
