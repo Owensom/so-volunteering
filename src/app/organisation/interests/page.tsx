@@ -31,6 +31,30 @@ type OpportunityRow = {
   id: string;
   title: string;
   status: string;
+  minimum_age?: number | string | null;
+  minimum_age_stage?: string | null;
+  suitable_for_under_18s?: boolean | null;
+  pupil_suitable?: boolean | null;
+  pupil_suitability?: string | null;
+  parent_carer_consent_required?: boolean | null;
+  school_approval_required?: boolean | null;
+  risk_assessment_completed?: boolean | null;
+  risk_assessment_required?: boolean | null;
+  named_safeguarding_contact?: string | null;
+  safeguarding_contact_name?: string | null;
+  supervision_required?: boolean | null;
+  supervision_notes?: string | null;
+  no_lone_working?: boolean | null;
+  no_home_visits?: boolean | null;
+  no_money_handling?: boolean | null;
+  no_personal_care?: boolean | null;
+  daytime_only?: boolean | null;
+  safeguarding_check_required?: boolean | null;
+  safeguarding_check_type?: string | null;
+  safeguarding_region?: string | null;
+  pvg_required?: boolean | null;
+  dbs_required?: boolean | null;
+  accessni_required?: boolean | null;
 };
 
 type InterestStatus = "new" | "contacted" | "accepted" | "closed";
@@ -40,6 +64,14 @@ type InboxGuideStep = {
   title: string;
   text: string;
   isComplete: boolean;
+};
+
+type SafetyBadgeTone = "ready" | "warning" | "neutral";
+
+type SafetyBadge = {
+  icon: string;
+  label: string;
+  tone: SafetyBadgeTone;
 };
 
 function normaliseUserType(value: string | null | undefined) {
@@ -118,6 +150,177 @@ function formatContactMethod(value: string | null | undefined) {
   if (value === "email") return "Email";
   if (value === "not_sure") return "Not sure yet";
   return "Not chosen";
+}
+
+function formatSafeguardingCheckType(value: string | null | undefined) {
+  const normalised = value?.trim().toLowerCase();
+
+  if (!normalised) return "Safeguarding check";
+  if (normalised === "pvg") return "PVG noted";
+  if (normalised === "dbs") return "DBS noted";
+  if (normalised === "accessni") return "AccessNI noted";
+
+  return `${value} noted`;
+}
+
+function getMinimumAgeLabel(opportunity: OpportunityRow | undefined) {
+  const minimumAge =
+    opportunity?.minimum_age !== null && opportunity?.minimum_age !== undefined
+      ? String(opportunity.minimum_age).trim()
+      : "";
+
+  const minimumStage = opportunity?.minimum_age_stage?.trim();
+
+  if (minimumAge) return `Age ${minimumAge}+`;
+  if (minimumStage) return minimumStage;
+
+  return "";
+}
+
+function getRoleSafetyBadges(
+  opportunity: OpportunityRow | undefined,
+): SafetyBadge[] {
+  if (!opportunity) {
+    return [
+      {
+        icon: "🛡️",
+        label: "Role safety not available",
+        tone: "neutral",
+      },
+    ];
+  }
+
+  const badges: SafetyBadge[] = [];
+  const minimumAgeLabel = getMinimumAgeLabel(opportunity);
+
+  if (minimumAgeLabel) {
+    badges.push({
+      icon: "🎂",
+      label: minimumAgeLabel,
+      tone: "ready",
+    });
+  }
+
+  if (
+    opportunity.suitable_for_under_18s === true ||
+    opportunity.pupil_suitable === true ||
+    opportunity.pupil_suitability === "suitable" ||
+    opportunity.pupil_suitability === "yes"
+  ) {
+    badges.push({
+      icon: "🧒",
+      label: "Young volunteer suitable",
+      tone: "ready",
+    });
+  }
+
+  if (opportunity.parent_carer_consent_required === true) {
+    badges.push({
+      icon: "📝",
+      label: "Parent/carer consent",
+      tone: "warning",
+    });
+  }
+
+  if (opportunity.school_approval_required === true) {
+    badges.push({
+      icon: "🏫",
+      label: "School approval needed",
+      tone: "warning",
+    });
+  }
+
+  if (
+    opportunity.supervision_required === true ||
+    Boolean(opportunity.supervision_notes?.trim())
+  ) {
+    badges.push({
+      icon: "👥",
+      label: "Supervision planned",
+      tone: "ready",
+    });
+  }
+
+  if (
+    opportunity.risk_assessment_completed === true ||
+    opportunity.risk_assessment_required === true
+  ) {
+    badges.push({
+      icon: "✅",
+      label:
+        opportunity.risk_assessment_completed === true
+          ? "Risk assessment recorded"
+          : "Risk assessment needed",
+      tone: opportunity.risk_assessment_completed === true ? "ready" : "warning",
+    });
+  }
+
+  if (
+    opportunity.safeguarding_check_required === true ||
+    opportunity.pvg_required === true ||
+    opportunity.dbs_required === true ||
+    opportunity.accessni_required === true ||
+    Boolean(opportunity.safeguarding_check_type?.trim())
+  ) {
+    let label = formatSafeguardingCheckType(opportunity.safeguarding_check_type);
+
+    if (opportunity.pvg_required === true) label = "PVG noted";
+    if (opportunity.dbs_required === true) label = "DBS noted";
+    if (opportunity.accessni_required === true) label = "AccessNI noted";
+
+    badges.push({
+      icon: "🛡️",
+      label,
+      tone: "warning",
+    });
+  }
+
+  if (
+    opportunity.no_lone_working === true ||
+    opportunity.no_home_visits === true ||
+    opportunity.no_money_handling === true ||
+    opportunity.no_personal_care === true ||
+    opportunity.daytime_only === true
+  ) {
+    const safeLimits = [
+      opportunity.no_lone_working === true ? "No lone working" : null,
+      opportunity.no_home_visits === true ? "No home visits" : null,
+      opportunity.no_money_handling === true ? "No money handling" : null,
+      opportunity.no_personal_care === true ? "No personal care" : null,
+      opportunity.daytime_only === true ? "Daytime only" : null,
+    ].filter(Boolean) as string[];
+
+    safeLimits.slice(0, 2).forEach((label) => {
+      badges.push({
+        icon: "🌿",
+        label,
+        tone: "ready",
+      });
+    });
+  }
+
+  if (
+    Boolean(opportunity.named_safeguarding_contact?.trim()) ||
+    Boolean(opportunity.safeguarding_contact_name?.trim())
+  ) {
+    badges.push({
+      icon: "🙋",
+      label: "Safeguarding contact set",
+      tone: "ready",
+    });
+  }
+
+  if (badges.length === 0) {
+    return [
+      {
+        icon: "🛡️",
+        label: "Safety details not set",
+        tone: "neutral",
+      },
+    ];
+  }
+
+  return badges.slice(0, 5);
 }
 
 function getReviewStrength(interest: InterestRow) {
@@ -207,6 +410,38 @@ function ChipList({
       {values.length > 4 ? (
         <span className="interest-inbox-chip">+{values.length - 4} more</span>
       ) : null}
+    </div>
+  );
+}
+
+function RoleSafetyPreview({
+  opportunity,
+}: {
+  opportunity: OpportunityRow | undefined;
+}) {
+  const badges = getRoleSafetyBadges(opportunity);
+
+  return (
+    <div className="role-safety-preview" aria-label="Role safety preview">
+      <div className="role-safety-preview-heading">
+        <span aria-hidden="true">🛡️</span>
+        <div>
+          <strong>Role safety preview</strong>
+          <p>Organisation-only reminder before contacting this volunteer.</p>
+        </div>
+      </div>
+
+      <div className="role-safety-badge-list">
+        {badges.map((badge) => (
+          <span
+            key={`${badge.icon}-${badge.label}`}
+            className={`role-safety-badge role-safety-badge-${badge.tone}`}
+          >
+            <span aria-hidden="true">{badge.icon}</span>
+            <span>{badge.label}</span>
+          </span>
+        ))}
+      </div>
     </div>
   );
 }
@@ -331,10 +566,7 @@ export default async function OrganisationInterestsPage() {
   );
 
   const { data: opportunities } = opportunityIds.length
-    ? await supabase
-        .from("opportunities")
-        .select("id,title,status")
-        .in("id", opportunityIds)
+    ? await supabase.from("opportunities").select("*").in("id", opportunityIds)
     : { data: [] as OpportunityRow[] };
 
   const opportunityMap = new Map(
@@ -395,7 +627,7 @@ export default async function OrganisationInterestsPage() {
   ];
 
   const listenText =
-    "You are on the organisation interest inbox. This page helps you manage volunteers who are interested in your roles. The status cards show new, contacted, accepted and closed interests. New means you should open the interest and make contact kindly. Contacted means a conversation has started. Accepted means the volunteer is ready to move forward. Closed means no further action is needed. Each volunteer card shows the role, contact preference, area if shared, a review snapshot, shared skills and the suggested next step. Select Open interest to review the full details and update the status.";
+    "You are on the organisation interest inbox. This page helps you manage volunteers who are interested in your roles. The status cards show new, contacted, accepted and closed interests. New means you should open the interest and make contact kindly. Contacted means a conversation has started. Accepted means the volunteer is ready to move forward. Closed means no further action is needed. Each volunteer card shows the role, contact preference, area if shared, role safety preview, a review snapshot, shared skills and the suggested next step. Select Open interest to review the full details and update the status.";
 
   return (
     <main className="dashboard-bg organisation-interest-inbox-page">
@@ -681,6 +913,8 @@ export default async function OrganisationInterestsPage() {
                           Received {formatDate(interest.created_at)}
                         </p>
                       </div>
+
+                      <RoleSafetyPreview opportunity={opportunity} />
 
                       <div className="interest-contact-panel">
                         <span aria-hidden="true">📞</span>
@@ -1173,6 +1407,102 @@ export default async function OrganisationInterestsPage() {
           overflow-wrap: anywhere;
         }
 
+        .role-safety-preview {
+          display: grid;
+          gap: 10px;
+          min-width: 0;
+          padding: 12px;
+          border: 1px solid rgba(34, 124, 78, 0.16);
+          border-radius: 18px;
+          background:
+            radial-gradient(circle at top left, rgba(155, 232, 190, 0.26), transparent 36%),
+            rgba(244, 255, 249, 0.76);
+        }
+
+        .role-safety-preview-heading {
+          display: grid;
+          grid-template-columns: auto 1fr;
+          gap: 10px;
+          align-items: start;
+          min-width: 0;
+        }
+
+        .role-safety-preview-heading > span {
+          display: inline-flex;
+          width: 34px;
+          height: 34px;
+          align-items: center;
+          justify-content: center;
+          border-radius: 13px;
+          background: rgba(34, 124, 78, 0.12);
+          font-size: 1.1rem;
+          line-height: 1;
+        }
+
+        .role-safety-preview-heading div {
+          min-width: 0;
+        }
+
+        .role-safety-preview-heading strong {
+          display: block;
+          color: #145c38;
+          font-size: 0.94rem;
+          font-weight: 950;
+          line-height: 1.2;
+        }
+
+        .role-safety-preview-heading p {
+          margin-top: 3px;
+          color: #275f45;
+          font-size: 0.84rem;
+          font-weight: 750;
+          line-height: 1.35;
+        }
+
+        .role-safety-badge-list {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+          align-items: flex-start;
+          min-width: 0;
+        }
+
+        .role-safety-badge {
+          display: inline-flex;
+          width: fit-content;
+          max-width: 100%;
+          align-items: center;
+          gap: 7px;
+          padding: 8px 10px;
+          border: 1px solid rgba(108, 92, 160, 0.14);
+          border-radius: 999px;
+          background: rgba(255, 255, 255, 0.84);
+          color: #536f63;
+          font-size: 0.8rem;
+          font-weight: 900;
+          line-height: 1.2;
+          overflow-wrap: anywhere;
+          box-shadow: 0 10px 22px rgba(33, 56, 48, 0.05);
+        }
+
+        .role-safety-badge-ready {
+          border-color: rgba(34, 124, 78, 0.22);
+          background: rgba(244, 255, 249, 0.94);
+          color: #145c38;
+        }
+
+        .role-safety-badge-warning {
+          border-color: rgba(191, 146, 72, 0.24);
+          background: rgba(255, 250, 241, 0.96);
+          color: #7a6138;
+        }
+
+        .role-safety-badge-neutral {
+          border-color: rgba(100, 100, 110, 0.16);
+          background: rgba(248, 248, 252, 0.94);
+          color: #5d6677;
+        }
+
         .interest-status-pill {
           display: inline-flex;
           width: fit-content;
@@ -1465,8 +1795,14 @@ export default async function OrganisationInterestsPage() {
           }
 
           .interest-contact-panel,
-          .review-strength-card {
+          .review-strength-card,
+          .role-safety-preview-heading {
             grid-template-columns: 1fr;
+          }
+
+          .role-safety-badge {
+            width: 100%;
+            border-radius: 18px;
           }
 
           .interest-profile-mini-grid {
