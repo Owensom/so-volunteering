@@ -10,6 +10,13 @@ type Profile = {
   user_type: string | null;
 };
 
+type UploadableLogoFile = {
+  name?: string;
+  type?: string;
+  size?: number;
+  arrayBuffer: () => Promise<ArrayBuffer>;
+};
+
 function normaliseUserType(value: string | null | undefined) {
   return value?.trim().toLowerCase() === "organisation"
     ? "organisation"
@@ -44,13 +51,27 @@ function cleanLogoUrl(value: string) {
   return "";
 }
 
-function getLogoExtension(file: File) {
+function isUploadableLogoFile(value: FormDataEntryValue | null): value is UploadableLogoFile {
+  if (!value || typeof value === "string") {
+    return false;
+  }
+
+  const maybeFile = value as Partial<UploadableLogoFile>;
+
+  return (
+    typeof maybeFile.arrayBuffer === "function" &&
+    typeof maybeFile.size === "number" &&
+    maybeFile.size > 0
+  );
+}
+
+function getLogoExtension(file: UploadableLogoFile) {
   if (file.type === "image/png") return "png";
   if (file.type === "image/jpeg") return "jpg";
   if (file.type === "image/webp") return "webp";
   if (file.type === "image/svg+xml") return "svg";
 
-  const fileName = file.name.toLowerCase();
+  const fileName = String(file.name || "").toLowerCase();
 
   if (fileName.endsWith(".png")) return "png";
   if (fileName.endsWith(".jpg") || fileName.endsWith(".jpeg")) return "jpg";
@@ -60,7 +81,7 @@ function getLogoExtension(file: File) {
   return "";
 }
 
-function isAllowedLogoFile(file: File) {
+function isAllowedLogoFile(file: UploadableLogoFile) {
   return (
     file.type === "image/png" ||
     file.type === "image/jpeg" ||
@@ -76,9 +97,9 @@ async function uploadOrganisationLogo({
 }: {
   supabase: Awaited<ReturnType<typeof createClient>>;
   userId: string;
-  logoFile: File;
+  logoFile: UploadableLogoFile;
 }) {
-  if (logoFile.size > MAX_LOGO_SIZE_BYTES) {
+  if (!logoFile.size || logoFile.size > MAX_LOGO_SIZE_BYTES) {
     redirect(
       `/organisation/profile?error=${encodeURIComponent(
         "Please upload a logo smaller than 3MB.",
@@ -105,10 +126,11 @@ async function uploadOrganisationLogo({
   }
 
   const filePath = `organisation-logos/${userId}/logo-${Date.now()}.${extension}`;
+  const fileBuffer = await logoFile.arrayBuffer();
 
   const { error: uploadError } = await supabase.storage
     .from(ORGANISATION_ASSETS_BUCKET)
-    .upload(filePath, logoFile, {
+    .upload(filePath, fileBuffer, {
       cacheControl: "3600",
       contentType: logoFile.type || undefined,
       upsert: true,
@@ -218,7 +240,7 @@ export async function saveOrganisationProfile(formData: FormData) {
 
   let finalLogoUrl = manualLogoUrl || null;
 
-  if (logoFileValue instanceof File && logoFileValue.size > 0) {
+  if (isUploadableLogoFile(logoFileValue)) {
     finalLogoUrl = await uploadOrganisationLogo({
       supabase,
       userId: user.id,
