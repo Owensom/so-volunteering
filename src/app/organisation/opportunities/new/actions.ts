@@ -13,6 +13,31 @@ type OrganisationProfile = {
   profile_completed: boolean | null;
 };
 
+type MinimumAgeStage =
+  | "not_set"
+  | "adults_only"
+  | "sixteen_plus"
+  | "fourteen_plus"
+  | "school_pupils_with_approval"
+  | "school_pupils_with_parent_carer_consent";
+
+type SafeguardingCheckRegion =
+  | "organisation_default"
+  | "scotland_pvg"
+  | "england_wales_dbs"
+  | "northern_ireland_accessni"
+  | "not_expected"
+  | "not_sure";
+
+type RoleFrequencyPattern =
+  | "not_set"
+  | "one_off"
+  | "occasional"
+  | "weekly_or_regular"
+  | "more_than_three_days_in_thirty"
+  | "overnight"
+  | "not_sure";
+
 function normaliseUserType(value: string | null | undefined) {
   return value?.trim().toLowerCase() === "organisation"
     ? "organisation"
@@ -29,6 +54,47 @@ function normaliseLocationType(value: string) {
   }
 
   return "in_person";
+}
+
+function normaliseMinimumAgeStage(value: string): MinimumAgeStage {
+  if (value === "adults_only") return "adults_only";
+  if (value === "sixteen_plus") return "sixteen_plus";
+  if (value === "fourteen_plus") return "fourteen_plus";
+  if (value === "school_pupils_with_approval") {
+    return "school_pupils_with_approval";
+  }
+  if (value === "school_pupils_with_parent_carer_consent") {
+    return "school_pupils_with_parent_carer_consent";
+  }
+
+  return "not_set";
+}
+
+function normaliseSafeguardingCheckRegion(
+  value: string,
+): SafeguardingCheckRegion {
+  if (value === "scotland_pvg") return "scotland_pvg";
+  if (value === "england_wales_dbs") return "england_wales_dbs";
+  if (value === "northern_ireland_accessni") {
+    return "northern_ireland_accessni";
+  }
+  if (value === "not_expected") return "not_expected";
+  if (value === "not_sure") return "not_sure";
+
+  return "organisation_default";
+}
+
+function normaliseRoleFrequencyPattern(value: string): RoleFrequencyPattern {
+  if (value === "one_off") return "one_off";
+  if (value === "occasional") return "occasional";
+  if (value === "weekly_or_regular") return "weekly_or_regular";
+  if (value === "more_than_three_days_in_thirty") {
+    return "more_than_three_days_in_thirty";
+  }
+  if (value === "overnight") return "overnight";
+  if (value === "not_sure") return "not_sure";
+
+  return "not_set";
 }
 
 function getText(formData: FormData, key: string) {
@@ -96,6 +162,47 @@ export async function createOpportunity(formData: FormData) {
   const contactName = getText(formData, "contact_name");
   const contactEmail = getText(formData, "contact_email");
   const safetyNotes = getText(formData, "safety_notes");
+
+  const minimumAgeStage = normaliseMinimumAgeStage(
+    getText(formData, "minimum_age_stage"),
+  );
+  const suitableForPupils = getBoolean(formData, "suitable_for_pupils");
+  const parentCarerConsentRequired = getBoolean(
+    formData,
+    "parent_carer_consent_required",
+  );
+  const schoolApprovalRequired = getBoolean(
+    formData,
+    "school_approval_required",
+  );
+  const safeguardingCheckRegion = normaliseSafeguardingCheckRegion(
+    getText(formData, "safeguarding_check_region"),
+  );
+  const safeguardingReviewRequired = getBoolean(
+    formData,
+    "safeguarding_review_required",
+  );
+  const supervisionRequired = getBoolean(formData, "supervision_required");
+  const noLoneWorking = getBoolean(formData, "no_lone_working");
+  const noHomeVisits = getBoolean(formData, "no_home_visits");
+  const noMoneyHandling = getBoolean(formData, "no_money_handling");
+  const noPersonalCare = getBoolean(formData, "no_personal_care");
+  const noPrivateMessaging = getBoolean(formData, "no_private_messaging");
+  const riskAssessmentCompleted = getBoolean(
+    formData,
+    "risk_assessment_completed",
+  );
+  const namedSafeguardingContact = getText(
+    formData,
+    "named_safeguarding_contact",
+  );
+  const legalSafeguardingNotes = getText(
+    formData,
+    "legal_safeguarding_notes",
+  );
+  const roleFrequencyPattern = normaliseRoleFrequencyPattern(
+    getText(formData, "role_frequency_pattern"),
+  );
 
   const interests = cleanArray(formData.getAll("interests"));
   const skills = cleanArray(formData.getAll("skills"));
@@ -178,6 +285,24 @@ export async function createOpportunity(formData: FormData) {
     contact_name: contactName || organisationProfile?.organisation_name || null,
     contact_email: contactEmail || organisationProfile?.contact_email || null,
     safety_notes: safetyNotes || null,
+
+    minimum_age_stage: minimumAgeStage,
+    suitable_for_pupils: suitableForPupils,
+    parent_carer_consent_required: parentCarerConsentRequired,
+    school_approval_required: schoolApprovalRequired,
+    safeguarding_check_region: safeguardingCheckRegion,
+    safeguarding_review_required: safeguardingReviewRequired,
+    supervision_required: supervisionRequired,
+    no_lone_working: noLoneWorking,
+    no_home_visits: noHomeVisits,
+    no_money_handling: noMoneyHandling,
+    no_personal_care: noPersonalCare,
+    no_private_messaging: noPrivateMessaging,
+    risk_assessment_completed: riskAssessmentCompleted,
+    named_safeguarding_contact: namedSafeguardingContact || null,
+    legal_safeguarding_notes: legalSafeguardingNotes || null,
+    role_frequency_pattern: roleFrequencyPattern,
+
     status,
     updated_at: new Date().toISOString(),
   });
