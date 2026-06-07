@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { updateInterestStatus } from "./actions";
@@ -37,7 +38,6 @@ type OpportunityRow = {
   location: string | null;
   time_commitment: string | null;
   status: string;
-
   minimum_age_stage: string | null;
   suitable_for_pupils: boolean | null;
   parent_carer_consent_required: boolean | null;
@@ -694,7 +694,7 @@ function DetailCard({
   icon: string;
   label: string;
   title: string;
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   return (
     <article className="info-card dashboard-pathway-card interest-detail-card">
@@ -730,7 +730,7 @@ function GuidedSection({
   title: string;
   description: string;
   isComplete: boolean;
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   return (
     <section
