@@ -33,7 +33,9 @@ function normaliseUserType(value: string | null | undefined) {
     : "volunteer";
 }
 
-function normaliseApprovalStatus(value: string | null | undefined): ApprovalStatus {
+function normaliseApprovalStatus(
+  value: string | null | undefined,
+): ApprovalStatus {
   if (value === "approved") return "approved";
   if (value === "paused") return "paused";
   if (value === "declined") return "declined";
@@ -48,13 +50,13 @@ function getBoolean(formData: FormData, key: string) {
   return formData.get(key) === "on";
 }
 
-function redirectWithError(message: string) {
+function redirectWithError(message: string): never {
   redirect(
     `/organisation/school-approvals?error=${encodeURIComponent(message)}`,
   );
 }
 
-function redirectWithMessage(message: string) {
+function redirectWithMessage(message: string): never {
   redirect(
     `/organisation/school-approvals?message=${encodeURIComponent(message)}`,
   );
@@ -94,7 +96,7 @@ async function requireSchoolOrganisationUser() {
     .eq("user_id", user.id)
     .maybeSingle<SchoolProfile>();
 
-  if (schoolProfile?.organisation_type !== "school_college") {
+  if (!schoolProfile || schoolProfile.organisation_type !== "school_college") {
     redirect("/organisation/dashboard");
   }
 
@@ -107,7 +109,9 @@ async function requireSchoolOrganisationUser() {
 
 function buildApprovalPayload(formData: FormData) {
   return {
-    approval_status: normaliseApprovalStatus(getText(formData, "approval_status")),
+    approval_status: normaliseApprovalStatus(
+      getText(formData, "approval_status"),
+    ),
     approval_notes: getText(formData, "approval_notes") || null,
     approval_conditions: getText(formData, "approval_conditions") || null,
 
