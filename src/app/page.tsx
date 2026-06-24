@@ -25,7 +25,7 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="home-listen-wrap">
+          <div className="home-listen-row">
             <InclusiveAudioButton text={listenText} />
           </div>
         </div>
@@ -122,9 +122,8 @@ export default function HomePage() {
       <style>{`
         .home-hero .page-top-row {
           display: grid !important;
-          grid-template-columns: minmax(0, 1fr) minmax(280px, auto);
-          gap: 22px;
-          align-items: start;
+          grid-template-columns: 1fr;
+          gap: 16px;
           width: 100%;
           max-width: 100%;
           margin-bottom: clamp(30px, 5vw, 48px);
@@ -135,9 +134,9 @@ export default function HomePage() {
           grid-template-columns: auto minmax(0, 1fr);
           gap: 18px;
           align-items: center;
+          width: 100%;
           min-width: 0;
           max-width: 100%;
-          overflow: hidden;
         }
 
         .home-hero .home-brand-mark {
@@ -151,7 +150,6 @@ export default function HomePage() {
           min-width: 0;
           max-width: 100%;
           text-align: left;
-          overflow: hidden;
         }
 
         .home-hero .home-brand-name {
@@ -159,14 +157,14 @@ export default function HomePage() {
           max-width: 100%;
           margin: 0;
           color: #4f746d;
-          font-size: clamp(1.85rem, 2.7vw, 3.2rem);
+          font-size: clamp(1.85rem, 4.2vw, 3.25rem);
           font-weight: 950;
           line-height: 0.98;
-          letter-spacing: clamp(0.1em, 0.9vw, 0.16em);
+          letter-spacing: clamp(0.08em, 0.8vw, 0.14em);
           text-transform: uppercase;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: clip;
+          white-space: normal;
+          overflow-wrap: normal;
+          word-break: normal;
         }
 
         .home-hero .home-brand-name span {
@@ -177,27 +175,27 @@ export default function HomePage() {
           max-width: 100%;
           margin: 10px 0 0;
           color: #e5b95a;
-          font-size: clamp(0.86rem, 1.15vw, 1.05rem);
+          font-size: clamp(0.86rem, 1.45vw, 1.08rem);
           font-weight: 950;
-          letter-spacing: clamp(0.16em, 1.1vw, 0.28em);
+          letter-spacing: clamp(0.16em, 1.2vw, 0.28em);
           line-height: 1.2;
           text-transform: uppercase;
-          white-space: nowrap;
-          overflow: hidden;
+          white-space: normal;
+          overflow-wrap: normal;
         }
 
-        .home-hero .home-listen-wrap {
+        .home-hero .home-listen-row {
           display: flex;
-          min-width: 0;
-          max-width: 360px;
+          width: 100%;
           justify-content: flex-end;
           align-items: flex-start;
-          overflow: visible;
+          min-width: 0;
+          max-width: 100%;
           position: relative;
-          z-index: 3;
+          z-index: 2;
         }
 
-        .home-hero .home-listen-wrap > * {
+        .home-hero .home-listen-row > * {
           max-width: 100%;
         }
 
@@ -305,32 +303,14 @@ export default function HomePage() {
           line-height: 1.42;
         }
 
-        @media (max-width: 1180px) {
+        @media (min-width: 960px) {
           .home-hero .page-top-row {
-            grid-template-columns: 1fr;
-            gap: 20px;
-            justify-items: center;
-            margin-bottom: 34px;
+            gap: 14px;
           }
 
-          .home-hero .home-brand-card {
-            width: 100%;
-            max-width: 760px;
-            justify-self: center;
-          }
-
-          .home-hero .home-brand-name {
-            font-size: clamp(2.05rem, 5.2vw, 3.8rem);
-          }
-
-          .home-hero .home-brand-tagline {
-            font-size: clamp(0.9rem, 2vw, 1.2rem);
-          }
-
-          .home-hero .home-listen-wrap {
-            width: 100%;
-            max-width: 100%;
-            justify-content: center;
+          .home-hero .home-listen-row {
+            justify-content: flex-end;
+            padding-right: 2px;
           }
         }
 
@@ -344,12 +324,18 @@ export default function HomePage() {
           }
         }
 
-        @media (max-width: 640px) {
+        @media (max-width: 760px) {
           .home-hero .page-top-row {
             gap: 18px;
             margin-bottom: 28px;
           }
 
+          .home-hero .home-listen-row {
+            justify-content: center;
+          }
+        }
+
+        @media (max-width: 640px) {
           .home-hero .home-brand-card {
             grid-template-columns: 1fr;
             justify-items: center;
@@ -369,15 +355,11 @@ export default function HomePage() {
           .home-hero .home-brand-name {
             font-size: clamp(1.7rem, 8vw, 2.35rem);
             letter-spacing: 0.1em;
-            white-space: normal;
-            overflow: visible;
           }
 
           .home-hero .home-brand-tagline {
             font-size: 0.88rem;
             letter-spacing: 0.16em;
-            white-space: normal;
-            overflow: visible;
           }
         }
 
