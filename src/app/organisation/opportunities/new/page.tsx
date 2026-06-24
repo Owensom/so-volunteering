@@ -298,7 +298,7 @@ function ChoiceGrid({
           <input
             type="checkbox"
             name={name}
-            value={option.value}
+                        value={option.value}
             defaultChecked={defaultValues.includes(option.value)}
           />
 
@@ -385,6 +385,7 @@ function SafetyCheckbox({
     </label>
   );
 }
+
 export default async function NewOpportunityPage({
   searchParams,
 }: {
@@ -508,8 +509,7 @@ export default async function NewOpportunityPage({
             </div>
           </div>
         </div>
-
-        <section
+                <section
           className="role-form-guide"
           aria-labelledby="role-form-guide-title"
         >
@@ -518,7 +518,9 @@ export default async function NewOpportunityPage({
 
             <div>
               <p className="brand-eyebrow">Step-by-step guide</p>
-              <h2 id="role-form-guide-title">Build the role one step at a time</h2>
+              <h2 id="role-form-guide-title">
+                Build the role one step at a time
+              </h2>
               <p>
                 Use the compact steps to jump to a section. Completed steps turn
                 green. The next unfinished step is highlighted so you always know
@@ -644,7 +646,11 @@ export default async function NewOpportunityPage({
           <div className="alert alert-error">{errorMessage}</div>
         ) : null}
 
-        <form action={createOpportunity} className="form-stack" data-role-create-form>
+        <form
+          action={createOpportunity}
+          className="form-stack"
+          data-role-create-form
+        >
           <StepSection
             stepNumber={1}
             icon="💬"
@@ -690,7 +696,7 @@ export default async function NewOpportunityPage({
             title="Location and travel"
             description="Add enough location information to help people decide if the role is realistic."
           >
-            <div className="location-details-panel">
+                        <div className="location-details-panel">
               <div className="dashboard-grid">
                 <label className="field-label">
                   <span className="field-label-row">
@@ -787,407 +793,327 @@ export default async function NewOpportunityPage({
                   />
                 </label>
               </div>
-              export default async function NewOpportunityPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ error?: string }>;
-}) {
-  const params = await searchParams;
-  const errorMessage = params.error ? decodeURIComponent(params.error) : "";
 
-  const supabase = await createClient();
+              <label className="field-label privacy-check-row">
+                <input
+                  name="hide_exact_location"
+                  type="checkbox"
+                  data-role-progress-control
+                />
+                <span>
+                  Hide exact venue and postcode from the public page until the
+                  volunteer has been contacted or accepted.
+                </span>
+              </label>
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+              <div className="dashboard-grid">
+                <label className="field-label">
+                  <span className="field-label-row">
+                    <span className="field-label-icon" aria-hidden="true">
+                      🚌
+                    </span>
+                    <span>Travel notes optional</span>
+                  </span>
+                  <textarea
+                    name="travel_notes"
+                    rows={4}
+                    placeholder="Example: Close to bus routes. Parking nearby. Volunteers can ask for help planning the first visit."
+                    data-role-progress-control
+                  />
+                </label>
 
-  if (!user) {
-    redirect("/login");
-  }
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("full_name,email,user_type")
-    .eq("id", user.id)
-    .maybeSingle<Profile>();
-
-  const metadataUserType =
-    typeof user.user_metadata?.user_type === "string"
-      ? user.user_metadata.user_type
-      : "volunteer";
-
-  const userType = normaliseUserType(profile?.user_type || metadataUserType);
-
-  if (userType !== "organisation") {
-    redirect("/dashboard");
-  }
-
-  const { data: organisationProfile } = await supabase
-    .from("organisation_profiles")
-    .select(
-      "organisation_name,contact_email,support_offered,profile_completed,organisation_type,safeguarding_region,works_with_children_or_pupils",
-    )
-    .eq("user_id", user.id)
-    .maybeSingle<OrganisationProfile>();
-
-  const profileCompleted = organisationProfile?.profile_completed === true;
-  const organisationTypeLabel = getOrganisationTypeLabel(
-    organisationProfile?.organisation_type,
-  );
-  const safeguardingRegionLabel = getSafeguardingRegionLabel(
-    organisationProfile?.safeguarding_region,
-  );
-
-  const listenText =
-    `This is the create opportunity page. The form is split into nine steps. The compact step guide near the top lets you jump to each section. Step 1 is role title and summary. Step 2 is location and travel. Step 3 is time commitment. Step 4 is interests and skills. Step 5 is support offered. Step 6 is contact person. Step 7 is safety notes. Step 8 is legal and safeguarding. Step 9 is save or publish. The guide turns green and shows a tick as each section is completed. The organisation type is currently ${organisationTypeLabel}. The safeguarding region is currently ${safeguardingRegionLabel}. Scotland uses PVG wording. England and Wales use DBS wording. Northern Ireland uses AccessNI wording. This phase records role-level legal and safeguarding readiness only. It does not change what pupils or volunteers can see yet. You can save as draft or publish if your organisation profile is complete.`;
-
-  return (
-    <main className="onboarding-shell role-create-page">
-      <section className="onboarding-panel">
-        <div className="onboarding-top-row">
-          <div>
-            <p className="brand-eyebrow">Opportunity setup</p>
-          </div>
-
-          <div className="dashboard-topbar-actions">
-            <InclusiveAudioButton text={listenText} />
-
-            <Link
-              href="/organisation/opportunities"
-              className="secondary-button dashboard-signout-button"
-            >
-              <span className="dashboard-button-inner">
-                <span aria-hidden="true">←</span>
-                <span>Opportunities</span>
-              </span>
-            </Link>
-          </div>
-        </div>
-
-        <div className="onboarding-hero-grid">
-          <div className="onboarding-hero-main">
-            <div className="onboarding-title-lockup">
-              <span className="onboarding-title-icon" aria-hidden="true">
-                📣
-              </span>
-
-              <div>
-                <h1 className="onboarding-title">Create a volunteering role</h1>
-                <p className="onboarding-lead">
-                  Work through one step at a time. You can jump to a section,
-                  save as draft whenever you need, and publish when the role is
-                  clear, supportive and safe for volunteers.
-                </p>
+                <label className="field-label">
+                  <span className="field-label-row">
+                    <span className="field-label-icon" aria-hidden="true">
+                      ♿
+                    </span>
+                    <span>Accessibility or building notes optional</span>
+                  </span>
+                  <textarea
+                    name="accessibility_notes"
+                    rows={4}
+                    placeholder="Example: Step-free entrance, quiet waiting area, accessible toilet, lift access, or any barriers volunteers should know about."
+                    data-role-progress-control
+                  />
+                </label>
               </div>
             </div>
-          </div>
+          </StepSection>
 
-          <div className="onboarding-progress-card role-progress-card">
-            <div className="dashboard-progress-header">
-              <span className="dashboard-progress-icon" aria-hidden="true">
-                ✨
-              </span>
-              <div>
-                <h2>Role setup</h2>
-                <p>
-                  {profileCompleted
-                    ? "You can save drafts or publish roles."
-                    : "Complete organisation profile before publishing."}
-                </p>
-              </div>
-            </div>
-
-            <div className="role-progress-summary">
-              <div className="role-progress-label">
-                <span>Setup progress</span>
-                <strong>
-                  <span data-role-complete-count>0</span>/9 steps
-                </strong>
-              </div>
-              <div className="role-progress-meter" aria-hidden="true">
-                <span data-role-progress-meter style={{ width: "0%" }} />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <section
-          className="role-form-guide"
-          aria-labelledby="role-form-guide-title"
-        >
-          <div className="role-form-guide-heading">
-            <span aria-hidden="true">🧭</span>
-
-            <div>
-              <p className="brand-eyebrow">Step-by-step guide</p>
-              <h2 id="role-form-guide-title">Build the role one step at a time</h2>
-              <p>
-                Use the compact steps to jump to a section. Completed steps turn
-                green. The next unfinished step is highlighted so you always know
-                where to continue.
-              </p>
-            </div>
-          </div>
-
-          <div className="role-next-step-card" data-role-next-step-card>
-            <span className="role-next-step-icon" aria-hidden="true">
-              🌱
-            </span>
-
-            <div>
-              <p className="brand-eyebrow">Start here</p>
-              <h3 data-role-next-step-title>Step 1 · Role title and summary</h3>
-              <p data-role-next-step-text>
-                Add a short title and plain-language summary first.
-              </p>
-            </div>
-
-            <a
-              href="#role-step-1"
-              className="role-next-step-link"
-              data-role-next-step-link
-            >
-              Go to step
-            </a>
-          </div>
-
-          <nav
-            className="role-form-guide-grid"
-            aria-label="Create role step navigation"
+          <StepSection
+            stepNumber={3}
+            icon="🕒"
+            title="Time commitment"
+            description="Choose a simple pattern so volunteers know what to expect."
           >
-            {guideSteps.map((step, index) => (
-              <a
-                key={step.title}
-                href={`#role-step-${index + 1}`}
-                className="role-guide-step"
-                data-role-guide-step={index + 1}
+            <label className="field-label">
+              <span className="field-label-row">
+                <span className="field-label-icon" aria-hidden="true">
+                  🕒
+                </span>
+                <span>Time commitment</span>
+              </span>
+              <select
+                name="time_commitment"
+                defaultValue=""
+                data-role-progress-control
               >
-                <span className="role-guide-step-number">{index + 1}</span>
+                <option value="">Choose one</option>
+                <option value="One-off">One-off</option>
+                <option value="Weekly">Weekly</option>
+                <option value="Monthly">Monthly</option>
+                <option value="Flexible">Flexible</option>
+                <option value="Short shifts to start">
+                  Short shifts to start
+                </option>
+              </select>
+            </label>
+          </StepSection>
 
-                <span className="role-guide-step-icon" aria-hidden="true">
-                  {step.icon}
-                </span>
-
-                <span className="role-guide-step-copy">
-                  <span className="role-guide-step-kicker">
-                    Step {index + 1}
-                    <span data-role-guide-status={index + 1}>To do</span>
-                  </span>
-                  <span className="role-guide-step-title">
-                    {step.shortTitle}
-                  </span>
-                  <span className="role-guide-step-text">{step.text}</span>
-                  <span className="role-guide-step-action">Go to step</span>
-                </span>
-              </a>
-            ))}
-          </nav>
-        </section>
-
-        <section
-          className="role-readiness-panel"
-          aria-labelledby="role-readiness-title"
-        >
-          <div className="role-readiness-heading">
-            <span className="role-readiness-icon" aria-hidden="true">
-              ✅
-            </span>
-
-            <div>
-              <p className="brand-eyebrow">Before publishing</p>
-              <h2 id="role-readiness-title">Make the role safe and clear</h2>
-              <p>
-                Use plain language, realistic location information, clear time
-                commitment, support choices, safety notes and legal/safeguarding
-                readiness. Save as draft if anything still needs checking.
-              </p>
-            </div>
-          </div>
-        </section>
-
-        <section
-          className="role-safeguarding-context"
-          aria-labelledby="role-safeguarding-context-title"
-        >
-          <div className="role-safeguarding-context-icon" aria-hidden="true">
-            ⚖️
-          </div>
-
-          <div>
-            <p className="brand-eyebrow">School safety layer phase 1B</p>
-            <h2 id="role-safeguarding-context-title">
-              Role-level legal and safeguarding readiness
-            </h2>
-            <p>
-              This phase records role-level readiness only. It does not yet
-              change public visibility or pupil filtering. Use it to flag pupil
-              suitability, supervision, consent, PVG/DBS/AccessNI review, and
-              restrictions such as no lone working or no home visits.
-            </p>
-
-            <div className="role-safeguarding-context-grid">
-              <span>
-                <strong>Organisation type:</strong> {organisationTypeLabel}
-              </span>
-              <span>
-                <strong>Region wording:</strong> {safeguardingRegionLabel}
-              </span>
-              <span>
-                <strong>Children / pupils:</strong>{" "}
-                {organisationProfile?.works_with_children_or_pupils
-                  ? "May be involved"
-                  : "Not marked at organisation level"}
-              </span>
-            </div>
-          </div>
-        </section>
-
-        {errorMessage ? (
-          <div className="alert alert-error">{errorMessage}</div>
-        ) : null}
-
-        <form action={createOpportunity} className="form-stack" data-role-create-form>
           <StepSection
-            stepNumber={1}
-            icon="💬"
-            title="Role title and summary"
-            description="This is what volunteers see first. Keep it short, clear and welcoming."
+            stepNumber={4}
+            icon="⭐"
+            title="Interests and skills"
+            description="These choices help volunteers find roles that fit them."
+          >
+            <fieldset className="choice-group">
+              <legend>
+                <span className="field-label-row">
+                  <span className="field-label-icon" aria-hidden="true">
+                    💚
+                  </span>
+                  <span>Interests this role may suit</span>
+                </span>
+              </legend>
+              <ChoiceGrid name="interests" options={interestOptions} />
+            </fieldset>
+
+            <fieldset className="choice-group">
+              <legend>
+                <span className="field-label-row">
+                  <span className="field-label-icon" aria-hidden="true">
+                    ⭐
+                  </span>
+                  <span>Helpful skills or skills volunteers can build</span>
+                </span>
+              </legend>
+              <ChoiceGrid name="skills" options={skillOptions} />
+            </fieldset>
+          </StepSection>
+                    <StepSection
+            stepNumber={5}
+            icon="💛"
+            title="Support offered"
+            description="Tell volunteers what support or reassurance is available."
+          >
+            <fieldset className="choice-group">
+              <legend>
+                <span className="field-label-row">
+                  <span className="field-label-icon" aria-hidden="true">
+                    💛
+                  </span>
+                  <span>Support available for this role</span>
+                </span>
+              </legend>
+              <ChoiceGrid
+                name="support_offered"
+                options={supportOptions}
+                defaultValues={organisationProfile?.support_offered ?? []}
+              />
+            </fieldset>
+          </StepSection>
+
+          <StepSection
+            stepNumber={6}
+            icon="👤"
+            title="Contact person"
+            description="Add the person or inbox volunteers should hear from."
+          >
+            <div className="dashboard-grid">
+              <label className="field-label">
+                <span className="field-label-row">
+                  <span className="field-label-icon" aria-hidden="true">
+                    👤
+                  </span>
+                  <span>Contact name optional</span>
+                </span>
+                <input
+                  name="contact_name"
+                  type="text"
+                  defaultValue={organisationProfile?.organisation_name || ""}
+                  placeholder="Example: Volunteer coordinator"
+                  data-role-progress-control
+                />
+              </label>
+
+              <label className="field-label">
+                <span className="field-label-row">
+                  <span className="field-label-icon" aria-hidden="true">
+                    ✉️
+                  </span>
+                  <span>Contact email</span>
+                </span>
+                <input
+                  name="contact_email"
+                  type="email"
+                  required
+                  defaultValue={
+                    organisationProfile?.contact_email ||
+                    profile?.email ||
+                    user.email ||
+                    ""
+                  }
+                  placeholder="volunteering@example.org"
+                  data-role-progress-control
+                />
+              </label>
+            </div>
+          </StepSection>
+
+          <StepSection
+            stepNumber={7}
+            icon="🛡️"
+            title="Safety and first visit notes"
+            description="Add supervision, welcome, accessibility or location privacy information."
           >
             <label className="field-label">
               <span className="field-label-row">
                 <span className="field-label-icon" aria-hidden="true">
-                  📣
+                  🛡️
                 </span>
-                <span>Opportunity title</span>
-              </span>
-              <input
-                name="title"
-                type="text"
-                required
-                placeholder="Example: Community cafe welcome volunteer"
-                data-role-progress-control
-              />
-            </label>
-
-            <label className="field-label">
-              <span className="field-label-row">
-                <span className="field-label-icon" aria-hidden="true">
-                  💬
-                </span>
-                <span>Short plain-language description</span>
+                <span>Safety or supervision notes optional</span>
               </span>
               <textarea
-                name="summary"
+                name="safety_notes"
                 rows={5}
-                required
-                placeholder="Example: Help welcome visitors, offer tea and coffee, and keep the cafe area calm and friendly."
+                placeholder="Optional. Example: Volunteers will be welcomed by a named contact, shown the space, and told who to speak to if they need help."
                 data-role-progress-control
               />
             </label>
           </StepSection>
 
           <StepSection
-            stepNumber={2}
-            icon="📍"
-            title="Location and travel"
-            description="Add enough location information to help people decide if the role is realistic."
+            stepNumber={8}
+            icon="⚖️"
+            title="Legal and safeguarding readiness"
+            description="Record pupil suitability, consent, supervision and safeguarding checks before publishing."
           >
-            <div className="location-details-panel">
-              <div className="dashboard-grid">
-                <label className="field-label">
-                  <span className="field-label-row">
-                    <span className="field-label-icon" aria-hidden="true">
-                      📍
-                    </span>
-                    <span>Location type</span>
-                  </span>
-                  <select
-                    name="location_type"
-                    defaultValue="in_person"
-                    data-role-progress-control
-                  >
-                    <option value="in_person">In-person</option>
-                    <option value="remote">Remote / online</option>
-                    <option value="hybrid">Hybrid</option>
-                  </select>
-                </label>
+            <section
+              className="role-legal-panel"
+              aria-labelledby="role-legal-title"
+            >
+              <div className="role-legal-heading">
+                <span className="role-legal-icon" aria-hidden="true">
+                  ⚖️
+                </span>
 
-                <label className="field-label">
-                  <span className="field-label-row">
-                    <span className="field-label-icon" aria-hidden="true">
-                      🏙️
-                    </span>
-                    <span>Town or city</span>
-                  </span>
-                  <input
-                    name="location_town_city"
-                    type="text"
-                    placeholder="Example: Aberdeen"
-                    data-role-progress-control
-                  />
-                </label>
-
-                <label className="field-label">
-                  <span className="field-label-row">
-                    <span className="field-label-icon" aria-hidden="true">
-                      🗺️
-                    </span>
-                    <span>Area or neighbourhood optional</span>
-                  </span>
-                  <input
-                    name="location_area"
-                    type="text"
-                    placeholder="Example: City centre, Torry, Rosemount"
-                    data-role-progress-control
-                  />
-                </label>
+                <div>
+                  <p className="brand-eyebrow">Role-level readiness</p>
+                  <h2 id="role-legal-title">
+                    Legal and safeguarding questions
+                  </h2>
+                  <p>
+                    These fields help your organisation review pupil suitability,
+                    supervision, consent and safeguarding checks. They are saved
+                    for readiness only in this phase.
+                  </p>
+                </div>
               </div>
 
               <div className="dashboard-grid">
                 <label className="field-label">
                   <span className="field-label-row">
                     <span className="field-label-icon" aria-hidden="true">
-                      🏢
+                      👥
                     </span>
-                    <span>Venue or meeting place optional</span>
+                    <span>Minimum age / stage</span>
                   </span>
-                  <input
-                    name="location_venue"
-                    type="text"
-                    placeholder="Example: Community hub reception"
+                  <select
+                    name="minimum_age_stage"
+                    defaultValue="not_set"
                     data-role-progress-control
-                  />
+                  >
+                    <option value="not_set">Not set yet</option>
+                    <option value="adults_only">Adults only</option>
+                    <option value="sixteen_plus">16+</option>
+                    <option value="fourteen_plus">14+</option>
+                    <option value="school_pupils_with_approval">
+                      School pupils with school approval
+                    </option>
+                    <option value="school_pupils_with_parent_carer_consent">
+                      School pupils with parent/carer consent
+                    </option>
+                  </select>
                 </label>
 
                 <label className="field-label">
                   <span className="field-label-row">
                     <span className="field-label-icon" aria-hidden="true">
-                      📮
+                      🛡️
                     </span>
-                    <span>Postcode optional</span>
+                    <span>Safeguarding check wording</span>
                   </span>
-                  <input
-                    name="location_postcode"
-                    type="text"
-                    placeholder="Example: AB10"
+                  <select
+                    name="safeguarding_check_region"
+                    defaultValue="organisation_default"
                     data-role-progress-control
-                  />
+                  >
+                    <option value="organisation_default">
+                      Use organisation default
+                    </option>
+                    <option value="scotland_pvg">Scotland - PVG</option>
+                    <option value="england_wales_dbs">
+                      England / Wales - DBS
+                    </option>
+                    <option value="northern_ireland_accessni">
+                      Northern Ireland - AccessNI
+                    </option>
+                    <option value="not_expected">
+                      Not expected for this role
+                    </option>
+                    <option value="not_sure">Not sure - needs review</option>
+                  </select>
                 </label>
 
-                <label className="field-label legacy-location-field">
+                <label className="field-label">
                   <span className="field-label-row">
                     <span className="field-label-icon" aria-hidden="true">
-                      🗺️
+                      🔁
                     </span>
-                    <span>Public location summary fallback</span>
+                    <span>Frequency pattern</span>
                   </span>
-                  <input
-                    name="location"
-                    type="text"
-                    placeholder="Example: Aberdeen city centre"
+                  <select
+                    name="role_frequency_pattern"
+                    defaultValue="not_set"
                     data-role-progress-control
-                  />
+                  >
+                    <option value="not_set">Not set yet</option>
+                    <option value="one_off">One-off</option>
+                    <option value="occasional">Occasional</option>
+                    <option value="weekly_or_regular">Weekly or regular</option>
+                    <option value="more_than_three_days_in_thirty">
+                      More than 3 days in 30 days
+                    </option>
+                    <option value="overnight">
+                      Overnight or late-night activity
+                    </option>
+                    <option value="not_sure">Not sure - needs review</option>
+                  </select>
                 </label>
+              </div>
+
+              <div className="safeguarding-warning-card">
+                <span aria-hidden="true">⚠️</span>
+                <div>
+                  <strong>This is not legal advice.</strong>
+                  <p>
+                    Do not rely on a simple number of hours. Safeguarding checks
+                    depend on the role activity, supervision, setting, frequency
+                    and region. Roles involving children, pupils, care,
+                    supervision, teaching, coaching, mentoring, transport or
+                    overnight activity should be reviewed before publishing.
+                  </p>
+                </div>
               </div>
                             <div className="safeguarding-check-grid">
                 <SafetyCheckbox
@@ -1317,7 +1243,11 @@ export default async function NewOpportunityPage({
                 </span>
                 <span>Status</span>
               </span>
-              <select name="status" defaultValue="draft" data-role-progress-control>
+              <select
+                name="status"
+                defaultValue="draft"
+                data-role-progress-control
+              >
                 <option value="draft">Save as draft</option>
                 <option value="published">Publish opportunity</option>
               </select>
@@ -1370,7 +1300,10 @@ export default async function NewOpportunityPage({
 
                 if (guide) {
                   guide.classList.toggle('role-guide-step-complete', complete);
-                  guide.setAttribute('aria-label', complete ? 'Step ' + stepNumber + ' complete' : 'Step ' + stepNumber + ' to do');
+                  guide.setAttribute(
+                    'aria-label',
+                    complete ? 'Step ' + stepNumber + ' complete' : 'Step ' + stepNumber + ' to do'
+                  );
                 }
 
                 if (guideStatus) {
@@ -1391,8 +1324,7 @@ export default async function NewOpportunityPage({
                     : '<span aria-hidden="true">○</span>To do';
                 }
               }
-
-              function setCurrentStep(nextStepNumber, nextStepTitle, nextStepText) {
+                            function setCurrentStep(nextStepNumber, nextStepTitle, nextStepText) {
                 var allGuideSteps = document.querySelectorAll('[data-role-guide-step]');
                 var allSections = document.querySelectorAll('[data-role-step]');
                 var nextCard = document.querySelector('[data-role-next-step-card]');
@@ -1436,7 +1368,8 @@ export default async function NewOpportunityPage({
                   nextLink.textContent = nextStepNumber === 10 ? 'Review and save' : 'Go to step';
                 }
               }
-                            function updateRoleProgress() {
+
+              function updateRoleProgress() {
                 var form = document.querySelector('[data-role-create-form]');
                 if (!form) return;
 
@@ -1550,8 +1483,7 @@ export default async function NewOpportunityPage({
                   meterNode.style.width = percent + '%';
                 }
               }
-
-              function scheduleRoleProgressUpdate() {
+                            function scheduleRoleProgressUpdate() {
                 if (updateTimer) {
                   window.clearTimeout(updateTimer);
                 }
@@ -1717,8 +1649,7 @@ export default async function NewOpportunityPage({
           gap: 8px;
           margin-top: 12px;
         }
-
-        .role-safeguarding-context-grid span {
+                .role-safeguarding-context-grid span {
           display: block;
           min-width: 0;
           padding: 10px 12px;
@@ -1735,7 +1666,8 @@ export default async function NewOpportunityPage({
         .role-safeguarding-context-grid strong {
           color: #4f4b82;
         }
-                .role-form-guide-heading {
+
+        .role-form-guide-heading {
           display: grid;
           grid-template-columns: auto 1fr;
           gap: 14px;
@@ -1849,8 +1781,7 @@ export default async function NewOpportunityPage({
           grid-template-columns: repeat(9, minmax(0, 1fr));
           gap: 8px;
         }
-
-        .role-guide-step {
+                .role-guide-step {
           position: relative;
           display: grid;
           gap: 8px;
@@ -2009,7 +1940,8 @@ export default async function NewOpportunityPage({
         .role-guide-step-complete .role-guide-step-action {
           color: #145c38;
         }
-                .role-readiness-panel,
+
+        .role-readiness-panel,
         .role-legal-panel {
           display: grid;
           gap: 18px;
@@ -2031,8 +1963,7 @@ export default async function NewOpportunityPage({
             linear-gradient(135deg, rgba(248, 245, 255, 0.88), rgba(255, 255, 255, 0.92)),
             rgba(255, 255, 255, 0.84);
         }
-
-        .role-readiness-heading,
+                .role-readiness-heading,
         .role-legal-heading {
           display: grid;
           grid-template-columns: auto 1fr;
@@ -2252,8 +2183,7 @@ export default async function NewOpportunityPage({
           letter-spacing: 0;
           text-transform: none;
         }
-
-        .role-step-complete .role-step-kicker,
+                .role-step-complete .role-step-kicker,
         .role-step-complete .role-step-kicker span {
           color: #145c38;
         }
@@ -2312,7 +2242,8 @@ export default async function NewOpportunityPage({
           margin-top: 2px;
           accent-color: #536f63;
         }
-                @media (max-width: 1280px) {
+
+        @media (max-width: 1280px) {
           .role-form-guide-grid {
             grid-template-columns: repeat(3, minmax(0, 1fr));
           }
@@ -2393,8 +2324,7 @@ export default async function NewOpportunityPage({
             color: #145c38 !important;
             box-shadow: inset 0 0 0 1px rgba(34, 124, 78, 0.16) !important;
           }
-
-          .role-create-page .role-guide-step.role-guide-step-current:not(.role-guide-step-complete) .role-guide-step-number,
+                    .role-create-page .role-guide-step.role-guide-step-current:not(.role-guide-step-complete) .role-guide-step-number,
           .role-create-page .role-guide-step.role-guide-step-current:not(.role-guide-step-complete) .role-guide-step-icon,
           .role-create-page .role-guide-step.role-guide-step-current:not(.role-guide-step-complete) [data-role-guide-status] {
             background: rgba(108, 92, 160, 0.16) !important;
