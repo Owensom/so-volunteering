@@ -120,74 +120,84 @@ export default function HomePage() {
       </section>
 
       <style>{`
-        .page-top-row {
-          display: grid;
-          grid-template-columns: minmax(0, 1fr) auto;
-          gap: clamp(18px, 3vw, 34px);
+        .home-hero .page-top-row {
+          display: grid !important;
+          grid-template-columns: minmax(0, 1fr) minmax(280px, auto);
+          gap: 22px;
           align-items: start;
           width: 100%;
-          margin-bottom: clamp(22px, 4vw, 36px);
+          max-width: 100%;
+          margin-bottom: clamp(30px, 5vw, 48px);
         }
 
-        .home-brand-card {
-          display: grid;
+        .home-hero .home-brand-card {
+          display: grid !important;
           grid-template-columns: auto minmax(0, 1fr);
-          gap: clamp(14px, 2vw, 20px);
+          gap: 18px;
           align-items: center;
           min-width: 0;
           max-width: 100%;
+          overflow: hidden;
         }
 
-        .home-brand-mark {
-          width: clamp(68px, 8vw, 94px);
-          height: clamp(68px, 8vw, 94px);
+        .home-hero .home-brand-mark {
+          width: clamp(66px, 7vw, 84px);
+          height: clamp(66px, 7vw, 84px);
           object-fit: contain;
           flex: 0 0 auto;
         }
 
-        .home-brand-text {
+        .home-hero .home-brand-text {
           min-width: 0;
+          max-width: 100%;
           text-align: left;
+          overflow: hidden;
         }
 
-        .home-brand-name {
+        .home-hero .home-brand-name {
+          display: block;
+          max-width: 100%;
           margin: 0;
           color: #4f746d;
-          font-size: clamp(2rem, 4.8vw, 4rem);
+          font-size: clamp(1.85rem, 2.7vw, 3.2rem);
           font-weight: 950;
-          line-height: 0.95;
-          letter-spacing: 0.14em;
+          line-height: 0.98;
+          letter-spacing: clamp(0.1em, 0.9vw, 0.16em);
           text-transform: uppercase;
-          overflow-wrap: normal;
-          word-break: normal;
           white-space: nowrap;
+          overflow: hidden;
+          text-overflow: clip;
         }
 
-        .home-brand-name span {
+        .home-hero .home-brand-name span {
           color: #6c5ca0;
         }
 
-        .home-brand-tagline {
-          margin: 8px 0 0;
+        .home-hero .home-brand-tagline {
+          max-width: 100%;
+          margin: 10px 0 0;
           color: #e5b95a;
-          font-size: clamp(0.92rem, 1.7vw, 1.35rem);
+          font-size: clamp(0.86rem, 1.15vw, 1.05rem);
           font-weight: 950;
-          letter-spacing: 0.22em;
+          letter-spacing: clamp(0.16em, 1.1vw, 0.28em);
+          line-height: 1.2;
           text-transform: uppercase;
           white-space: nowrap;
+          overflow: hidden;
         }
 
-        .home-listen-wrap {
+        .home-hero .home-listen-wrap {
           display: flex;
-          min-width: 310px;
-          max-width: 420px;
+          min-width: 0;
+          max-width: 360px;
           justify-content: flex-end;
           align-items: flex-start;
+          overflow: visible;
           position: relative;
-          z-index: 2;
+          z-index: 3;
         }
 
-        .home-listen-wrap > * {
+        .home-hero .home-listen-wrap > * {
           max-width: 100%;
         }
 
@@ -295,24 +305,30 @@ export default function HomePage() {
           line-height: 1.42;
         }
 
-        @media (max-width: 1120px) {
-          .page-top-row {
+        @media (max-width: 1180px) {
+          .home-hero .page-top-row {
             grid-template-columns: 1fr;
+            gap: 20px;
             justify-items: center;
-            text-align: center;
+            margin-bottom: 34px;
           }
 
-          .home-brand-card {
+          .home-hero .home-brand-card {
+            width: 100%;
+            max-width: 760px;
             justify-self: center;
           }
 
-          .home-brand-text {
-            text-align: left;
+          .home-hero .home-brand-name {
+            font-size: clamp(2.05rem, 5.2vw, 3.8rem);
           }
 
-          .home-listen-wrap {
+          .home-hero .home-brand-tagline {
+            font-size: clamp(0.9rem, 2vw, 1.2rem);
+          }
+
+          .home-hero .home-listen-wrap {
             width: 100%;
-            min-width: 0;
             max-width: 100%;
             justify-content: center;
           }
@@ -329,41 +345,39 @@ export default function HomePage() {
         }
 
         @media (max-width: 640px) {
-          .page-top-row {
+          .home-hero .page-top-row {
             gap: 18px;
-            margin-bottom: 22px;
+            margin-bottom: 28px;
           }
 
-          .home-brand-card {
+          .home-hero .home-brand-card {
             grid-template-columns: 1fr;
             justify-items: center;
             text-align: center;
+            gap: 12px;
           }
 
-          .home-brand-mark {
+          .home-hero .home-brand-mark {
             width: 76px;
             height: 76px;
           }
 
-          .home-brand-text {
+          .home-hero .home-brand-text {
             text-align: center;
           }
 
-          .home-brand-name {
-            font-size: clamp(1.65rem, 8vw, 2.35rem);
+          .home-hero .home-brand-name {
+            font-size: clamp(1.7rem, 8vw, 2.35rem);
             letter-spacing: 0.1em;
             white-space: normal;
-            overflow-wrap: anywhere;
+            overflow: visible;
           }
 
-          .home-brand-tagline {
+          .home-hero .home-brand-tagline {
             font-size: 0.88rem;
             letter-spacing: 0.16em;
             white-space: normal;
-          }
-
-          .home-listen-wrap {
-            justify-content: center;
+            overflow: visible;
           }
         }
 
