@@ -2195,6 +2195,120 @@ export default async function NewOpportunityPage({
           }
         }
 
+        @media (max-width: 860px) {
+          .role-create-page .role-guide-step.role-guide-step-current {
+            border-color: rgba(108, 92, 160, 0.62) !important;
+            background:
+              radial-gradient(circle at top left, rgba(222, 214, 255, 0.58), transparent 38%),
+              linear-gradient(135deg, rgba(248, 245, 255, 0.98), rgba(255, 255, 255, 0.96)) !important;
+            box-shadow:
+              0 14px 30px rgba(33, 56, 48, 0.1),
+              0 0 0 4px rgba(108, 92, 160, 0.14) !important;
+          }
+
+          .role-create-page .role-guide-step.role-guide-step-complete {
+            border-color: rgba(34, 124, 78, 0.5) !important;
+            background:
+              radial-gradient(circle at top left, rgba(155, 232, 190, 0.56), transparent 42%),
+              linear-gradient(135deg, rgba(244, 255, 249, 0.98), rgba(255, 255, 255, 0.94)) !important;
+            box-shadow:
+              0 14px 30px rgba(33, 96, 61, 0.14),
+              0 0 0 3px rgba(34, 124, 78, 0.1) !important;
+          }
+
+          .role-create-page .role-guide-step.role-guide-step-complete.role-guide-step-current {
+            border-color: rgba(34, 124, 78, 0.62) !important;
+            background:
+              radial-gradient(circle at top left, rgba(155, 232, 190, 0.64), transparent 42%),
+              linear-gradient(135deg, rgba(244, 255, 249, 1), rgba(255, 255, 255, 0.96)) !important;
+            box-shadow:
+              0 14px 30px rgba(33, 96, 61, 0.16),
+              0 0 0 4px rgba(34, 124, 78, 0.14) !important;
+          }
+
+          .role-create-page .role-guide-step.role-guide-step-complete .role-guide-step-number,
+          .role-create-page .role-guide-step.role-guide-step-complete .role-guide-step-icon,
+          .role-create-page .role-guide-step.role-guide-step-complete [data-role-guide-status] {
+            background: rgba(34, 124, 78, 0.18) !important;
+            color: #145c38 !important;
+            box-shadow: inset 0 0 0 1px rgba(34, 124, 78, 0.16) !important;
+          }
+
+          .role-create-page .role-guide-step.role-guide-step-current:not(.role-guide-step-complete) .role-guide-step-number,
+          .role-create-page .role-guide-step.role-guide-step-current:not(.role-guide-step-complete) .role-guide-step-icon,
+          .role-create-page .role-guide-step.role-guide-step-current:not(.role-guide-step-complete) [data-role-guide-status] {
+            background: rgba(108, 92, 160, 0.16) !important;
+            color: #4f4b82 !important;
+            box-shadow: inset 0 0 0 1px rgba(108, 92, 160, 0.16) !important;
+          }
+
+          .role-create-page .role-guide-step.role-guide-step-complete .role-guide-step-title,
+          .role-create-page .role-guide-step.role-guide-step-complete .role-guide-step-action,
+          .role-create-page .role-guide-step.role-guide-step-complete .role-guide-step-kicker {
+            color: #145c38 !important;
+          }
+
+          .role-create-page .role-guide-step.role-guide-step-current:not(.role-guide-step-complete) .role-guide-step-title,
+          .role-create-page .role-guide-step.role-guide-step-current:not(.role-guide-step-complete) .role-guide-step-action,
+          .role-create-page .role-guide-step.role-guide-step-current:not(.role-guide-step-complete) .role-guide-step-kicker {
+            color: #4f4b82 !important;
+          }
+
+          .role-create-page .role-step-section.role-step-current {
+            border-color: rgba(108, 92, 160, 0.46) !important;
+            background:
+              radial-gradient(circle at top left, rgba(222, 214, 255, 0.34), transparent 36%),
+              rgba(255, 255, 255, 0.86) !important;
+            box-shadow:
+              0 16px 36px rgba(33, 56, 48, 0.08),
+              0 0 0 4px rgba(108, 92, 160, 0.1) !important;
+          }
+
+          .role-create-page .role-step-section.role-step-complete {
+            border-color: rgba(34, 124, 78, 0.42) !important;
+            background:
+              radial-gradient(circle at top left, rgba(155, 232, 190, 0.42), transparent 38%),
+              rgba(244, 255, 249, 0.94) !important;
+            box-shadow:
+              0 16px 36px rgba(33, 96, 61, 0.1),
+              0 0 0 3px rgba(34, 124, 78, 0.08) !important;
+          }
+
+          .role-create-page .role-step-section.role-step-complete.role-step-current {
+            border-color: rgba(34, 124, 78, 0.54) !important;
+            background:
+              radial-gradient(circle at top left, rgba(155, 232, 190, 0.5), transparent 38%),
+              rgba(244, 255, 249, 0.98) !important;
+            box-shadow:
+              0 16px 36px rgba(33, 96, 61, 0.12),
+              0 0 0 4px rgba(34, 124, 78, 0.12) !important;
+          }
+
+          .role-create-page .role-step-section.role-step-complete .role-step-icon,
+          .role-create-page .role-step-section.role-step-complete [data-role-step-status] {
+            background: rgba(34, 124, 78, 0.18) !important;
+            color: #145c38 !important;
+            box-shadow: inset 0 0 0 1px rgba(34, 124, 78, 0.16) !important;
+          }
+
+          .role-create-page .role-step-section.role-step-current:not(.role-step-complete) .role-step-icon,
+          .role-create-page .role-step-section.role-step-current:not(.role-step-complete) [data-role-step-status] {
+            background: rgba(108, 92, 160, 0.16) !important;
+            color: #4f4b82 !important;
+            box-shadow: inset 0 0 0 1px rgba(108, 92, 160, 0.16) !important;
+          }
+
+          .role-create-page .role-step-section.role-step-complete .role-step-copy h2,
+          .role-create-page .role-step-section.role-step-complete .role-step-kicker {
+            color: #145c38 !important;
+          }
+
+          .role-create-page .role-step-section.role-step-current:not(.role-step-complete) .role-step-copy h2,
+          .role-create-page .role-step-section.role-step-current:not(.role-step-complete) .role-step-kicker {
+            color: #4f4b82 !important;
+          }
+        }
+
         @media (max-width: 760px) {
           .role-form-guide-heading,
           .role-readiness-heading,
