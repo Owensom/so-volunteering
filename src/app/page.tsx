@@ -19,7 +19,8 @@ export default function HomePage() {
 
             <div className="home-brand-text">
               <p className="home-brand-name">
-                <span>SO</span> Volunteering
+                <span className="home-brand-word-so">SO</span>
+                <span className="home-brand-word-volunteering">Volunteering</span>
               </p>
               <p className="home-brand-tagline">Belong • Grow • Thrive</p>
             </div>
@@ -153,7 +154,10 @@ export default function HomePage() {
         }
 
         .home-hero .home-brand-name {
-          display: block;
+          display: flex;
+          flex-wrap: wrap;
+          column-gap: 0.38em;
+          row-gap: 0.08em;
           max-width: 100%;
           margin: 0;
           color: #4f746d;
@@ -162,13 +166,18 @@ export default function HomePage() {
           line-height: 0.98;
           letter-spacing: clamp(0.08em, 0.8vw, 0.14em);
           text-transform: uppercase;
-          white-space: normal;
           overflow-wrap: normal;
           word-break: normal;
         }
 
-        .home-hero .home-brand-name span {
+        .home-hero .home-brand-word-so {
           color: #6c5ca0;
+          flex: 0 0 auto;
+        }
+
+        .home-hero .home-brand-word-volunteering {
+          color: #4f746d;
+          min-width: 0;
         }
 
         .home-hero .home-brand-tagline {
@@ -349,17 +358,55 @@ export default function HomePage() {
           }
 
           .home-hero .home-brand-text {
+            width: 100%;
             text-align: center;
           }
 
           .home-hero .home-brand-name {
-            font-size: clamp(1.7rem, 8vw, 2.35rem);
-            letter-spacing: 0.1em;
+            display: grid;
+            justify-items: center;
+            gap: 8px;
+            width: 100%;
+            font-size: 1rem;
+            line-height: 1;
+            letter-spacing: 0;
+          }
+
+          .home-hero .home-brand-word-so {
+            display: block;
+            font-size: clamp(2.55rem, 14vw, 4rem);
+            line-height: 0.95;
+            letter-spacing: 0.12em;
+          }
+
+          .home-hero .home-brand-word-volunteering {
+            display: block;
+            width: 100%;
+            max-width: 100%;
+            font-size: clamp(1.62rem, 7.2vw, 2.32rem);
+            line-height: 1.02;
+            letter-spacing: 0.045em;
+            overflow-wrap: normal;
+            word-break: normal;
+            white-space: nowrap;
           }
 
           .home-hero .home-brand-tagline {
-            font-size: 0.88rem;
-            letter-spacing: 0.16em;
+            font-size: clamp(0.78rem, 3.7vw, 1rem);
+            letter-spacing: 0.15em;
+            line-height: 1.35;
+          }
+        }
+
+        @media (max-width: 430px) {
+          .home-hero .home-brand-word-volunteering {
+            font-size: clamp(1.48rem, 6.9vw, 1.85rem);
+            letter-spacing: 0.035em;
+          }
+
+          .home-hero .home-brand-tagline {
+            font-size: 0.82rem;
+            letter-spacing: 0.12em;
           }
         }
 
