@@ -32,6 +32,7 @@ type ChoiceOption = {
 type GuideStep = {
   icon: string;
   title: string;
+  shortTitle: string;
   text: string;
 };
 
@@ -228,47 +229,56 @@ const guideSteps: GuideStep[] = [
   {
     icon: "💬",
     title: "Add role title and summary",
-    text: "Say what the volunteer will do using short, plain language.",
+    shortTitle: "Title",
+    text: "Plain-language role title and summary.",
   },
   {
     icon: "📍",
     title: "Add location and travel",
-    text: "Choose in-person, remote or hybrid, then add safe location details.",
+    shortTitle: "Location",
+    text: "Safe location, travel and access details.",
   },
   {
     icon: "🕒",
     title: "Choose time commitment",
-    text: "Help volunteers decide whether the role fits their week.",
+    shortTitle: "Time",
+    text: "How often or when volunteers are needed.",
   },
   {
     icon: "⭐",
     title: "Choose interests and skills",
-    text: "These choices help matching work and show what volunteers can build.",
+    shortTitle: "Skills",
+    text: "Match interests and skills volunteers can build.",
   },
   {
     icon: "💛",
     title: "Choose support offered",
-    text: "Tell volunteers what help, adjustments or reassurance is available.",
+    shortTitle: "Support",
+    text: "Support, adjustments or reassurance available.",
   },
   {
     icon: "👤",
     title: "Add contact person",
-    text: "Use an email that your organisation checks regularly.",
+    shortTitle: "Contact",
+    text: "Named contact or checked organisation inbox.",
   },
   {
     icon: "🛡️",
     title: "Add safety notes",
-    text: "Explain welcome, supervision, first visit support or location privacy.",
+    shortTitle: "Safety",
+    text: "Welcome, supervision and first-visit support.",
   },
   {
     icon: "⚖️",
     title: "Legal and safeguarding",
-    text: "Add pupil suitability, supervision, consent and safeguarding review details.",
+    shortTitle: "Safeguarding",
+    text: "Consent, supervision and safeguarding readiness.",
   },
   {
     icon: "✅",
     title: "Save or publish",
-    text: "Save as draft or publish when the role is ready for volunteers.",
+    shortTitle: "Save",
+    text: "Save as draft or publish when ready.",
   },
 ];
 
@@ -320,7 +330,12 @@ function StepSection({
   children: React.ReactNode;
 }) {
   return (
-    <section className="role-step-section" data-role-step={stepNumber}>
+    <section
+      id={`role-step-${stepNumber}`}
+      className="role-step-section"
+      data-role-step={stepNumber}
+      tabIndex={-1}
+    >
       <div className="role-step-heading">
         <span className="role-step-icon" aria-hidden="true">
           {icon}
@@ -423,7 +438,7 @@ export default async function NewOpportunityPage({
   );
 
   const listenText =
-    `This is the create opportunity page. The form is split into nine steps. Step 1 is role title and summary. Step 2 is location and travel. Step 3 is time commitment. Step 4 is interests and skills. Step 5 is support offered. Step 6 is contact person. Step 7 is safety notes. Step 8 is legal and safeguarding. Step 9 is save or publish. The guide turns green and shows a tick as each section is completed. The organisation type is currently ${organisationTypeLabel}. The safeguarding region is currently ${safeguardingRegionLabel}. Scotland uses PVG wording. England and Wales use DBS wording. Northern Ireland uses AccessNI wording. This phase records role-level legal and safeguarding readiness only. It does not change what pupils or volunteers can see yet. You can save as draft or publish if your organisation profile is complete.`;
+    `This is the create opportunity page. The form is split into nine steps. The compact step guide near the top lets you jump to each section. Step 1 is role title and summary. Step 2 is location and travel. Step 3 is time commitment. Step 4 is interests and skills. Step 5 is support offered. Step 6 is contact person. Step 7 is safety notes. Step 8 is legal and safeguarding. Step 9 is save or publish. The guide turns green and shows a tick as each section is completed. The organisation type is currently ${organisationTypeLabel}. The safeguarding region is currently ${safeguardingRegionLabel}. Scotland uses PVG wording. England and Wales use DBS wording. Northern Ireland uses AccessNI wording. This phase records role-level legal and safeguarding readiness only. It does not change what pupils or volunteers can see yet. You can save as draft or publish if your organisation profile is complete.`;
 
   return (
     <main className="onboarding-shell role-create-page">
@@ -458,10 +473,9 @@ export default async function NewOpportunityPage({
               <div>
                 <h1 className="onboarding-title">Create a volunteering role</h1>
                 <p className="onboarding-lead">
-                  Work through the steps to create a clear, supportive and
-                  realistic role. Volunteers should understand what they will do,
-                  where it happens, when it happens, what support is available,
-                  and what safeguarding checks are needed before they apply.
+                  Work through one step at a time. You can jump to a section,
+                  save as draft whenever you need, and publish when the role is
+                  clear, supportive and safe for volunteers.
                 </p>
               </div>
             </div>
@@ -505,38 +519,68 @@ export default async function NewOpportunityPage({
 
             <div>
               <p className="brand-eyebrow">Step-by-step guide</p>
-              <h2 id="role-form-guide-title">How to create this role</h2>
+              <h2 id="role-form-guide-title">Build the role one step at a time</h2>
               <p>
-                Complete the sections in order. Each guide card turns green and
-                shows a tick as the matching section is filled in.
+                Use the compact steps to jump to a section. Completed steps turn
+                green. The next unfinished step is highlighted so you always know
+                where to continue.
               </p>
             </div>
           </div>
 
-          <div className="role-form-guide-grid">
+          <div className="role-next-step-card" data-role-next-step-card>
+            <span className="role-next-step-icon" aria-hidden="true">
+              🌱
+            </span>
+
+            <div>
+              <p className="brand-eyebrow">Start here</p>
+              <h3 data-role-next-step-title>Step 1 · Role title and summary</h3>
+              <p data-role-next-step-text>
+                Add a short title and plain-language summary first.
+              </p>
+            </div>
+
+            <a
+              href="#role-step-1"
+              className="role-next-step-link"
+              data-role-next-step-link
+            >
+              Go to step
+            </a>
+          </div>
+
+          <nav
+            className="role-form-guide-grid"
+            aria-label="Create role step navigation"
+          >
             {guideSteps.map((step, index) => (
-              <article
+              <a
                 key={step.title}
+                href={`#role-step-${index + 1}`}
                 className="role-guide-step"
                 data-role-guide-step={index + 1}
               >
                 <span className="role-guide-step-number">{index + 1}</span>
 
-                <div className="role-guide-step-icon" aria-hidden="true">
+                <span className="role-guide-step-icon" aria-hidden="true">
                   {step.icon}
-                </div>
+                </span>
 
-                <div className="role-guide-step-copy">
-                  <p className="role-guide-step-kicker">
+                <span className="role-guide-step-copy">
+                  <span className="role-guide-step-kicker">
                     Step {index + 1}
                     <span data-role-guide-status={index + 1}>To do</span>
-                  </p>
-                  <h3>{step.title}</h3>
-                  <p>{step.text}</p>
-                </div>
-              </article>
+                  </span>
+                  <span className="role-guide-step-title">
+                    {step.shortTitle}
+                  </span>
+                  <span className="role-guide-step-text">{step.text}</span>
+                  <span className="role-guide-step-action">Go to step</span>
+                </span>
+              </a>
             ))}
-          </div>
+          </nav>
         </section>
 
         <section
@@ -1231,6 +1275,51 @@ export default async function NewOpportunityPage({
                 }
               }
 
+              function setCurrentStep(nextStepNumber, nextStepTitle, nextStepText) {
+                var allGuideSteps = document.querySelectorAll('[data-role-guide-step]');
+                var allSections = document.querySelectorAll('[data-role-step]');
+                var nextCard = document.querySelector('[data-role-next-step-card]');
+                var nextTitle = document.querySelector('[data-role-next-step-title]');
+                var nextText = document.querySelector('[data-role-next-step-text]');
+                var nextLink = document.querySelector('[data-role-next-step-link]');
+
+                allGuideSteps.forEach(function (node) {
+                  var nodeStep = node.getAttribute('data-role-guide-step');
+                  node.classList.toggle('role-guide-step-current', nodeStep === String(nextStepNumber));
+                });
+
+                allSections.forEach(function (node) {
+                  var nodeStep = node.getAttribute('data-role-step');
+                  node.classList.toggle('role-step-current', nodeStep === String(nextStepNumber));
+                });
+
+                if (nextCard) {
+                  nextCard.classList.toggle('role-next-step-card-complete', nextStepNumber === 10);
+                }
+
+                if (nextTitle) {
+                  nextTitle.textContent =
+                    nextStepNumber === 10
+                      ? 'All required setup steps are ready'
+                      : 'Step ' + nextStepNumber + ' · ' + nextStepTitle;
+                }
+
+                if (nextText) {
+                  nextText.textContent =
+                    nextStepNumber === 10
+                      ? 'Review the role, then save as draft or publish when ready.'
+                      : nextStepText;
+                }
+
+                if (nextLink) {
+                  nextLink.setAttribute(
+                    'href',
+                    nextStepNumber === 10 ? '#role-step-9' : '#role-step-' + nextStepNumber
+                  );
+                  nextLink.textContent = nextStepNumber === 10 ? 'Review and save' : 'Go to step';
+                }
+              }
+
               function updateRoleProgress() {
                 var form = document.querySelector('[data-role-create-form]');
                 if (!form) return;
@@ -1262,28 +1351,76 @@ export default async function NewOpportunityPage({
                   textValue(form, 'legal_safeguarding_notes');
 
                 var steps = [
-                  Boolean(textValue(form, 'title') && textValue(form, 'summary')),
-                  Boolean(hasSafeLocation),
-                  Boolean(selectValue(form, 'time_commitment')),
-                  Boolean(checkedCount(form, 'interests') > 0 && checkedCount(form, 'skills') > 0),
-                  Boolean(checkedCount(form, 'support_offered') > 0),
-                  Boolean(textValue(form, 'contact_email')),
-                  Boolean(
-                    textValue(form, 'safety_notes') ||
-                    textValue(form, 'travel_notes') ||
-                    textValue(form, 'accessibility_notes') ||
-                    isChecked(form, 'hide_exact_location')
-                  ),
-                  Boolean(hasLegalReadiness),
-                  Boolean(selectValue(form, 'status'))
+                  {
+                    complete: Boolean(textValue(form, 'title') && textValue(form, 'summary')),
+                    title: 'Role title and summary',
+                    text: 'Add a short title and plain-language summary first.'
+                  },
+                  {
+                    complete: Boolean(hasSafeLocation),
+                    title: 'Location and travel',
+                    text: 'Add a safe town, city, area, venue, or choose remote.'
+                  },
+                  {
+                    complete: Boolean(selectValue(form, 'time_commitment')),
+                    title: 'Time commitment',
+                    text: 'Choose the time pattern that best explains the role.'
+                  },
+                  {
+                    complete: Boolean(checkedCount(form, 'interests') > 0 && checkedCount(form, 'skills') > 0),
+                    title: 'Interests and skills',
+                    text: 'Choose at least one interest and one skill.'
+                  },
+                  {
+                    complete: Boolean(checkedCount(form, 'support_offered') > 0),
+                    title: 'Support offered',
+                    text: 'Choose the support volunteers can expect.'
+                  },
+                  {
+                    complete: Boolean(textValue(form, 'contact_email')),
+                    title: 'Contact person',
+                    text: 'Add the email address your organisation checks.'
+                  },
+                  {
+                    complete: Boolean(
+                      textValue(form, 'safety_notes') ||
+                      textValue(form, 'travel_notes') ||
+                      textValue(form, 'accessibility_notes') ||
+                      isChecked(form, 'hide_exact_location')
+                    ),
+                    title: 'Safety and first visit notes',
+                    text: 'Add safety, welcome, travel, access or privacy information.'
+                  },
+                  {
+                    complete: Boolean(hasLegalReadiness),
+                    title: 'Legal and safeguarding readiness',
+                    text: 'Record safeguarding, consent, supervision or review information.'
+                  },
+                  {
+                    complete: Boolean(selectValue(form, 'status')),
+                    title: 'Save or publish',
+                    text: 'Choose draft or publish, then save the role.'
+                  }
                 ];
 
                 var completeCount = 0;
+                var nextStepNumber = 10;
+                var nextStepTitle = '';
+                var nextStepText = '';
 
-                steps.forEach(function (complete, index) {
-                  if (complete) completeCount += 1;
-                  setComplete(index + 1, complete);
+                steps.forEach(function (step, index) {
+                  if (step.complete) {
+                    completeCount += 1;
+                  } else if (nextStepNumber === 10) {
+                    nextStepNumber = index + 1;
+                    nextStepTitle = step.title;
+                    nextStepText = step.text;
+                  }
+
+                  setComplete(index + 1, step.complete);
                 });
+
+                setCurrentStep(nextStepNumber, nextStepTitle, nextStepText);
 
                 var completeCountNode = document.querySelector('[data-role-complete-count]');
                 var meterNode = document.querySelector('[data-role-progress-meter]');
@@ -1311,6 +1448,10 @@ export default async function NewOpportunityPage({
         .role-create-page,
         .role-create-page * {
           box-sizing: border-box;
+        }
+
+        .role-create-page {
+          scroll-behavior: smooth;
         }
 
         .role-progress-card {
@@ -1439,14 +1580,14 @@ export default async function NewOpportunityPage({
 
         .role-form-guide-heading > span {
           display: inline-flex;
-          width: 62px;
-          height: 62px;
+          width: 58px;
+          height: 58px;
           align-items: center;
           justify-content: center;
-          border-radius: 22px;
+          border-radius: 20px;
           background: rgba(108, 92, 160, 0.12);
           box-shadow: inset 0 0 0 1px rgba(108, 92, 160, 0.14);
-          font-size: 1.85rem;
+          font-size: 1.75rem;
         }
 
         .role-form-guide-heading h2 {
@@ -1465,22 +1606,122 @@ export default async function NewOpportunityPage({
           line-height: 1.5;
         }
 
+        .role-next-step-card {
+          display: grid;
+          grid-template-columns: auto minmax(0, 1fr) auto;
+          gap: 14px;
+          align-items: center;
+          padding: 14px;
+          border: 1px solid rgba(108, 92, 160, 0.18);
+          border-radius: 22px;
+          background:
+            linear-gradient(135deg, rgba(255, 255, 255, 0.92), rgba(248, 245, 255, 0.9)),
+            rgba(255, 255, 255, 0.88);
+          box-shadow: 0 12px 30px rgba(33, 56, 48, 0.06);
+        }
+
+        .role-next-step-card-complete {
+          border-color: rgba(34, 124, 78, 0.22);
+          background:
+            linear-gradient(135deg, rgba(244, 255, 249, 0.94), rgba(255, 255, 255, 0.9)),
+            rgba(255, 255, 255, 0.88);
+        }
+
+        .role-next-step-icon {
+          display: inline-flex;
+          width: 50px;
+          height: 50px;
+          align-items: center;
+          justify-content: center;
+          border-radius: 18px;
+          background: rgba(108, 92, 160, 0.1);
+          font-size: 1.45rem;
+        }
+
+        .role-next-step-card-complete .role-next-step-icon {
+          background: rgba(34, 124, 78, 0.12);
+        }
+
+        .role-next-step-card h3 {
+          margin: 0 0 4px;
+          color: #315f48;
+          font-size: clamp(1.05rem, 2vw, 1.25rem);
+          font-weight: 950;
+          line-height: 1.15;
+        }
+
+        .role-next-step-card p {
+          margin: 0;
+          color: #60706a;
+          font-size: 0.92rem;
+          font-weight: 760;
+          line-height: 1.35;
+        }
+
+        .role-next-step-link {
+          display: inline-flex;
+          min-height: 42px;
+          align-items: center;
+          justify-content: center;
+          padding: 10px 14px;
+          border: 1px solid rgba(83, 111, 99, 0.18);
+          border-radius: 999px;
+          background: rgba(255, 255, 255, 0.88);
+          color: #536f63;
+          text-decoration: none;
+          font-size: 0.9rem;
+          font-weight: 950;
+          white-space: nowrap;
+        }
+
+        .role-next-step-link:hover,
+        .role-next-step-link:focus-visible {
+          border-color: rgba(83, 111, 99, 0.34);
+          background: rgba(244, 255, 249, 0.96);
+        }
+
         .role-form-guide-grid {
           display: grid;
-          grid-template-columns: repeat(3, minmax(0, 1fr));
-          gap: 12px;
+          grid-template-columns: repeat(9, minmax(0, 1fr));
+          gap: 8px;
         }
 
         .role-guide-step {
           position: relative;
           display: grid;
-          gap: 10px;
-          min-height: 190px;
-          padding: 15px;
+          gap: 8px;
+          min-height: 134px;
+          padding: 11px;
           border: 1px solid rgba(108, 92, 160, 0.14);
-          border-radius: 22px;
+          border-radius: 18px;
           background: rgba(255, 255, 255, 0.78);
-          box-shadow: 0 12px 28px rgba(33, 56, 48, 0.05);
+          box-shadow: 0 10px 24px rgba(33, 56, 48, 0.05);
+          color: inherit;
+          text-decoration: none;
+          transition:
+            transform 160ms ease,
+            border-color 160ms ease,
+            background 160ms ease,
+            box-shadow 160ms ease;
+        }
+
+        .role-guide-step:hover,
+        .role-guide-step:focus-visible {
+          transform: translateY(-1px);
+          border-color: rgba(108, 92, 160, 0.3);
+          background: rgba(255, 255, 255, 0.94);
+          box-shadow: 0 14px 28px rgba(33, 56, 48, 0.08);
+          outline: none;
+        }
+
+        .role-guide-step-current {
+          border-color: rgba(108, 92, 160, 0.38);
+          background:
+            radial-gradient(circle at top left, rgba(222, 214, 255, 0.34), transparent 38%),
+            rgba(255, 255, 255, 0.9);
+          box-shadow:
+            0 14px 30px rgba(33, 56, 48, 0.08),
+            0 0 0 3px rgba(108, 92, 160, 0.08);
         }
 
         .role-guide-step-complete {
@@ -1493,17 +1734,17 @@ export default async function NewOpportunityPage({
 
         .role-guide-step-number {
           position: absolute;
-          top: 12px;
-          right: 12px;
+          top: 8px;
+          right: 8px;
           display: inline-flex;
-          width: 30px;
-          height: 30px;
+          width: 24px;
+          height: 24px;
           align-items: center;
           justify-content: center;
           border-radius: 999px;
           background: rgba(108, 92, 160, 0.12);
           color: #4f4b82;
-          font-size: 0.82rem;
+          font-size: 0.74rem;
           font-weight: 950;
           line-height: 1;
         }
@@ -1515,14 +1756,14 @@ export default async function NewOpportunityPage({
 
         .role-guide-step-icon {
           display: inline-flex;
-          width: 52px;
-          height: 52px;
+          width: 38px;
+          height: 38px;
           align-items: center;
           justify-content: center;
-          border-radius: 18px;
+          border-radius: 14px;
           background: rgba(248, 248, 252, 0.96);
           box-shadow: inset 0 0 0 1px rgba(108, 92, 160, 0.08);
-          font-size: 1.55rem;
+          font-size: 1.15rem;
         }
 
         .role-guide-step-complete .role-guide-step-icon {
@@ -1532,34 +1773,36 @@ export default async function NewOpportunityPage({
 
         .role-guide-step-copy {
           display: grid;
-          gap: 6px;
+          gap: 5px;
+          min-width: 0;
         }
 
         .role-guide-step-kicker {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 8px;
-          align-items: center;
+          display: grid;
+          gap: 4px;
           margin: 0;
-          padding-right: 34px;
+          padding-right: 24px;
           color: #6c5ca0;
-          font-size: 0.78rem;
+          font-size: 0.66rem;
           font-weight: 950;
           letter-spacing: 0.08em;
+          line-height: 1.1;
           text-transform: uppercase;
         }
 
         .role-guide-step-kicker span {
           display: inline-flex;
-          min-height: 24px;
+          width: fit-content;
+          min-height: 20px;
           align-items: center;
           justify-content: center;
-          padding: 5px 8px;
+          padding: 4px 7px;
           border-radius: 999px;
           background: rgba(108, 92, 160, 0.1);
           color: #6c5ca0;
-          font-size: 0.68rem;
+          font-size: 0.64rem;
           letter-spacing: 0;
+          line-height: 1;
           text-transform: none;
         }
 
@@ -1572,21 +1815,35 @@ export default async function NewOpportunityPage({
           background: rgba(34, 124, 78, 0.12);
         }
 
-        .role-guide-step-copy h3 {
-          margin: 0;
-          padding-right: 32px;
+        .role-guide-step-title {
+          display: block;
           color: #315f48;
-          font-size: 1rem;
+          font-size: 0.9rem;
           font-weight: 950;
-          line-height: 1.14;
+          line-height: 1.12;
+          overflow-wrap: anywhere;
         }
 
-        .role-guide-step-copy p {
-          margin: 0;
+        .role-guide-step-text {
+          display: block;
           color: #60706a;
-          font-size: 0.92rem;
+          font-size: 0.76rem;
           font-weight: 740;
-          line-height: 1.42;
+          line-height: 1.25;
+        }
+
+        .role-guide-step-action {
+          display: inline-flex;
+          width: fit-content;
+          margin-top: 2px;
+          color: #6c5ca0;
+          font-size: 0.72rem;
+          font-weight: 950;
+          line-height: 1.1;
+        }
+
+        .role-guide-step-complete .role-guide-step-action {
+          color: #145c38;
         }
 
         .role-readiness-panel,
@@ -1750,10 +2007,22 @@ export default async function NewOpportunityPage({
           display: grid;
           gap: 18px;
           padding: 20px;
+          scroll-margin-top: 24px;
           border: 1px solid rgba(108, 92, 160, 0.14);
           border-radius: 28px;
           background: rgba(255, 255, 255, 0.68);
           box-shadow: 0 14px 34px rgba(33, 56, 48, 0.05);
+        }
+
+        .role-step-section:focus {
+          outline: none;
+        }
+
+        .role-step-current {
+          border-color: rgba(108, 92, 160, 0.34);
+          box-shadow:
+            0 16px 36px rgba(33, 56, 48, 0.07),
+            0 0 0 4px rgba(108, 92, 160, 0.07);
         }
 
         .role-step-complete {
@@ -1881,13 +2150,48 @@ export default async function NewOpportunityPage({
           accent-color: #536f63;
         }
 
-        @media (max-width: 1180px) {
+        @media (max-width: 1280px) {
           .role-form-guide-grid {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
+            grid-template-columns: repeat(3, minmax(0, 1fr));
           }
 
+          .role-guide-step {
+            grid-template-columns: auto minmax(0, 1fr);
+            align-items: start;
+            min-height: 116px;
+          }
+
+          .role-guide-step-number {
+            top: 10px;
+            right: 10px;
+          }
+
+          .role-guide-step-icon {
+            margin-top: 26px;
+          }
+        }
+
+        @media (max-width: 1180px) {
           .role-safeguarding-context-grid {
             grid-template-columns: 1fr;
+          }
+        }
+
+        @media (max-width: 860px) {
+          .role-form-guide-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .role-guide-step {
+            min-height: 0;
+          }
+
+          .role-guide-step-text {
+            display: none;
+          }
+
+          .role-guide-step-action {
+            margin-top: 0;
           }
         }
 
@@ -1898,6 +2202,14 @@ export default async function NewOpportunityPage({
           .role-step-heading,
           .role-safeguarding-context {
             grid-template-columns: 1fr;
+          }
+
+          .role-next-step-card {
+            grid-template-columns: 1fr;
+          }
+
+          .role-next-step-link {
+            width: 100%;
           }
 
           .role-form-guide,
@@ -1919,13 +2231,8 @@ export default async function NewOpportunityPage({
             border-radius: 20px;
           }
 
-          .role-form-guide-grid,
           .safeguarding-check-grid {
             grid-template-columns: 1fr;
-          }
-
-          .role-guide-step {
-            min-height: 0;
           }
 
           .privacy-check-row,
