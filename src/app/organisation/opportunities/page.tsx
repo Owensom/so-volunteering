@@ -159,7 +159,6 @@ function getFrequencyPatternLabel(value: string | null | undefined) {
 
   return "Frequency not set";
 }
-
 function hasLegalSafeguardingReadiness(opportunity: Opportunity) {
   return Boolean(
     (opportunity.minimum_age_stage &&
@@ -265,7 +264,9 @@ function getSafetyBadges(opportunity: Opportunity): SafetyBadge[] {
 
   badges.push({
     icon: "🛡️",
-    label: getSafeguardingCheckRegionLabel(opportunity.safeguarding_check_region),
+    label: getSafeguardingCheckRegionLabel(
+      opportunity.safeguarding_check_region,
+    ),
     className:
       opportunity.safeguarding_check_region &&
       opportunity.safeguarding_check_region !== "organisation_default"
@@ -381,7 +382,6 @@ function getSafetyBadges(opportunity: Opportunity): SafetyBadge[] {
 
   return badges;
 }
-
 function getRoleReadiness(opportunity: Opportunity, counts: RoleCounts) {
   const status = normaliseOpportunityStatus(opportunity.status);
   const hasTitle = Boolean(opportunity.title?.trim());
@@ -592,8 +592,7 @@ export default async function OrganisationOpportunitiesPage() {
   if (userType !== "organisation") {
     redirect("/dashboard");
   }
-
-  const { data: opportunities } = await supabase
+    const { data: opportunities } = await supabase
     .from("opportunities")
     .select(
       "id,title,summary,location_type,location,time_commitment,status,created_at,minimum_age_stage,suitable_for_pupils,parent_carer_consent_required,school_approval_required,safeguarding_check_region,safeguarding_review_required,supervision_required,no_lone_working,no_home_visits,no_money_handling,no_personal_care,no_private_messaging,risk_assessment_completed,named_safeguarding_contact,legal_safeguarding_notes,role_frequency_pattern",
@@ -616,7 +615,8 @@ export default async function OrganisationOpportunitiesPage() {
   const interestCountMap = buildInterestCountMap(interestRows);
 
   const publishedCount = rows.filter(
-    (opportunity) => normaliseOpportunityStatus(opportunity.status) === "published",
+    (opportunity) =>
+      normaliseOpportunityStatus(opportunity.status) === "published",
   ).length;
 
   const draftCount = rows.filter(
@@ -624,7 +624,8 @@ export default async function OrganisationOpportunitiesPage() {
   ).length;
 
   const closedCount = rows.filter(
-    (opportunity) => normaliseOpportunityStatus(opportunity.status) === "closed",
+    (opportunity) =>
+      normaliseOpportunityStatus(opportunity.status) === "closed",
   ).length;
 
   const totalInterestCount = interestRows.length;
@@ -665,7 +666,8 @@ export default async function OrganisationOpportunitiesPage() {
       icon: "⚖️",
       title: "Check safeguarding",
       text: "Use the role-level legal and safeguarding fields before relying on a role for pupils or younger volunteers.",
-      isComplete: rows.length > 0 && rolesWithSafeguardingStarted === rows.length,
+      isComplete:
+        rows.length > 0 && rolesWithSafeguardingStarted === rows.length,
     },
     {
       icon: "✅",
@@ -696,7 +698,7 @@ export default async function OrganisationOpportunitiesPage() {
         <header className="dashboard-topbar">
           <Link
             href="/organisation/dashboard"
-            className="dashboard-brand"
+            className="dashboard-brand opportunities-dashboard-brand"
             aria-label="Back to organisation dashboard"
           >
             <img
@@ -705,9 +707,16 @@ export default async function OrganisationOpportunitiesPage() {
               className="dashboard-brand-mark"
               aria-hidden="true"
             />
-            <span className="dashboard-brand-text">
-              <span className="dashboard-brand-name">SO Volunteering</span>
-              <span className="dashboard-brand-tagline">
+            <span className="dashboard-brand-text opportunities-brand-text">
+              <span className="dashboard-brand-name opportunities-brand-name">
+                <span className="opportunities-brand-word opportunities-brand-word-so">
+                  SO
+                </span>
+                <span className="opportunities-brand-word opportunities-brand-word-volunteering">
+                  Volunteering
+                </span>
+              </span>
+              <span className="dashboard-brand-tagline opportunities-brand-tagline">
                 Belong • Grow • Thrive
               </span>
             </span>
@@ -788,8 +797,10 @@ export default async function OrganisationOpportunitiesPage() {
               </Link>
             </div>
           </div>
-
-          <aside className="dashboard-progress-card" aria-label="Opportunity counts">
+                    <aside
+            className="dashboard-progress-card"
+            aria-label="Opportunity counts"
+          >
             <div className="dashboard-progress-header">
               <span className="dashboard-progress-icon" aria-hidden="true">
                 ✨
@@ -827,7 +838,10 @@ export default async function OrganisationOpportunitiesPage() {
 
         <RoleGuide steps={guideSteps} />
 
-        <section className="role-privacy-panel" aria-labelledby="role-privacy-title">
+        <section
+          className="role-privacy-panel"
+          aria-labelledby="role-privacy-title"
+        >
           <div className="role-privacy-icon" aria-hidden="true">
             🛡️
           </div>
@@ -920,7 +934,10 @@ export default async function OrganisationOpportunitiesPage() {
             </Link>
           </section>
         ) : (
-          <section className="dashboard-grid role-management-grid" aria-label="Opportunity list">
+          <section
+            className="dashboard-grid role-management-grid"
+            aria-label="Opportunity list"
+          >
             {rows.map((opportunity) => {
               const counts =
                 interestCountMap.get(opportunity.id) || emptyRoleCounts();
@@ -953,7 +970,9 @@ export default async function OrganisationOpportunitiesPage() {
                       <h2>{opportunity.title}</h2>
                       <p>{opportunity.summary}</p>
 
-                      <div className={`role-readiness-card ${readiness.className}`}>
+                      <div
+                        className={`role-readiness-card ${readiness.className}`}
+                      >
                         <span aria-hidden="true">{readiness.icon}</span>
                         <div>
                           <strong>{readiness.label}</strong>
@@ -970,8 +989,7 @@ export default async function OrganisationOpportunitiesPage() {
                           <p>{safetyReadiness.text}</p>
                         </div>
                       </div>
-
-                      <div className="role-safety-badge-grid">
+                                            <div className="role-safety-badge-grid">
                         {safetyBadges.map((badge) => (
                           <span
                             key={`${opportunity.id}-${badge.icon}-${badge.label}`}
@@ -1077,6 +1095,57 @@ export default async function OrganisationOpportunitiesPage() {
           overflow-x: hidden;
         }
 
+        .organisation-opportunities-page .dashboard-shell {
+          max-width: 1180px;
+          overflow-x: hidden;
+        }
+
+        .opportunities-dashboard-brand {
+          min-width: 0;
+          max-width: 100%;
+          overflow: hidden;
+        }
+
+        .opportunities-brand-text {
+          min-width: 0;
+          max-width: 100%;
+          overflow: hidden;
+        }
+
+        .opportunities-brand-name {
+          display: flex;
+          min-width: 0;
+          max-width: 100%;
+          align-items: baseline;
+          gap: 0.28em;
+          white-space: normal;
+          overflow: visible;
+          line-height: 1.02;
+        }
+
+        .opportunities-brand-word {
+          display: inline-block;
+          min-width: 0;
+          max-width: 100%;
+          overflow-wrap: normal;
+          word-break: normal;
+          hyphens: none;
+        }
+
+        .opportunities-brand-word-so {
+          flex: 0 0 auto;
+        }
+
+        .opportunities-brand-word-volunteering {
+          flex: 0 1 auto;
+        }
+
+        .opportunities-brand-tagline {
+          min-width: 0;
+          max-width: 100%;
+          overflow-wrap: anywhere;
+        }
+
         .dashboard-grid,
         .role-management-grid {
           align-items: stretch;
@@ -1133,8 +1202,7 @@ export default async function OrganisationOpportunitiesPage() {
           border-radius: 22px;
           font-size: 1.9rem;
         }
-
-        .role-guide-heading > span,
+                .role-guide-heading > span,
         .role-legal-list-icon {
           background: rgba(108, 92, 160, 0.12);
           box-shadow: inset 0 0 0 1px rgba(108, 92, 160, 0.14);
@@ -1318,8 +1386,7 @@ export default async function OrganisationOpportunitiesPage() {
           font-weight: 740;
           line-height: 1.42;
         }
-
-        .role-count-grid {
+                .role-count-grid {
           display: grid;
           grid-template-columns: repeat(4, minmax(0, 1fr));
           gap: 14px;
@@ -1517,8 +1584,7 @@ export default async function OrganisationOpportunitiesPage() {
           border-color: rgba(108, 92, 160, 0.18);
           background: rgba(248, 245, 255, 0.86);
         }
-
-        .role-safety-attention {
+                .role-safety-attention {
           border-color: rgba(190, 118, 76, 0.28);
           background: rgba(255, 248, 241, 0.9);
         }
@@ -1654,6 +1720,79 @@ export default async function OrganisationOpportunitiesPage() {
             padding-right: 18px;
           }
 
+          .organisation-opportunities-page .dashboard-topbar {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 14px;
+            align-items: stretch;
+            overflow: hidden;
+          }
+
+          .organisation-opportunities-page .opportunities-dashboard-brand {
+            display: grid;
+            grid-template-columns: auto minmax(0, 1fr);
+            width: 100%;
+            min-width: 0;
+            align-items: center;
+            gap: 10px;
+            overflow: hidden;
+          }
+
+          .organisation-opportunities-page .dashboard-brand-mark {
+            width: 42px;
+            height: 42px;
+            flex: 0 0 auto;
+          }
+
+          .organisation-opportunities-page .opportunities-brand-text {
+            display: grid;
+            width: 100%;
+            min-width: 0;
+            overflow: visible;
+          }
+
+          .organisation-opportunities-page .opportunities-brand-name {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 0;
+            width: 100%;
+            min-width: 0;
+            overflow: visible;
+            white-space: normal;
+            line-height: 0.94;
+          }
+
+          .organisation-opportunities-page .opportunities-brand-word-so,
+          .organisation-opportunities-page .opportunities-brand-word-volunteering {
+            display: block;
+            width: 100%;
+            min-width: 0;
+            max-width: 100%;
+            overflow: visible;
+            text-overflow: clip;
+            white-space: normal;
+            word-break: keep-all;
+            overflow-wrap: normal;
+            hyphens: none;
+          }
+
+          .organisation-opportunities-page .opportunities-brand-word-so {
+            font-size: clamp(1.25rem, 9vw, 2rem);
+            letter-spacing: -0.05em;
+          }
+
+          .organisation-opportunities-page .opportunities-brand-word-volunteering {
+            font-size: clamp(1.05rem, 7.4vw, 1.58rem);
+            letter-spacing: -0.065em;
+          }
+
+          .organisation-opportunities-page .opportunities-brand-tagline {
+            margin-top: 4px;
+            font-size: 0.72rem;
+            line-height: 1.1;
+            white-space: normal;
+          }
+
           .organisation-opportunities-page .dashboard-topbar-actions {
             width: 100%;
             justify-content: stretch;
@@ -1704,8 +1843,7 @@ export default async function OrganisationOpportunitiesPage() {
           .role-status-pill {
             width: 100%;
           }
-
-          .role-readiness-card,
+                    .role-readiness-card,
           .role-safety-card {
             grid-template-columns: 1fr;
           }
@@ -1727,6 +1865,28 @@ export default async function OrganisationOpportunitiesPage() {
           .organisation-opportunities-page .dashboard-shell {
             padding-left: 14px;
             padding-right: 14px;
+          }
+
+          .organisation-opportunities-page .opportunities-dashboard-brand {
+            gap: 9px;
+          }
+
+          .organisation-opportunities-page .dashboard-brand-mark {
+            width: 38px;
+            height: 38px;
+          }
+
+          .organisation-opportunities-page .opportunities-brand-word-so {
+            font-size: clamp(1.18rem, 8.4vw, 1.75rem);
+          }
+
+          .organisation-opportunities-page .opportunities-brand-word-volunteering {
+            font-size: clamp(0.98rem, 6.8vw, 1.38rem);
+            letter-spacing: -0.075em;
+          }
+
+          .organisation-opportunities-page .opportunities-brand-tagline {
+            font-size: 0.68rem;
           }
 
           .role-interest-summary {
