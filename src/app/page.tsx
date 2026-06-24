@@ -25,7 +25,9 @@ export default function HomePage() {
             </div>
           </div>
 
-          <InclusiveAudioButton text={listenText} />
+          <div className="home-listen-wrap">
+            <InclusiveAudioButton text={listenText} />
+          </div>
         </div>
 
         <h1 className="home-title" aria-label="Belong. Grow. Thrive.">
@@ -118,6 +120,77 @@ export default function HomePage() {
       </section>
 
       <style>{`
+        .page-top-row {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) auto;
+          gap: clamp(18px, 3vw, 34px);
+          align-items: start;
+          width: 100%;
+          margin-bottom: clamp(22px, 4vw, 36px);
+        }
+
+        .home-brand-card {
+          display: grid;
+          grid-template-columns: auto minmax(0, 1fr);
+          gap: clamp(14px, 2vw, 20px);
+          align-items: center;
+          min-width: 0;
+          max-width: 100%;
+        }
+
+        .home-brand-mark {
+          width: clamp(68px, 8vw, 94px);
+          height: clamp(68px, 8vw, 94px);
+          object-fit: contain;
+          flex: 0 0 auto;
+        }
+
+        .home-brand-text {
+          min-width: 0;
+          text-align: left;
+        }
+
+        .home-brand-name {
+          margin: 0;
+          color: #4f746d;
+          font-size: clamp(2rem, 4.8vw, 4rem);
+          font-weight: 950;
+          line-height: 0.95;
+          letter-spacing: 0.14em;
+          text-transform: uppercase;
+          overflow-wrap: normal;
+          word-break: normal;
+          white-space: nowrap;
+        }
+
+        .home-brand-name span {
+          color: #6c5ca0;
+        }
+
+        .home-brand-tagline {
+          margin: 8px 0 0;
+          color: #e5b95a;
+          font-size: clamp(0.92rem, 1.7vw, 1.35rem);
+          font-weight: 950;
+          letter-spacing: 0.22em;
+          text-transform: uppercase;
+          white-space: nowrap;
+        }
+
+        .home-listen-wrap {
+          display: flex;
+          min-width: 310px;
+          max-width: 420px;
+          justify-content: flex-end;
+          align-items: flex-start;
+          position: relative;
+          z-index: 2;
+        }
+
+        .home-listen-wrap > * {
+          max-width: 100%;
+        }
+
         .home-about-card {
           width: 100%;
           display: grid;
@@ -222,6 +295,29 @@ export default function HomePage() {
           line-height: 1.42;
         }
 
+        @media (max-width: 1120px) {
+          .page-top-row {
+            grid-template-columns: 1fr;
+            justify-items: center;
+            text-align: center;
+          }
+
+          .home-brand-card {
+            justify-self: center;
+          }
+
+          .home-brand-text {
+            text-align: left;
+          }
+
+          .home-listen-wrap {
+            width: 100%;
+            min-width: 0;
+            max-width: 100%;
+            justify-content: center;
+          }
+        }
+
         @media (max-width: 860px) {
           .home-about-grid {
             grid-template-columns: 1fr;
@@ -229,6 +325,45 @@ export default function HomePage() {
 
           .home-about-mini-card {
             min-height: 0;
+          }
+        }
+
+        @media (max-width: 640px) {
+          .page-top-row {
+            gap: 18px;
+            margin-bottom: 22px;
+          }
+
+          .home-brand-card {
+            grid-template-columns: 1fr;
+            justify-items: center;
+            text-align: center;
+          }
+
+          .home-brand-mark {
+            width: 76px;
+            height: 76px;
+          }
+
+          .home-brand-text {
+            text-align: center;
+          }
+
+          .home-brand-name {
+            font-size: clamp(1.65rem, 8vw, 2.35rem);
+            letter-spacing: 0.1em;
+            white-space: normal;
+            overflow-wrap: anywhere;
+          }
+
+          .home-brand-tagline {
+            font-size: 0.88rem;
+            letter-spacing: 0.16em;
+            white-space: normal;
+          }
+
+          .home-listen-wrap {
+            justify-content: center;
           }
         }
 
